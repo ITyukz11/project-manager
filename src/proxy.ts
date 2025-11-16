@@ -31,9 +31,9 @@ export async function proxy(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  // If logged in and tries to access /login or /, redirect to the correct dashboard
+  // If logged in and tries to access /login or /, redirect to the correct accounts
   if (token && (pathname === "/login" || pathname === "/")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/accounts", request.url));
   }
 
   // Optional: enable temporary logging while debugging (remove/disable in prod)
@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
   // If user hits /login and is already authenticated, redirect them to home
   if (token && pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/accounts";
     return NextResponse.redirect(url);
   }
 

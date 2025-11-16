@@ -2,8 +2,12 @@
 import { motion } from "framer-motion";
 import { LoginForm } from "./(components)/login-form";
 import { cn } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 const LoginPage = () => {
+  const { data: session } = useSession();
+
+  console.log("Current session in login page:", session);
   return (
     <div
       className={cn(

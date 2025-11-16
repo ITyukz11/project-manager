@@ -34,24 +34,24 @@ export const LoginForm = () => {
   const form = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   });
 
   // Replace z.infer<typeof LoginSchema> with an appropriate type if you use Zod
-  const onSubmit = async (values: { email: string; password: string }) => {
+  const onSubmit = async (values: { username: string; password: string }) => {
     setLoading(true);
 
     try {
       const signInResult = await signIn("credentials", {
-        email: values.email,
+        username: values.username,
         password: values.password,
         redirect: false, // we'll handle navigation
       });
       if (signInResult?.ok) {
-        toast.success("Welcome back.");
-        router.push("/dashboard");
+        toast.success("Welcome back bitch.");
+        router.push("/accounts");
       } else {
         toast.error(signInResult?.error);
       }
@@ -74,7 +74,7 @@ export const LoginForm = () => {
         </h1>
 
         <p className="text-center text-xs md:text-sm text-muted-foreground mb-4">
-          Enter your email below to login
+          Enter your username below to login
         </p>
       </div>
       <Form {...form}>
@@ -85,10 +85,10 @@ export const LoginForm = () => {
           <div className="space-y-4">
             <FormField
               control={form.control}
-              name="email"
+              name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>Username</FormLabel>
                   <FormControl>
                     <Input {...field} disabled={loading} />
                   </FormControl>
