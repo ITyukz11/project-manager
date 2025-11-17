@@ -44,6 +44,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           username: user.username || "",
           name: user.name || "",
+          role: user.role,
         };
 
         return authUser;
@@ -58,12 +59,14 @@ export const authOptions: NextAuthOptions = {
         token.email = user.email;
         token.username = user.username;
         token.name = user.name;
+        token.role = user.role;
       }
 
       // 👇 Allow `update()` to work dynamically
       if (trigger === "update" && session?.user) {
         token.userName = session.user.userName;
         token.email = session.user.email;
+        token.role = user.role;
       }
 
       return token;
@@ -77,6 +80,7 @@ export const authOptions: NextAuthOptions = {
           email: token.email,
           username: token.username,
           name: token.name,
+          role: token.role,
         };
       }
 

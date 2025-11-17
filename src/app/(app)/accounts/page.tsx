@@ -13,9 +13,12 @@ import { Plus, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { userColumns } from "@/components/table/users/userColumn";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import { useState } from "react";
+import { AccountFormDialog } from "./(components)/AccountFormDialog";
 
 export default function SettingsAccountPage() {
   const { usersData, usersLoading, usersError } = useUsers();
+  const [open, setOpen] = useState(false);
   const hiddenColumns = ["color"];
 
   // Advanced Filter Sheet UI
@@ -43,7 +46,7 @@ export default function SettingsAccountPage() {
                 </TooltipContent>
               </Tooltip>
             )}
-            <Button>
+            <Button onClick={() => setOpen(true)}>
               <Plus />
               Add Account
             </Button>
@@ -77,6 +80,7 @@ export default function SettingsAccountPage() {
           />
         )}
       </CardContent>
+      <AccountFormDialog open={open} onOpenChange={setOpen} />
     </Card>
   );
 }
