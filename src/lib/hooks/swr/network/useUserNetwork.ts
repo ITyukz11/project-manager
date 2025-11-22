@@ -1,38 +1,25 @@
-"use client";
-
-import { User } from "@prisma/client";
+import { NetworkUser } from "@prisma/client";
 import useSWR from "swr";
 
-const fetchUsersNetwork = async (url: string) => {
-  try {
-    const response = await fetch(url, { method: "GET" });
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch");
-    }
-
-    const data: User[] = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Error fetching users network:", error);
-    throw error;
-  }
+// useSWR key can be an array: [url, "POST"]
+const fetchUsersNetwork = async ([url, method]: [string, string]) => {
+  const response = await fetch(url, { method });
+  if (!response.ok) throw new Error("Failed to fetch");
+  return response.json();
 };
 
 export const useUsersNetwork = () => {
-  const { data, error, mutate } = useSWR<User[]>(
-    `/api/user-network`,
-    fetchUsersNetwork,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      refreshInterval: 0,
-      dedupingInterval: 60 * 1000,
-    }
-  );
+  const { data, error, mutate } = useSWR<
+    (NetworkUser & { _count?: { groupChats?: number } })[]
+  >(["/api/network/users", "GET"], fetchUsersNetwork, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    refreshInterval: 0,
+    dedupingInterval: 60 * 1000,
+  });
 
   return {
-    usersDataNetwork: data,
+    usersDataNetwork: data ?? [],
     usersLoadingNetwork: !error && !data,
     usersErrorNetwork: error,
     refetchUsersNetwork: mutate,

@@ -40,7 +40,7 @@ export function InputFormField({
       control={form.control}
       name={fieldName}
       render={({ field }) => (
-        <FormItem className={cn("flex flex-col space-y-1", className)}>
+        <FormItem className={cn("flex flex-col", className)}>
           {label && (
             <FormLabel>
               {label}

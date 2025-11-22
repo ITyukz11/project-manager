@@ -54,6 +54,7 @@ export const LoginForm = () => {
         router.push("/accounts");
       } else {
         toast.error(signInResult?.error);
+        setLoading(false);
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err: unknown) {

@@ -1,0 +1,187 @@
+"use client";
+
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { GlobalFormField } from "@/components/common/form";
+import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
+import { ROLES } from "@/lib/types/role";
+import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
+import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
+
+// Exclude ADMIN, LOADER, and TL
+const allowedRoles = Object.values(ROLES).filter(
+  (role) => !["ADMIN", "LOADER", "TL"].includes(role)
+);
+
+// Add "groupChats" to your Zod Schema
+const NetworkUserFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  username: z.string().optional(),
+  messengerLink: z.string().optional(),
+  type: z.enum(allowedRoles, { message: "User type is required" }),
+  groupChats: z.array(z.string()).optional(), // groupChat IDs as strings
+});
+
+export type NetworkUserFormDialogValues = z.infer<typeof NetworkUserFormSchema>;
+
+export function NetworkUserFormDialog({ open, onOpenChange }) {
+  const [loading, setLoading] = React.useState(false);
+  const { groupChatsData, groupChatsLoading } = useGroupChats();
+  const { refetchUsersNetwork } = useUsersNetwork();
+
+  const form = useForm<NetworkUserFormDialogValues>({
+    resolver: zodResolver(NetworkUserFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      username: "",
+      messengerLink: "",
+      type: undefined,
+      groupChats: [],
+    },
+  });
+
+  React.useEffect(() => {
+    form.reset();
+  }, [form, open]);
+
+  async function handleSubmit(values: NetworkUserFormDialogValues) {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/network/users", {
+        method: "POST",
+        body: JSON.stringify(values),
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error || "Failed to create network user.");
+        return;
+      }
+      toast.success("Network user created successfully!");
+      refetchUsersNetwork();
+      onOpenChange?.(false);
+      form.reset();
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  console.log("form errors:", form.formState.errors);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="overflow-y-auto max-h-[90vh]">
+        <DialogHeader>
+          <DialogTitle>New Network User</DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6 "
+            autoComplete="off"
+          >
+            <GlobalFormField
+              form={form}
+              fieldName="name"
+              label="Name"
+              required
+              type="text"
+              placeholder="Enter name"
+            />
+
+            <GlobalFormField
+              form={form}
+              fieldName="email"
+              label="Email"
+              required
+              type="text"
+              placeholder="Enter email"
+            />
+
+            <GlobalFormField
+              form={form}
+              fieldName="username"
+              label="Username"
+              required
+              type="text"
+              placeholder="Enter username (optional)"
+            />
+
+            <GlobalFormField
+              form={form}
+              fieldName="type"
+              label="Role"
+              required
+              type="select"
+              options={allowedRoles.map((type) => ({
+                label: type,
+                value: type,
+              }))}
+              placeholder="Select user type"
+            />
+            <GlobalFormField
+              form={form}
+              fieldName="groupChats"
+              label="Add Group Chats"
+              required={false}
+              type="multiselect"
+              items={
+                groupChatsLoading
+                  ? []
+                  : groupChatsData?.map((chat) => ({
+                      label: chat.name,
+                      value: chat.id,
+                    })) || []
+              }
+              placeholder={
+                groupChatsLoading
+                  ? "Loading..."
+                  : "Select group chats (optional)"
+              }
+            />
+            <GlobalFormField
+              form={form}
+              fieldName="messengerLink"
+              label="Messenger Link"
+              required={false}
+              type="text"
+              placeholder="Enter messenger link (optional)"
+            />
+            <DialogFooter>
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Spinner /> Submitting...
+                  </>
+                ) : (
+                  "Submit"
+                )}
+              </Button>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={loading}>
+                  Cancel
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}

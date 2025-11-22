@@ -1,0 +1,31 @@
+model User {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  password       String
+  name           String
+  username       String?     @unique
+  role           Role
+  messengerLink  String?
+  active         Boolean     @default(true)
+
+  networkUsers   NetworkUser[]
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model NetworkUser {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  name           String
+  username       String?     @unique
+  messengerLink  String?
+  type           Role
+  active         Boolean     @default(true)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+
+  groupChats     GroupChat[] 
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}

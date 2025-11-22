@@ -1,4 +1,4 @@
-import { NextAuthOptions, User } from "next-auth";
+import { getServerSession, NextAuthOptions, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcrypt";
 import prisma from "@/lib/prisma";
@@ -92,3 +92,17 @@ export const authOptions: NextAuthOptions = {
     signOut: "/auth/login",
   },
 };
+
+export async function getCurrentUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return null;
+  // You can also use id if the session includes it!
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    // or:   { id: session.user.id }
+  });
+  if (!user) return null;
+  // Optionally remove sensitive info
+  const { ...safeUser } = user;
+  return safeUser;
+}

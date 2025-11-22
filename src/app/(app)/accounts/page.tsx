@@ -52,7 +52,6 @@ export default function SettingsAccountPage() {
             </Button>
           </div>
         </div>
-        <Separator />
 
         {/* Table */}
         {usersLoading ? (

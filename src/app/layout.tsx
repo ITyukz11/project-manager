@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MIADP MIS",
-  description: "MIADP Management Information System",
+  title: "Project Manager",
+  description: "Project Management System",
 };
 
 export default function RootLayout({
