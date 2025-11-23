@@ -33,9 +33,12 @@ const Page = () => {
           <ArrowLeft />
           Back
         </div>
-        <Label className="text-md font-semibold">
-          {id} {groupChats.length > 0 ? `(${groupChats.length} GCs)` : ""}
-        </Label>
+        {groupChats && (
+          <Label className="text-md font-semibold">
+            {id} {groupChats.length > 0 ? `(${groupChats.length} GCs)` : ""}
+          </Label>
+        )}
+
         <div className="flex flex-row gap-2">
           {error && (
             <Tooltip>

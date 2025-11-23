@@ -25,7 +25,7 @@ export const navLinks: MenuLink[] = [
     targetBlank: true,
   },
   {
-    href: "/network",
+    href: "/network/accounts",
     text: "Network",
     icon: Share2, // Replaced Barcode with Share2 for network
     disable: true,

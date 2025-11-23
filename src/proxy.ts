@@ -46,6 +46,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Redirect /network exactly to /network/accounts
+  if (pathname === "/network") {
+    return NextResponse.redirect(new URL("/network/accounts", request.url));
+  }
+
   // If no token, redirect to login
   if (!token) {
     const url = request.nextUrl.clone();
