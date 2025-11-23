@@ -8,6 +8,7 @@ import { DataTableColumnHeader } from "../data-table-column-header";
 export type CashoutForTable = {
   id: string;
   amount: number;
+  userName: string;
   mop: string;
   accName: string;
   accNumber: string;
@@ -34,6 +35,16 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
       // Show Admin's name if present, else NetworkUser name
       const entry = cashout.createdByAdmin?.name || cashout.user?.name || "—";
       return <span className="font-medium">{entry}</span>;
+    },
+  },
+  {
+    accessorKey: "userName",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Username" />
+    ),
+    cell: ({ row }) => {
+      // Show Admin's name if present, else NetworkUser name
+      return <span className="font-medium">{row.original.userName}</span>;
     },
   },
   {
@@ -98,7 +109,7 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {format(new Date(row.original.createdAt), "MMM dd, yyyy HH:mm")}
+        {format(new Date(row.original.createdAt), "MMM. dd, yyyy h:mm:aa")}
       </span>
     ),
   },
