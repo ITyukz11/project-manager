@@ -19,10 +19,21 @@ export async function PATCH(
   }
 
   try {
+    // 1. Update the cashout status
     const cashout = await prisma.cashout.update({
-      where: { id: id },
+      where: { id },
       data: { status },
     });
+
+    // 2. Log this status change in CashoutLogs
+    await prisma.cashoutLogs.create({
+      data: {
+        action: status, // record new status as the action (or use something like `Status changed to X`)
+        cashoutId: id,
+        performedById: session.user.id,
+      },
+    });
+
     return NextResponse.json({ success: true, cashout });
   } catch (e) {
     return NextResponse.json(

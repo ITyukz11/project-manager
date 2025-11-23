@@ -12,6 +12,7 @@ model User {
   cashoutThreads   CashoutThread[]             // comments made by this user
   mentionedInThreads CashoutThread[] @relation("CashoutThreadMentions")
   cashouts         Cashout[]                  // cashouts created by/for this user
+  cashoutLogs      CashoutLogs[]               // logs of actions performed by this user
   ownedSuperAdmins SuperAdmin[] @relation("UserOwnedSuperAdmins")
   ownedSuperAdminsId       String?  
   createdAt        DateTime        @default(now())

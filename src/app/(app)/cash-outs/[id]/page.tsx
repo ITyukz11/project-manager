@@ -1,8 +1,15 @@
 "use client";
 import { useCashoutById } from "@/lib/hooks/swr/cashout/useCashoutById";
-import { ArrowLeft, Paperclip, Send, Upload, UserCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Paperclip,
+  Send,
+  Upload,
+  UserCircle,
+  X,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,6 +34,14 @@ import { formatAmountWithDecimals } from "@/components/formatAmount";
 import { useSession } from "next-auth/react";
 import { UpdateStatusDialog } from "../(components)/UpdateStatusDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
 
 export default function Page() {
   const { id } = useParams();
@@ -36,22 +51,75 @@ export default function Page() {
   const [submitting, setSubmitting] = useState(false);
   const { usersDataNetwork } = useUsersNetwork();
   const { data: session } = useSession();
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [previewFilename, setPreviewFilename] = useState<string | null>(null);
+  const [showStatusSheet, setShowStatusSheet] = useState(false);
 
-  console.log("cashout: ", cashout);
-  console.log("usersDataNetwork: ", usersDataNetwork);
-  console.log("comment: ", comment);
+  // Attachments state
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle image paste/drop
+  function handlePasteDrop(e: React.ClipboardEvent | React.DragEvent) {
+    let files: File[] = [];
+
+    // Paste
+    if ("clipboardData" in e && e.clipboardData.files?.length) {
+      files = Array.from(e.clipboardData.files);
+    }
+
+    // Drop
+    if ("dataTransfer" in e && e.dataTransfer.files?.length) {
+      files = Array.from(e.dataTransfer.files);
+    }
+
+    // Accept only images!
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    if (imageFiles.length > 0) {
+      setAttachments((prev) => [...prev, ...imageFiles]);
+
+      e.preventDefault();
+    }
+  }
+
+  // Handle manual file select (via small "upload" button)
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length > 0) {
+      setAttachments((prev) => [...prev, ...images]);
+    }
+  }
+
+  // Remove single attachment (for preview UI)
+  function handleRemoveAttachment(idx: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  }
+
   async function handleCommentSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!comment.trim()) return;
+    if (!comment.trim() && attachments.length === 0) return;
     setSubmitting(true);
+
     try {
-      await fetch(`/api/cashout/${id}/thread`, {
+      const formData = new FormData();
+      formData.append("message", comment);
+      attachments.forEach((file) => formData.append("attachment", file));
+
+      const res = await fetch(`/api/cashout/${id}/thread`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: comment }),
+        body: formData,
       });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to post comment");
+      }
+
       setComment("");
+      setAttachments([]);
       mutate();
+      toast.success("Comment posted!");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -68,9 +136,7 @@ export default function Page() {
       >
         <ArrowLeft size={18} /> Back
       </Button>
-      {session?.user?.role === "ADMIN" && (
-        <UpdateStatusDialog cashoutId={id} currentStatus={cashout?.status} />
-      )}
+
       <ResizablePanelGroup
         direction="horizontal"
         className="min-h-[340px] h-[calc(100vh-160px)] rounded-lg overflow-hidden border-0"
@@ -243,6 +309,20 @@ export default function Page() {
                     : "—"}
                 </Label>
               </div>
+              {session?.user?.role === "ADMIN" && (
+                <div className="flex flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowStatusSheet(true)}
+                  >
+                    View Status History
+                  </Button>
+                  <UpdateStatusDialog
+                    cashoutId={id}
+                    currentStatus={cashout?.status}
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
@@ -303,6 +383,51 @@ export default function Page() {
                             }`}
                           >
                             {thread.message}
+                            {/* Attachments: display image previews, other files as download links */}
+                            {Array.isArray(thread.attachments) &&
+                              thread.attachments.length > 0 && (
+                                <div className="mt-2 flex flex-row flex-wrap gap-2">
+                                  {thread.attachments.map((att) =>
+                                    att.mimetype?.startsWith("image/") ? (
+                                      <button
+                                        type="button"
+                                        key={att.id}
+                                        className="cursor-pointer block border rounded max-w-24 max-h-24 overflow-hidden focus:ring"
+                                        onClick={() => {
+                                          setPreviewImg(att.url);
+                                          setPreviewFilename(att.filename);
+                                        }}
+                                        style={{
+                                          padding: 0,
+                                          background: "none",
+                                          border: "none",
+                                        }}
+                                      >
+                                        <img
+                                          src={att.url}
+                                          alt={att.filename}
+                                          className="object-cover w-full h-full"
+                                          style={{
+                                            maxWidth: "6rem",
+                                            maxHeight: "6rem",
+                                          }}
+                                        />
+                                      </button>
+                                    ) : (
+                                      <a
+                                        href={att.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        key={att.id}
+                                        className="flex items-center gap-1 text-xs underline text-blue-600"
+                                      >
+                                        <Paperclip size={16} />{" "}
+                                        {att.filename ?? att.url}
+                                      </a>
+                                    )
+                                  )}
+                                </div>
+                              )}
                           </div>
                         </div>
                         <div
@@ -323,60 +448,126 @@ export default function Page() {
 
             {/* Comment form */}
             <form
-              className="flex gap-2 w-full mt-2"
+              className="w-full mt-2"
               onSubmit={handleCommentSend}
               autoComplete="off"
             >
-              <Mention
-                trigger="@"
-                className="w-full"
-                inputValue={comment}
-                onInputValueChange={setComment}
-              >
-                <MentionInput
-                  asChild
-                  placeholder="Type @ to mention a user…"
-                  disabled={submitting}
-                  className="h-20 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-                >
-                  <Textarea
-                    className="resize-none min-h-12 font-sans bg-card text-foreground dark:bg-neutral-900 dark:text-white border border-muted focus:border-blue-500 dark:focus:border-blue-400"
-                    rows={5}
-                  />
-                </MentionInput>
-                <MentionContent>
-                  {usersDataNetwork.map((user) => (
-                    <MentionItem
-                      key={user.id}
-                      value={user.username}
-                      className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900"
+              {/* Image preview/removal - top row */}
+              {attachments.length > 0 && (
+                <div className="flex flex-row flex-wrap gap-2 items-center mb-2">
+                  {attachments.map((att, idx) => (
+                    <div
+                      key={idx}
+                      className="relative w-14 h-14 border rounded overflow-hidden"
                     >
-                      <span className="font-medium text-sm text-foreground dark:text-blue-200">
-                        {user.username}
-                      </span>
-                      <Label className="text-xs italic text-muted-foreground dark:text-blue-300">
-                        {user.role}
-                      </Label>
-                    </MentionItem>
+                      <img
+                        src={URL.createObjectURL(att)}
+                        alt={att.name}
+                        className="object-cover w-full h-full"
+                      />
+                      <button
+                        type="button"
+                        className="absolute top-0 right-0 bg-white bg-opacity-75 text-red-600 rounded"
+                        style={{ lineHeight: 0 }}
+                        onClick={() => handleRemoveAttachment(idx)}
+                        tabIndex={-1}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
                   ))}
-                </MentionContent>
-              </Mention>
-              <div className="flex flex-col gap-2">
-                <Button>
-                  <Upload />
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={submitting || !comment.trim()}
-                  className="mt-auto"
+                </div>
+              )}
+
+              {/* Mention + textarea, with paste & drop support */}
+              <div className="flex gap-2 w-full">
+                <Mention
+                  trigger="@"
+                  className="w-full"
+                  inputValue={comment}
+                  onInputValueChange={setComment}
                 >
-                  <Send />
-                </Button>
+                  <MentionInput
+                    asChild
+                    placeholder="Type @ to mention a user…"
+                    disabled={submitting}
+                    className="h-20 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                    onPaste={handlePasteDrop}
+                    onDrop={handlePasteDrop}
+                  >
+                    <Textarea
+                      className="resize-none min-h-12 font-sans bg-card text-foreground dark:bg-neutral-900 dark:text-white border border-muted focus:border-blue-500 dark:focus:border-blue-400"
+                      rows={5}
+                    />
+                  </MentionInput>
+                  <MentionContent>
+                    {usersDataNetwork.map((user) => (
+                      <MentionItem
+                        key={user.id}
+                        value={user.username}
+                        className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900"
+                      >
+                        <span className="font-medium text-sm text-foreground dark:text-blue-200">
+                          {user.username}
+                        </span>
+                        <Label className="text-xs italic text-muted-foreground dark:text-blue-300">
+                          {user.role}
+                        </Label>
+                      </MentionItem>
+                    ))}
+                  </MentionContent>
+                </Mention>
+                <div className="flex flex-col gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={submitting}
+                  >
+                    <Upload />
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={
+                      submitting ||
+                      (!comment.trim() && attachments.length === 0)
+                    }
+                    className="mt-auto"
+                  >
+                    <Send />
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+      <Dialog open={!!previewImg} onOpenChange={() => setPreviewImg(null)}>
+        <DialogContent className="max-w-lg md:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{previewFilename}</DialogTitle>
+          </DialogHeader>
+          {previewImg && (
+            <img
+              src={previewImg}
+              alt={previewFilename || "preview"}
+              className="mx-auto block max-h-[75vh] w-auto object-contain rounded shadow"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+      <CashoutStatusHistorySheet
+        open={showStatusSheet}
+        onOpenChange={setShowStatusSheet}
+        data={cashout?.cashoutLogs || []}
+      />
     </div>
   );
 }

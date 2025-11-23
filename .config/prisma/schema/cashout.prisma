@@ -18,21 +18,22 @@ model Cashout {
   superAdminId    String?
   superAdmin      SuperAdmin?  @relation(fields: [superAdminId], references: [id])
   cashoutThreads  CashoutThread[]
+  cashoutLogs     CashoutLogs[]
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 }
 
-model Attachment {
-  id        String   @id @default(uuid())
-  url       String
-  filename  String
-  mimetype  String
-  cashoutId String
-  cashout   Cashout  @relation(fields: [cashoutId], references: [id])
-  createdAt DateTime @default(now())
+model CashoutLogs{
+  id           String     @id @default(uuid())
+  action       String
+  cashoutId    String
+  cashout      Cashout    @relation(fields: [cashoutId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
 }
 
-// CashoutThread with unified mention logic
 model CashoutThread {
   id           String     @id @default(uuid())
   message      String
@@ -41,8 +42,21 @@ model CashoutThread {
   authorId     String
   author       User       @relation(fields: [authorId], references: [id])
   mentions     User[]     @relation("CashoutThreadMentions")
+  attachments  Attachment[] // <-- NEW!
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+}
+
+model Attachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  cashoutId         String?      // <-- Make optional
+  cashout           Cashout?     @relation(fields: [cashoutId], references: [id])
+  cashoutThreadId   String?      // <-- NEW
+  cashoutThread     CashoutThread? @relation(fields: [cashoutThreadId], references: [id])
+  createdAt         DateTime @default(now())
 }
 
 enum CashoutStatus {

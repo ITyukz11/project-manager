@@ -24,8 +24,9 @@ export async function GET(
       include: {
         user: true,
         attachments: true,
+        cashoutLogs: { include: { performedBy: true } },
         cashoutThreads: {
-          include: { author: true },
+          include: { author: true, attachments: true },
         },
       },
     });

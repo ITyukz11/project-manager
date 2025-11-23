@@ -1,4 +1,10 @@
-import { Attachment, Cashout, CashoutThread, User } from "@prisma/client";
+import {
+  Attachment,
+  Cashout,
+  CashoutLogs,
+  CashoutThread,
+  User,
+} from "@prisma/client";
 import useSWR from "swr";
 
 const fetcher = async (url: string) => {
@@ -12,8 +18,15 @@ const fetcher = async (url: string) => {
  */
 export function useCashoutById(id: string | undefined) {
   const { data, error, isLoading, mutate } = useSWR<
-    Cashout & { user: User } & { attachments: Attachment[] } & {
-      cashoutThreads: (CashoutThread & { author: User })[];
+    Cashout & { cashoutLogs: (CashoutLogs & { performedBy: User })[] } & {
+      user: User;
+    } & {
+      attachments: Attachment[];
+    } & {
+      cashoutThreads: (CashoutThread & {
+        author: User;
+        attachments: Attachment[];
+      })[];
     }
   >(id ? `/api/cashout/${id}` : null, fetcher);
 

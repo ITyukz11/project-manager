@@ -94,15 +94,25 @@ export async function POST(req: Request) {
       },
     };
 
-    // Save to DB
-    const cashout = await prisma.cashout.create({
-      data: cashoutData,
-      include: {
-        attachments: true,
-      },
+    const result = await prisma.$transaction(async (prisma) => {
+      // Save to DB
+      const cashout = await prisma.cashout.create({
+        data: cashoutData,
+        include: {
+          attachments: true,
+        },
+      });
+
+      await prisma.cashoutLogs.create({
+        data: {
+          cashoutId: cashout.id,
+          action: "PENDING",
+          performedById: currentUser.id,
+        },
+      });
     });
 
-    return NextResponse.json({ success: true, cashout });
+    return NextResponse.json({ success: true, result });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
