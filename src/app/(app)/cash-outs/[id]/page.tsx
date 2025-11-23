@@ -1,6 +1,6 @@
 "use client";
 import { useCashoutById } from "@/lib/hooks/swr/cashout/useCashoutById";
-import { ArrowLeft, Paperclip, UserCircle } from "lucide-react";
+import { ArrowLeft, Paperclip, Send, Upload, UserCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -361,13 +361,18 @@ export default function Page() {
                   ))}
                 </MentionContent>
               </Mention>
-              <Button
-                type="submit"
-                disabled={submitting || !comment.trim()}
-                className="mt-auto"
-              >
-                Post
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button>
+                  <Upload />
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || !comment.trim()}
+                  className="mt-auto"
+                >
+                  <Send />
+                </Button>
+              </div>
             </form>
           </div>
         </ResizablePanel>
