@@ -43,7 +43,7 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     ),
     cell: ({ row }) => (
       <span className="font-semibold text-green-600 font-mono">
-        ₱{row.original.amount.toLocaleString()}
+        {row.original.amount.toLocaleString()}
       </span>
     ),
   },
