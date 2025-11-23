@@ -18,7 +18,7 @@ export default function CashoutLayout({
           <h1 className="text-3xl font-bold">Cashouts</h1>
           <Button onClick={() => setOpen(true)}>
             {" "}
-            <CreditCard className="mr-2" /> Request Cashout
+            <CreditCard /> Request Cashout
           </Button>
         </CardTitle>
         <span className="text-muted-foreground text-sm">
