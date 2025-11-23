@@ -1,16 +1,14 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
-import { GroupChat } from "@prisma/client";
+import { GroupChat, User } from "@prisma/client";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Label } from "@/components/ui/label";
 import { formatDate } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { NetworkGroupChatEditDialog } from "./NetworkGroupChatAction";
 
 export const networkGCManagerColumn: ColumnDef<
-  GroupChat & { _count?: { users?: number } }
+  GroupChat & { _count?: { users?: number }; users?: User[] }
 >[] = [
   {
     accessorKey: "name",
@@ -21,7 +19,7 @@ export const networkGCManagerColumn: ColumnDef<
       return (
         <div className="truncate font-medium cursor-default flex flex-row items-center">
           <Link
-            href="#"
+            href={`/network/group-chat-manager/${row.original.name}`}
             className="text-blue-600 hover:underline text-sm capitalize"
           >
             {row.original.name}
@@ -55,7 +53,15 @@ export const networkGCManagerColumn: ColumnDef<
       );
     },
   },
-
+  {
+    accessorKey: "createdAt",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Created At" />
+    ),
+    cell: ({ row }) => {
+      return <span>{formatDate(row.original.createdAt, "MMM. dd, yyyy")}</span>;
+    },
+  },
   {
     accessorKey: "updatedAt",
     header: ({ column }) => (
@@ -72,9 +78,9 @@ export const networkGCManagerColumn: ColumnDef<
     ),
     cell: ({ row }) => {
       return (
-        <Link href="#" className="text-blue-600 hover:underline">
+        <Badge variant={"outline"} className="font-mono">
           {row.original._count?.users ?? 0}
-        </Link>
+        </Badge>
       );
     },
   },
@@ -84,10 +90,17 @@ export const networkGCManagerColumn: ColumnDef<
       <DataTableColumnHeader column={column} title="Action" />
     ),
     cell: ({ row }) => {
+      console.log("row original:", row.original);
       return (
-        <Button size="sm">
-          <Plus /> Members
-        </Button>
+        <NetworkGroupChatEditDialog
+          groupChatId={row.original.id}
+          groupChatName={row.original.name}
+          groupChatStatus={row.original.status}
+          members={row.original.users ?? []}
+          onEdit={() => {
+            console.log("Group Chat row.original when editing:", row.original);
+          }}
+        />
       );
     },
   },

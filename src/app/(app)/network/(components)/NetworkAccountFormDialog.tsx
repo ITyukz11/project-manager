@@ -4,7 +4,14 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,22 +24,22 @@ import {
 import { GlobalFormField } from "@/components/common/form";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
-import { ROLES } from "@/lib/types/role";
+import { NETWORKROLES } from "@/lib/types/role";
 import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
-
-// Exclude ADMIN, LOADER, and TL
-const allowedRoles = Object.values(ROLES).filter(
-  (role) => !["ADMIN", "LOADER", "TL"].includes(role)
-);
+import RequiredField from "@/components/common/required-field";
+import { Input } from "@/components/ui/input";
 
 // Add "groupChats" to your Zod Schema
 const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
-  username: z.string().optional(),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
   messengerLink: z.string().optional(),
-  type: z.enum(allowedRoles, { message: "User type is required" }),
+  role: z.enum(Object.values(NETWORKROLES), {
+    message: "Role is required",
+  }),
   groupChats: z.array(z.string()).optional(), // groupChat IDs as strings
 });
 
@@ -49,8 +56,9 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
       name: "",
       email: "",
       username: "",
+      password: "",
       messengerLink: "",
-      type: undefined,
+      role: undefined,
       groupChats: [],
     },
   });
@@ -96,40 +104,63 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
             className="space-y-6 "
             autoComplete="off"
           >
-            <GlobalFormField
-              form={form}
-              fieldName="name"
-              label="Name"
-              required
-              type="text"
-              placeholder="Enter name"
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <GlobalFormField
+                form={form}
+                fieldName="name"
+                label="Name"
+                required
+                type="text"
+                placeholder="Enter name"
+              />
+
+              <GlobalFormField
+                form={form}
+                fieldName="email"
+                label="Email"
+                required
+                type="text"
+                placeholder="Enter email"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <GlobalFormField
+                form={form}
+                fieldName="username"
+                label="Username"
+                required
+                type="text"
+                placeholder="Enter username (optional)"
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      Password <RequiredField />
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter password"
+                        type="password"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <GlobalFormField
               form={form}
-              fieldName="email"
-              label="Email"
-              required
-              type="text"
-              placeholder="Enter email"
-            />
-
-            <GlobalFormField
-              form={form}
-              fieldName="username"
-              label="Username"
-              required
-              type="text"
-              placeholder="Enter username (optional)"
-            />
-
-            <GlobalFormField
-              form={form}
-              fieldName="type"
+              fieldName="role"
               label="Role"
               required
               type="select"
-              options={allowedRoles.map((type) => ({
+              options={Object.values(NETWORKROLES).map((type) => ({
                 label: type,
                 value: type,
               }))}

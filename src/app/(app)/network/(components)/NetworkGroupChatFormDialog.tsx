@@ -108,7 +108,7 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
                 usersLoadingNetwork
                   ? []
                   : usersDataNetwork.map((user) => ({
-                      label: user.name + (user.type ? ` (${user.type})` : ""),
+                      label: user.name + (user.role ? ` (${user.role})` : ""),
                       value: user.id,
                     }))
               }

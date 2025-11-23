@@ -1,7 +1,6 @@
-import { GroupChat } from "@prisma/client";
+import { GroupChat, User } from "@prisma/client";
 import useSWR from "swr";
 
-// useSWR key can be an array: [url, "POST"]
 const fetchUsersNetwork = async ([url, method]: [string, string]) => {
   const response = await fetch(url, { method });
   if (!response.ok) throw new Error("Failed to fetch");
@@ -10,7 +9,7 @@ const fetchUsersNetwork = async ([url, method]: [string, string]) => {
 
 export const useGroupChats = () => {
   const { data, error, mutate } = useSWR<
-    (GroupChat & { _count?: { users?: number } })[]
+    (GroupChat & { users: User[]; _count?: { users?: number } })[]
   >(["/api/network/group-chats", "GET"], fetchUsersNetwork, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,

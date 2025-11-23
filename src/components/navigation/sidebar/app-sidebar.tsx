@@ -20,7 +20,7 @@ import { useSession } from "next-auth/react";
 import NavSecondary from "./nav-secondary";
 import { NavUser } from "./nav-user";
 import { navLinks } from "../data/nav-links";
-import { ROLES } from "@/lib/types/role";
+import { ADMINROLES } from "@/lib/types/role";
 import { Label } from "@/components/ui/label";
 
 export const AppSidebar = () => {
@@ -48,7 +48,7 @@ export const AppSidebar = () => {
               {navLinks.map((link) => {
                 if (
                   link.text === "Accounts" &&
-                  currentUser?.user?.role !== ROLES.ADMIN
+                  currentUser?.user?.role !== ADMINROLES.ADMIN
                 ) {
                   return null;
                 }

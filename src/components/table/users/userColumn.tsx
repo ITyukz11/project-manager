@@ -48,7 +48,7 @@ export const userColumns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       return (
         <Link
-          href={row.getValue("messengerLink")}
+          href={row.getValue("messengerLink") ?? "#"}
           className="text-blue-500"
           target="_blank"
         >

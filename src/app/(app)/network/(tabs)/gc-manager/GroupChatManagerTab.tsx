@@ -13,7 +13,7 @@ import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 export default function GroupChatManagerTab() {
   const { groupChatsData, groupChatsError, groupChatsLoading } =
     useGroupChats();
-  const hiddenColumns = ["color"];
+  const hiddenColumns = ["createdAt"];
   console.log("groupChatsData:", groupChatsData);
   // Advanced Filter Sheet UI
   return (

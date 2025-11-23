@@ -1,0 +1,52 @@
+// Cashout: attributed to a User (admin, superadmin, regular user)
+model Cashout {
+  id              String       @id @default(uuid())
+  amount          Float
+  mop             String
+  userName        String  //Player Username
+  accName         String
+  accNumber       String
+  bankName        String
+  attachments     Attachment[]
+  status          CashoutStatus   @default(PENDING)
+  loaderTip       Float           @default(0)
+  agentTip        Float           @default(0)
+  masterAgentTip  Float           @default(0)
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  // Optionally, if special linkage to SuperAdmin needed:
+  superAdminId    String?
+  superAdmin      SuperAdmin?  @relation(fields: [superAdminId], references: [id])
+  cashoutThreads  CashoutThread[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  url       String
+  filename  String
+  mimetype  String
+  cashoutId String
+  cashout   Cashout  @relation(fields: [cashoutId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// CashoutThread with unified mention logic
+model CashoutThread {
+  id           String     @id @default(uuid())
+  message      String
+  cashoutId    String
+  cashout      Cashout    @relation(fields: [cashoutId], references: [id])
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  mentions     User[]     @relation("CashoutThreadMentions")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+enum CashoutStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}

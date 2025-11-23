@@ -1,25 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    // Fetch group chats and filter out users with username "blurredface"
     const groupchats = await prisma.groupChat.findMany({
-      where: {
-        status: true, // only active groupchats
-      },
       include: {
         _count: {
           select: { users: true },
         },
+        users: true,
       },
       orderBy: { createdAt: "desc" },
     });
+
     return NextResponse.json(groupchats, { status: 200 });
   } catch (error) {
     console.error("Error fetching groupchats:", error);
@@ -30,7 +29,7 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
@@ -38,29 +37,31 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, status = true, users } = body;
+    const { name, status, users } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: "Name is required." }, { status: 400 });
+    if (!name || typeof status !== "boolean" || !Array.isArray(users)) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
+    // Create the group chat and connect the users
     const newGroupChat = await prisma.groupChat.create({
       data: {
         name,
         status,
-        users:
-          users && users.length > 0
-            ? { connect: users.map((id: string) => ({ id })) }
-            : undefined,
+        users: {
+          connect: users.map((id: string) => ({ id })),
+        },
       },
       include: {
-        users: true,
+        _count: {
+          select: { users: true },
+        },
       },
     });
 
     return NextResponse.json(newGroupChat, { status: 201 });
   } catch (error) {
-    console.error("Error creating groupchat:", error);
+    console.error("Error creating group chat:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

@@ -1,4 +1,4 @@
-import { NetworkUser } from "@prisma/client";
+import { User } from "@prisma/client";
 import useSWR from "swr";
 
 // useSWR key can be an array: [url, "POST"]
@@ -10,7 +10,7 @@ const fetchUsersNetwork = async ([url, method]: [string, string]) => {
 
 export const useUsersNetwork = () => {
   const { data, error, mutate } = useSWR<
-    (NetworkUser & { _count?: { groupChats?: number } })[]
+    (User & { _count?: { groupChats?: number } })[]
   >(["/api/network/users", "GET"], fetchUsersNetwork, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,

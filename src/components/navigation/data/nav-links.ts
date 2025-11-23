@@ -1,4 +1,10 @@
-import { Users, Share2, Wallet, CheckSquare } from "lucide-react";
+import {
+  Users,
+  Share2,
+  Wallet,
+  CheckSquare,
+  MessageCircle,
+} from "lucide-react";
 import type { ComponentType } from "react";
 
 export type MenuLink = {
@@ -29,6 +35,13 @@ export const navLinks: MenuLink[] = [
     href: "/cash-outs",
     text: "Cash Outs",
     icon: Wallet, // Replaced BookOpen with Wallet for cash outs
+    disable: true,
+    targetBlank: false,
+  },
+  {
+    href: "/concerns",
+    text: "Concerns",
+    icon: MessageCircle, // Replaced BookOpen with Wallet for cash outs
     disable: true,
     targetBlank: false,
   },

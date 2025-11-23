@@ -17,11 +17,13 @@ import { MultiLevelItem } from "@/components/ui/select-multiple-level";
 import { MultiLevelSelectFormField } from "@/components/common/form/multi-level-select-form-field";
 import { SelectAddFormField } from "@/components/common/form/select-add-form-field";
 import { CheckboxFormField } from "@/components/common/form/checkbox-form-field";
+import { AmountFormField } from "./amount-form-field";
 
 type FieldType =
   | "text"
   | "email"
   | "number"
+  | "amount"
   | "select"
   | "multiselect"
   | "date"
@@ -49,6 +51,10 @@ type EmailFieldProps = BaseProps & { type: "email"; inputClassName?: string };
 type NumberFieldProps = BaseProps & {
   type: "number";
   step?: number;
+};
+
+type AmountFieldProps = BaseProps & {
+  type: "amount";
 };
 
 type SelectFieldProps = BaseProps & {
@@ -128,6 +134,7 @@ type CheckboxFieldProps = BaseProps & {
 type GlobalFormFieldProps =
   | TextFieldProps
   | NumberFieldProps
+  | AmountFieldProps
   | SelectFieldProps
   | MultiSelectFieldProps
   | DateFieldProps
@@ -149,6 +156,8 @@ const GlobalFormField: React.FC<GlobalFormFieldProps> = (props) => {
       return <InputFormField {...props} type="email" />;
     case "number":
       return <NumberFormField {...props} />;
+    case "amount":
+      return <AmountFormField {...props} />;
     case "select":
       return <SelectFormField {...props} />;
     case "multiselect":

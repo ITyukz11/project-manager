@@ -17,6 +17,7 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Bell, BellDot } from "lucide-react";
 
 type Crumb = {
   href: string;
@@ -156,6 +157,9 @@ export const AppHeader = ({
             <Button size={"sm"} variant={"outline"} onClick={openSearch}>
               Search <Kbd>Ctrl</Kbd>
               <Kbd>K</Kbd>
+            </Button>
+            <Button size={"sm"} variant={"outline"}>
+              <Bell className="w-4 h-4" />
             </Button>
             <ModeToggle />
           </nav>

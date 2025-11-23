@@ -14,16 +14,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -34,6 +27,7 @@ import { GlobalFormField } from "@/components/common/form";
 import RequiredField from "@/components/common/required-field";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 // Zod validation schema
 const AccountFormSchema = z.object({
@@ -57,6 +51,7 @@ export function AccountFormDialog({
   onOpenChange?: (open: boolean) => void;
 }) {
   const [loading, setLoading] = React.useState(false);
+  const { refetchUsers } = useUsers();
   const form = useForm<AccountFormDialogValues>({
     resolver: zodResolver(AccountFormSchema),
     defaultValues: {
@@ -91,6 +86,7 @@ export function AccountFormDialog({
 
       toast.success("Account created successfully!");
       onOpenChange?.(false);
+      refetchUsers();
       form.reset();
     } catch (err: any) {
       // Show toast for network or unexpected errors

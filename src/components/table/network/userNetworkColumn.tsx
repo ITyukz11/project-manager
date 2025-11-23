@@ -1,13 +1,13 @@
 "use client";
 import { ColumnDef } from "@tanstack/react-table";
-import { NetworkUser } from "@prisma/client";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDate } from "date-fns";
+import { User } from "@prisma/client";
 
 export const userNetworkColumns: ColumnDef<
-  NetworkUser & { _count?: { groupChats?: number } }
+  User & { _count?: { groupChats?: number } }
 >[] = [
   {
     accessorKey: "name",
@@ -18,7 +18,12 @@ export const userNetworkColumns: ColumnDef<
       return (
         <div className="max-w-[500px] truncate font-medium cursor-default flex flex-row items-center">
           <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{row.original.name}</p>
+            <Link
+              href={`/network/accounts/${row.original.username}`}
+              className="text-blue-600 hover:underline text-sm capitalize"
+            >
+              {row.original.name}
+            </Link>
             <p className="text-bold text-xs text-gray-500">
               {row.original.email}
             </p>
@@ -29,14 +34,14 @@ export const userNetworkColumns: ColumnDef<
   },
 
   {
-    accessorKey: "type",
+    accessorKey: "role",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Account Type" />
     ),
     cell: ({ row }) => {
       return (
         <div className="flex space-x-2">
-          <Badge className="truncate font-medium">{row.getValue("type")}</Badge>
+          <Badge className="truncate font-medium">{row.getValue("role")}</Badge>
         </div>
       );
     },
@@ -65,7 +70,7 @@ export const userNetworkColumns: ColumnDef<
             className={`w-fit ${
               isActive
                 ? "bg-green-600 hover:bg-green-700 text-white"
-                : "bg-red-500 hover:bg-red-600 text-white"
+                : "bg-red-600 hover:bg-red-700 text-white"
             }`}
           >
             {isActive ? "Yes" : "No"}
@@ -86,9 +91,9 @@ export const userNetworkColumns: ColumnDef<
     ),
     cell: ({ row }) => {
       return (
-        <Link href="#" className="text-blue-600 hover:underline">
+        <Badge variant={"outline"} className="font-mono">
           {row.original._count?.groupChats ?? 0}
-        </Link>
+        </Badge>
       );
     },
   },

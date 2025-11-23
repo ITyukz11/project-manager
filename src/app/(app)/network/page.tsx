@@ -15,7 +15,7 @@ import { ArrowLeft } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ROLES } from "@/lib/types/role";
+import { ADMINROLES } from "@/lib/types/role";
 import NetworkDetailsTab from "./(tabs)/accounts/NetworkDetailsTab";
 import { NetworkUserFormDialog } from "./(components)/NetworkAccountFormDialog";
 import GroupChatManagerTab from "./(tabs)/gc-manager/GroupChatManagerTab";
@@ -31,7 +31,7 @@ export default function EditBetEventPage() {
 
   const TAB_OPTIONS = useMemo(
     () => [
-      { value: "account", label: "Accounts", disabled: false },
+      { value: "accounts", label: "Accounts", disabled: false },
       {
         value: "group-chat-manager",
         label: "Group Chat Manager",
@@ -57,8 +57,8 @@ export default function EditBetEventPage() {
             <ArrowLeft />
             Back
           </div>
-          {(data?.user?.role === ROLES.ADMIN ||
-            data?.user?.role === ROLES.TL) &&
+          {(data?.user?.role === ADMINROLES.ADMIN ||
+            data?.user?.role === ADMINROLES.TL) &&
             (tab === "account" ? (
               <Button onClick={() => setCreateUserDialogOpen(true)}>
                 Create Account

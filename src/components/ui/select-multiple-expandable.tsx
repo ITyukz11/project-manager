@@ -265,7 +265,7 @@ function MultiSelectExpandable({
         </PopoverTrigger>
 
         <PopoverContent
-          className="min-w-[100px] p-0"
+          className="min-w-fit p-0"
           style={{ width: fullWidth ? triggerWidth : undefined }}
           align="start"
         >
@@ -276,7 +276,7 @@ function MultiSelectExpandable({
               onValueChange={handleSearchChange}
             />
             <ScrollArea
-              className="max-h-[300px]"
+              className="max-h-[500px]"
               style={{ maxHeight: maxDropdownHeight }}
             >
               <CommandList>

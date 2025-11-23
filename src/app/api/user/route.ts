@@ -2,6 +2,10 @@ import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import z from "zod";
 import * as bcrypt from "bcrypt";
+import { ADMINROLES } from "@/lib/types/role";
+
+// Convert ADMINROLES to an array of values
+const adminRolesArray = Object.values(ADMINROLES);
 
 const UserSchema = z.object({
   name: z.string().min(1),
@@ -9,7 +13,7 @@ const UserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
   messengerLink: z.string().min(1),
-  role: z.enum(["ADMIN", "FAP", "MASTER_AGENT", "TL", "LOADER", "ACCOUNTING"]),
+  role: z.enum(adminRolesArray as [string, ...string[]]), // Only ADMINROLES allowed!
 });
 
 export async function POST(req: Request) {
@@ -26,7 +30,7 @@ export async function POST(req: Request) {
         email: parsed.email,
         password: hashedPassword,
         messengerLink: parsed.messengerLink,
-        role: parsed.role,
+        role: ADMINROLES[parsed.role as keyof typeof ADMINROLES],
       },
     });
 
@@ -46,6 +50,9 @@ export async function POST(req: Request) {
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
+      where: {
+        role: { in: adminRolesArray },
+      },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(users, { status: 200 });

@@ -1,11 +1,18 @@
 // lib/types/role.ts
-export const ROLES = {
+export const ADMINROLES = {
+  SUPERADMIN: "SUPERADMIN",
   ADMIN: "ADMIN",
   TL: "TL",
   LOADER: "LOADER",
   ACCOUNTING: "ACCOUNTING",
+} as const;
+
+export type ADMINROLES = (typeof ADMINROLES)[keyof typeof ADMINROLES];
+
+// lib/types/role.ts
+export const NETWORKROLES = {
   FAP: "FAP",
   MASTER_AGENT: "MASTER_AGENT",
 } as const;
 
-export type ROLE = (typeof ROLES)[keyof typeof ROLES];
+export type NETWORKROLES = (typeof NETWORKROLES)[keyof typeof NETWORKROLES];
