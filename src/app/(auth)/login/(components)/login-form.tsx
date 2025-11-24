@@ -38,8 +38,6 @@ export const LoginForm = () => {
       password: "",
     },
   });
-
-  // Replace z.infer<typeof LoginSchema> with an appropriate type if you use Zod
   const onSubmit = async (values: { username: string; password: string }) => {
     setLoading(true);
 
@@ -49,19 +47,28 @@ export const LoginForm = () => {
         password: values.password,
         redirect: false, // we'll handle navigation
       });
+
+      // If successful, fetch the session to get the user info!
       if (signInResult?.ok) {
-        toast.success("Welcome back bitch.");
-        router.push("/accounts");
+        // Get session with user info
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+
+        // Get first casino group ID (or handle missing)
+        const firstCasinoGroup =
+          session?.user?.casinoGroups?.[0]?.name || "default";
+
+        toast.success("Login successful!");
+        router.push(`/${firstCasinoGroup}/accounts`); // <-- redirect dynamically!
       } else {
         toast.error(signInResult?.error);
         setLoading(false);
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err: unknown) {
       toast.error("Something went wrong. Please try again.");
+      setLoading(false);
     }
   };
-
   return (
     <div className="flex flex-col w-full justify-center items-center">
       <div className="w-full flex flex-col gap-y-4 items-center justify-center">

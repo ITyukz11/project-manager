@@ -1,3 +1,4 @@
+// Type augmentations for next-auth (if you want to add types for new fields)
 import { DefaultSession, DefaultUser } from "next-auth";
 import { DefaultJWT } from "next-auth/jwt";
 
@@ -9,6 +10,7 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: string;
+      casinoGroups?: any[];
     } & DefaultSession["user"];
   }
 
@@ -18,6 +20,7 @@ declare module "next-auth" {
     email: string;
     name: string;
     role: string;
+    casinoGroups?: any[];
   }
 }
 
@@ -28,5 +31,6 @@ declare module "next-auth/jwt" {
     email: string;
     name: string;
     role: string;
+    casinoGroups?: any[];
   }
 }

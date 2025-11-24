@@ -32,3 +32,14 @@ export const BankNames: BankData[] = [
   { name: "Maybank", type: "BANK" },
   { name: "UCPB", type: "BANK" },
 ];
+
+export const CasinoGroups = {
+  QUADRA: {
+    id: "96b9dcf9-2fa7-432c-9b4d-2b92d6e29a09",
+    name: "QUADRA",
+  },
+  QBET: {
+    id: "9f3a75a0-e7c0-48d0-a711-661a4238730a",
+    name: "QBET",
+  },
+};

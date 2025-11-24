@@ -1,17 +1,26 @@
 import { User } from "@prisma/client";
 import useSWR from "swr";
 
-// useSWR key can be an array: [url, "POST"]
+// Add optional casinoGroup parameter of type string
 const fetchUsersNetwork = async ([url, method]: [string, string]) => {
   const response = await fetch(url, { method });
   if (!response.ok) throw new Error("Failed to fetch");
   return response.json();
 };
 
-export const useUsersNetwork = () => {
+/**
+ * Fetches users network, optionally filtered by casinoGroup ID.
+ * @param casinoGroupId Optional casino group id as string to filter users.
+ */
+export const useUsersNetwork = (casinoGroupId?: string) => {
+  // Conditionally build the API endpoint
+  const url = casinoGroupId
+    ? `/api/network/users?casinoGroup=${casinoGroupId}`
+    : "/api/network/users";
+
   const { data, error, mutate } = useSWR<
     (User & { _count?: { groupChats?: number } })[]
-  >(["/api/network/users", "GET"], fetchUsersNetwork, {
+  >([url, "GET"], fetchUsersNetwork, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     refreshInterval: 0,

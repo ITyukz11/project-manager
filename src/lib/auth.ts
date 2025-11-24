@@ -3,6 +3,12 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcrypt";
 import prisma from "@/lib/prisma";
 
+// Extended AuthUser type that matches your requirements!
+type AuthUser = User & {
+  superAdminId?: string; // Single SuperAdmin ID
+  casinoGroups?: any[]; // Array of CasinoGroup objects
+};
+
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -19,13 +25,16 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(
         credentials: Record<"username" | "password", string> | undefined
-      ): Promise<User | null> {
+      ): Promise<AuthUser | null> {
         if (!credentials?.username || !credentials?.password) {
           throw new Error("Missing username or password");
         }
 
         const user = await prisma.user.findUnique({
           where: { username: credentials.username },
+          include: {
+            casinoGroups: true, // ⬅️ All casino groups (many-to-many)
+          },
         });
 
         if (!user) throw new Error("User not found");
@@ -38,13 +47,16 @@ export const authOptions: NextAuthOptions = {
         );
         if (!passwordValid) throw new Error("Invalid password");
 
-        // Explicitly cast return object as User
-        const authUser: User = {
+        // CasinoGroups is already array from include
+        const casinoGroups = user.casinoGroups;
+
+        const authUser: AuthUser = {
           id: user.id,
           email: user.email,
           username: user.username || "",
           name: user.name || "",
           role: user.role,
+          casinoGroups,
         };
 
         return authUser;
@@ -60,49 +72,63 @@ export const authOptions: NextAuthOptions = {
         token.username = user.username;
         token.name = user.name;
         token.role = user.role;
+        token.casinoGroups = user.casinoGroups;
       }
 
-      // 👇 Allow `update()` to work dynamically
       if (trigger === "update" && session?.user) {
         token.userName = session.user.userName;
         token.email = session.user.email;
         token.role = user.role;
+        token.casinoGroups = user.casinoGroups;
       }
 
       return token;
     },
 
     async session({ session, token }) {
-      if (token) {
-        session.user = {
-          ...session.user,
-          id: token.id,
-          email: token.email,
-          username: token.username,
-          name: token.name,
-          role: token.role,
-        };
+      if (token?.email) {
+        const user = await prisma.user.findUnique({
+          where: { email: token.email },
+          include: { casinoGroups: true },
+        });
+        if (user) {
+          session.user = {
+            ...session.user,
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            name: user.name,
+            role: user.role,
+            casinoGroups: user.casinoGroups,
+          };
+        }
       }
-
       return session;
     },
   },
   pages: {
-    signIn: "/auth/login",
+    signIn: `/auth/login`,
     signOut: "/auth/login",
   },
 };
 
+// Fetch current user with all casinoGroups and ownedSuperAdmins included
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return null;
-  // You can also use id if the session includes it!
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    // or:   { id: session.user.id }
+    include: {
+      casinoGroups: true,
+    },
   });
   if (!user) return null;
-  // Optionally remove sensitive info
-  const { ...safeUser } = user;
+
+  const casinoGroups = user.casinoGroups ?? [];
+
+  const safeUser = {
+    ...user,
+    casinoGroups,
+  };
   return safeUser;
 }

@@ -29,8 +29,9 @@ import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import RequiredField from "@/components/common/required-field";
 import { Input } from "@/components/ui/input";
+import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup"; // <-- Added!
 
-// Add "groupChats" to your Zod Schema
+// Add "groupChats" AND "casinoGroups" to your Zod Schema
 const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
@@ -40,7 +41,8 @@ const NetworkUserFormSchema = z.object({
   role: z.enum(Object.values(NETWORKROLES), {
     message: "Role is required",
   }),
-  groupChats: z.array(z.string()).optional(), // groupChat IDs as strings
+  groupChats: z.array(z.string()).optional(),
+  casinoGroups: z.array(z.string()).optional(), // <-- add this array to schema
 });
 
 export type NetworkUserFormDialogValues = z.infer<typeof NetworkUserFormSchema>;
@@ -49,6 +51,7 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
   const [loading, setLoading] = React.useState(false);
   const { groupChatsData, groupChatsLoading } = useGroupChats();
   const { refetchUsersNetwork } = useUsersNetwork();
+  const { casinoGroupData, casinoGroupLoading } = useCasinoGroup(); // <-- Added!
 
   const form = useForm<NetworkUserFormDialogValues>({
     resolver: zodResolver(NetworkUserFormSchema),
@@ -60,6 +63,7 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
       messengerLink: "",
       role: undefined,
       groupChats: [],
+      casinoGroups: [], // <-- must include here too!
     },
   });
 
@@ -91,7 +95,6 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
     }
   }
 
-  console.log("form errors:", form.formState.errors);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="overflow-y-auto max-h-[90vh]">
@@ -153,7 +156,6 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
                 )}
               />
             </div>
-
             <GlobalFormField
               form={form}
               fieldName="role"
@@ -186,6 +188,28 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
                   : "Select group chats (optional)"
               }
             />
+            {/* ADD CasinoGroups multi select here! */}
+            <GlobalFormField
+              form={form}
+              fieldName="casinoGroups"
+              label="Casino Groups"
+              required={false}
+              type="multiselect"
+              items={
+                casinoGroupLoading
+                  ? []
+                  : casinoGroupData?.map((group) => ({
+                      label: group.name,
+                      value: group.id,
+                    })) || []
+              }
+              placeholder={
+                casinoGroupLoading
+                  ? "Loading casino groups..."
+                  : "Select casino groups (optional)"
+              }
+            />
+
             <GlobalFormField
               form={form}
               fieldName="messengerLink"

@@ -1,27 +1,36 @@
-"use client"
+"use client";
 
-import React from "react"
-import RequiredField from "@/components/common/required-field"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { cn } from "@/lib/utils"
-import { MultiSelectExpandable, SelectDataSource } from "@/components/ui/select-multiple-expandable"
+import React from "react";
+import RequiredField from "@/components/common/required-field";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { cn } from "@/lib/utils";
+import {
+  MultiSelectExpandable,
+  SelectDataSource,
+} from "@/components/ui/select-multiple-expandable";
 
 interface MultiSelectFormFieldProps {
-  key?: string
-  fieldName: string
-  label?: string
-  form: any
-  items?: SelectDataSource
-  placeholder?: string
-  disabled?: boolean
-  required?: boolean
-  isLoading?: boolean
-  valueField?: string
-  labelField?: string
-  tooltipField?: string
-  maxShownItems?: number
-  className?: string
-  fullWidth?: boolean
+  key?: string;
+  fieldName: string;
+  label?: string;
+  form: any;
+  items?: SelectDataSource;
+  placeholder?: string;
+  disabled?: boolean;
+  required?: boolean;
+  isLoading?: boolean;
+  valueField?: string;
+  labelField?: string;
+  tooltipField?: string;
+  maxShownItems?: number;
+  className?: string;
+  fullWidth?: boolean;
 }
 
 const MultiSelectFormField: React.FC<MultiSelectFormFieldProps> = ({
@@ -38,7 +47,7 @@ const MultiSelectFormField: React.FC<MultiSelectFormFieldProps> = ({
   tooltipField = "description",
   maxShownItems = 3,
   className = "",
-  fullWidth
+  fullWidth,
 }) => (
   <FormField
     control={form.control}
@@ -48,7 +57,11 @@ const MultiSelectFormField: React.FC<MultiSelectFormFieldProps> = ({
         {label && (
           <FormLabel>
             {label}
-            {required ? <RequiredField /> : <span className="text-gray-500 font-light">(Optional)</span>}
+            {required ? (
+              <RequiredField />
+            ) : (
+              <span className="text-gray-500 font-light">(Optional)</span>
+            )}
           </FormLabel>
         )}
         <FormControl>
@@ -64,13 +77,19 @@ const MultiSelectFormField: React.FC<MultiSelectFormFieldProps> = ({
             placeholder={placeholder}
             maxShownItems={maxShownItems}
             fullWidth={fullWidth}
-            className={cn("rounded-md", className, fieldState.error ? "border-destructive focus:ring-destructive" : "border-input")}
+            className={cn(
+              "rounded-md",
+              className,
+              fieldState.error
+                ? "border-destructive focus:ring-destructive"
+                : "border-input"
+            )}
           />
         </FormControl>
         <FormMessage />
       </FormItem>
     )}
   />
-)
+);
 
-export { MultiSelectFormField }
+export { MultiSelectFormField };

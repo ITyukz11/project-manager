@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
+import { useParams } from "next/navigation";
 
 // Zod schema for GroupChat creation
 const GroupChatFormSchema = z.object({
@@ -31,6 +32,8 @@ export type GroupChatFormValues = z.infer<typeof GroupChatFormSchema>;
 
 export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
   const [loading, setLoading] = React.useState(false);
+  const params = useParams();
+  const casinoGroupName = params.casinogroup;
 
   // Fetch network users to be assigned to the group chat
   const { usersDataNetwork, usersLoadingNetwork } = useUsersNetwork();
@@ -53,9 +56,13 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
   async function handleSubmit(values: GroupChatFormValues) {
     setLoading(true);
     try {
+      const finalValues = {
+        ...values,
+        casinoGroupName,
+      };
       const res = await fetch("/api/network/group-chats", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify(finalValues),
         headers: { "Content-Type": "application/json" },
       });
       const data = await res.json();

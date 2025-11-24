@@ -7,34 +7,4 @@ datasource db {
   url      = env("PRISMA_DATABASE_URL") // uses connection pooling
 }
 
-enum Role {
-  SUPERADMIN   
-  ADMIN
-  FAP
-  MASTER_AGENT
-  TL
-  LOADER
-  ACCOUNTING    
-}
 
-// SuperAdmin: the alpha entity, connected to a User
-model SuperAdmin {
-  id       String   @id @default(uuid())
-  name     String
-  location String?
-  ownerId  String
-  owner User @relation("UserOwnedSuperAdmins", fields: [ownerId], references: [id])
-  cashouts  Cashout[]
-  createdAt DateTime @default(now())
-}
-
-
-model GroupChat {
-  id          String      @id @default(cuid())
-  name        String @unique
-  status      Boolean     @default(true)
-
-  users       User[]     
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-}

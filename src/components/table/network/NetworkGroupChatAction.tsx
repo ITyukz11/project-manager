@@ -171,11 +171,13 @@ export function NetworkGroupChatEditDialog({
                         checked={field.value}
                         onCheckedChange={field.onChange}
                         disabled={loading}
-                        className={`${
-                          field.value
-                            ? "bg-green-600 data-[state=checked]:bg-green-600"
-                            : "bg-red-500 data-[state=unchecked]:bg-red-500"
-                        }`}
+                        className={` cursor-pointer
+          ${
+            field.value
+              ? "bg-green-600 dark:bg-green-500 data-[state=checked]:bg-green-600 dark:data-[state=checked]:bg-green-500"
+              : "bg-red-500 dark:bg-red-700 data-[state=unchecked]:bg-red-500 dark:data-[state=unchecked]:bg-red-700"
+          }
+  `}
                       >
                         Active
                       </Switch>

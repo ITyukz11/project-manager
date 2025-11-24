@@ -8,8 +8,23 @@ export async function GET(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    // Fetch group chats and filter out users with username "blurredface"
+
+    // Get casinoGroup from URL search params
+    const url = new URL(request.url);
+    const casinoGroup = url.searchParams.get("casinoGroup");
+
+    // Build base where clause for admin roles
+    const whereClause: any = {};
+
+    // If casinoGroup is provided, add filter
+    if (casinoGroup) {
+      whereClause.casinoGroup = {
+        name: { equals: casinoGroup, mode: "insensitive" },
+      };
+    }
+
     const groupchats = await prisma.groupChat.findMany({
+      where: whereClause,
       include: {
         _count: {
           select: { users: true },
@@ -37,10 +52,27 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, status, users } = body;
+    const { name, status, users, casinoGroupName } = body;
 
     if (!name || typeof status !== "boolean" || !Array.isArray(users)) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: {
+        name: {
+          equals: casinoGroupName,
+          mode: "insensitive",
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!casinoGroup) {
+      return NextResponse.json(
+        { error: "Casino Group not found" },
+        { status: 404 }
+      );
     }
 
     // Create the group chat and connect the users
@@ -48,6 +80,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         status,
+        casinoGroupId: casinoGroup?.id,
         users: {
           connect: users.map((id: string) => ({ id })),
         },

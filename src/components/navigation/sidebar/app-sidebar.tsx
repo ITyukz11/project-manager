@@ -1,83 +1,77 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { useSession } from "next-auth/react";
 import NavSecondary from "./nav-secondary";
 import { NavUser } from "./nav-user";
-import { navLinks } from "../data/nav-links";
-import { ADMINROLES } from "@/lib/types/role";
 import { Label } from "@/components/ui/label";
+import NavCasinoGroup from "./nav-casinogroup";
+import { Separator } from "@/components/ui/separator";
+import { NavMain } from "./nav-main";
+
+// Import Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
+import { useUserCasinoGroups } from "@/lib/hooks/swr/user/useUserCasinoGroup";
 
 export const AppSidebar = () => {
-  const pathname = usePathname();
-  const { data: currentUser } = useSession();
+  const { data: currentUser, status } = useSession();
   const { state } = useSidebar();
+  const { casinoGroups, casinoGroupsLoading, casinoGroupsError } =
+    useUserCasinoGroups(currentUser?.user?.id);
+
   return (
     <Sidebar
       collapsible="icon"
       className="top-[--header-height] h-[calc(100vh-var(--header-height))] border-r"
       variant="inset"
     >
-      {/* Sidebar Header */}
       <SidebarHeader>
         <Label className="flex h-fit w-full justify-center border-b pb-2 font-sans">
-          {state == "expanded" ? "PROJECT MANAGER" : "PM"}
+          {state === "expanded" ? "PROJECT MANAGER" : "PM"}
         </Label>
       </SidebarHeader>
-      {/* Sidebar Content */}
       <SidebarContent>
+        <NavMain />
         <SidebarGroup>
-          <SidebarGroupLabel>Applications</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navLinks.map((link) => {
-                if (
-                  link.text === "Accounts" &&
-                  currentUser?.user?.role !== ADMINROLES.ADMIN
-                ) {
-                  return null;
-                }
-                return (
-                  <SidebarMenuItem key={link.href}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={pathname === link.href}
-                    >
-                      <Link
-                        href={link.href}
-                        className="flex items-center gap-2"
-                      >
-                        <link.icon />
-                        <span>{link.text}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarGroupLabel>Casino Groups</SidebarGroupLabel>
+          {casinoGroupsError && (
+            <span className="text-xs text-red-500 px-4">
+              Failed to load casino groups.
+            </span>
+          )}
+          {casinoGroupsLoading ? (
+            // Show skeleton loading if casinoGroups not yet loaded or empty
+            <>
+              {/* You can adjust the count or height for placeholders */}
+              <Skeleton className="w-full h-8 mb-2" />
+              <Skeleton className="w-full h-8 mb-2" />
+            </>
+          ) : casinoGroups.length === 0 ? (
+            // Optionally show empty state instead if desired
+            <span className="text-xs text-muted-foreground px-4">
+              No casino groups.
+            </span>
+          ) : (
+            casinoGroups.map((group, index) => (
+              <NavCasinoGroup
+                key={group.id}
+                casinoGroup={group}
+                casinoGroupIndex={index}
+              />
+            ))
+          )}
         </SidebarGroup>
-
         <Separator />
-
         <NavSecondary className="mt-auto" />
       </SidebarContent>
-
       <SidebarFooter>
         <NavUser
           user={{

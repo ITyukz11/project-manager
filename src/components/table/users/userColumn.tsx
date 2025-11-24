@@ -49,7 +49,7 @@ export const userColumns: ColumnDef<User>[] = [
       return (
         <Link
           href={row.getValue("messengerLink") ?? "#"}
-          className="text-blue-500"
+          className="text-blue-500 dark:text-blue-400"
           target="_blank"
         >
           {row.getValue("messengerLink")}
@@ -65,7 +65,6 @@ export const userColumns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const isActive = row.getValue("active") as boolean;
 
-      console.log("isActive: ", isActive);
       return (
         <div className="flex flex-col">
           <Badge

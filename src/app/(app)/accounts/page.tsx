@@ -1,5 +1,5 @@
 "use client";
-import { Separator } from "@/components/ui/separator";
+
 import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,14 +14,22 @@ import { Button } from "@/components/ui/button";
 import { userColumns } from "@/components/table/users/userColumn";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { AccountFormDialog } from "./(components)/AccountFormDialog";
+import { useParams } from "next/navigation";
 
-export default function SettingsAccountPage() {
+export default function Page() {
+  const { data: session } = useSession();
+  const params = useParams();
+  const casinoGroup = params.casinogroup;
+
+  console.log("casinoGroup: ", casinoGroup);
   const { usersData, usersLoading, usersError } = useUsers();
   const [open, setOpen] = useState(false);
   const hiddenColumns = ["color"];
-
   // Advanced Filter Sheet UI
+
+  console.log("Current User Session: ", session);
   return (
     <Card>
       <CardContent>
@@ -79,7 +87,11 @@ export default function SettingsAccountPage() {
           />
         )}
       </CardContent>
-      <AccountFormDialog open={open} onOpenChange={setOpen} />
+      <AccountFormDialog
+        open={open}
+        onOpenChange={setOpen}
+        casinoGroup={casinoGroup?.toLocaleString() || null}
+      />
     </Card>
   );
 }

@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
 import {
   Dialog,
   DialogContent,
@@ -29,11 +28,15 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
+// INCLUDE useCasinoGroup HOOK!
+import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
+
 // Zod validation schema
 const AccountFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email address"),
+  casinoGroupId: z.array(z.string()).optional(), // <-- support an array
   password: z.string().min(1, "Password is required"),
   messengerLink: z.string().min(1, "Messenger Link is required"),
   role: z.enum(["ADMIN", "FAP", "MASTER_AGENT", "TL", "LOADER", "ACCOUNTING"], {
@@ -46,12 +49,20 @@ export type AccountFormDialogValues = z.infer<typeof AccountFormSchema>;
 export function AccountFormDialog({
   open,
   onOpenChange,
+  casinoGroup,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  casinoGroup: string | null;
 }) {
   const [loading, setLoading] = React.useState(false);
-  const { refetchUsers } = useUsers();
+  const { refetchUsers } = useUsers(casinoGroup || "");
+
+  // Fetch casino groups for the select input
+  // This might be all groups, so calling with no param
+  const { casinoGroupData, casinoGroupLoading, casinoGroupError } =
+    useCasinoGroup();
+
   const form = useForm<AccountFormDialogValues>({
     resolver: zodResolver(AccountFormSchema),
     defaultValues: {
@@ -60,6 +71,7 @@ export function AccountFormDialog({
       password: "",
       messengerLink: "",
       role: undefined,
+      casinoGroupId: [],
     },
   });
 
@@ -70,16 +82,19 @@ export function AccountFormDialog({
   async function handleSubmit(values: AccountFormDialogValues) {
     setLoading(true);
     try {
+      const finalValues = {
+        ...values,
+        casinoGroups: casinoGroup || values.casinoGroupId,
+      };
       const res = await fetch("/api/user", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify(finalValues),
         headers: { "Content-Type": "application/json" },
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Show error toast (message from API if possible)
         toast.error(data?.error || "Failed to create account.");
         return;
       }
@@ -89,7 +104,6 @@ export function AccountFormDialog({
       refetchUsers();
       form.reset();
     } catch (err: any) {
-      // Show toast for network or unexpected errors
       toast.error(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
@@ -98,7 +112,7 @@ export function AccountFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New User</DialogTitle>
         </DialogHeader>
@@ -172,6 +186,28 @@ export function AccountFormDialog({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+            {/* Casino Group Selection */}
+            {casinoGroupError && (
+              <div className="text-red-500">Error loading casino groups</div>
+            )}
+
+            <GlobalFormField
+              form={form}
+              type="multiselect"
+              fieldName="casinoGroupId"
+              label="Casino Group"
+              required={!casinoGroup}
+              isLoading={casinoGroupLoading || loading}
+              items={
+                Array.isArray(casinoGroupData)
+                  ? casinoGroupData.map((group: any) => ({
+                      label: group.name,
+                      value: group.id,
+                    }))
+                  : []
+              }
+              placeholder="Select a casino group"
             />
 
             <DialogFooter>

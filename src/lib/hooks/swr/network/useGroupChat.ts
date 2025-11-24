@@ -7,10 +7,21 @@ const fetchUsersNetwork = async ([url, method]: [string, string]) => {
   return response.json();
 };
 
-export const useGroupChats = () => {
+/**
+ * SWR hook for group chats.
+ * Optionally pass casinoGroup (string) to filter group chats by casino group.
+ *
+ * @param casinoGroup Optional casino group name/string
+ */
+export const useGroupChats = (casinoGroup?: string) => {
+  let url = "/api/network/group-chats";
+  if (casinoGroup) {
+    url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
+  }
+
   const { data, error, mutate } = useSWR<
     (GroupChat & { users: User[]; _count?: { users?: number } })[]
-  >(["/api/network/group-chats", "GET"], fetchUsersNetwork, {
+  >([url, "GET"], fetchUsersNetwork, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     refreshInterval: 0,

@@ -1,0 +1,13 @@
+model CasinoGroup {
+  id            String        @id @default(uuid())
+  name          String        @unique
+  description   String?
+  superAdminId  String        // NEW: link to SuperAdmin
+  superAdmin    SuperAdmin    @relation(fields: [superAdminId], references: [id])
+  users         User[]        // NEW: users in this casino group
+  cashouts      Cashout[]     // NEW: cashouts for this casino group
+  groupChats    GroupChat[]   // NEW: group chats associated with this casino group
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}

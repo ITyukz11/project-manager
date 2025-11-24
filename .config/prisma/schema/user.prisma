@@ -1,3 +1,24 @@
+enum Role {
+  SUPERADMIN   
+  ADMIN
+  FAP
+  MASTER_AGENT
+  TL
+  LOADER
+  ACCOUNTING    
+}
+
+// SuperAdmin: the alpha entity, connected to a User
+model SuperAdmin {
+  id          String        @id @default(uuid())
+  name        String
+  location    String?
+  ownerId     String   @unique // Unique means only one SuperAdmin per User
+  owner       User     @relation(fields: [ownerId], references: [id])
+  casinoGroups CasinoGroup[] // NEW: one superadmin has many casino groups
+  createdAt   DateTime      @default(now())
+}
+
 // Unified User: single model for all roles
 model User {
   id               String          @id @default(uuid())
@@ -8,13 +29,13 @@ model User {
   role             Role
   messengerLink    String?
   active           Boolean         @default(true)
-  groupChats      GroupChat[]
-  cashoutThreads   CashoutThread[]             // comments made by this user
+  groupChats       GroupChat[]
+  cashoutThreads   CashoutThread[]
   mentionedInThreads CashoutThread[] @relation("CashoutThreadMentions")
-  cashouts         Cashout[]                  // cashouts created by/for this user
-  cashoutLogs      CashoutLogs[]               // logs of actions performed by this user
-  ownedSuperAdmins SuperAdmin[] @relation("UserOwnedSuperAdmins")
-  ownedSuperAdminsId       String?  
+  cashouts         Cashout[]
+  cashoutLogs      CashoutLogs[]
+  superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins
+  casinoGroups     CasinoGroup[] // Many-to-many relationship with CasinoGroup
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 }

@@ -63,7 +63,6 @@ export const userNetworkColumns: ColumnDef<
     cell: ({ row }) => {
       const isActive = row.getValue("active") as boolean;
 
-      console.log("isActive: ", isActive);
       return (
         <div className="flex flex-col">
           <Badge

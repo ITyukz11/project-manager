@@ -288,7 +288,7 @@ export default function Page() {
                           href={att.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-700 hover:underline text-xs"
+                          className="text-blue-500 dark:text-blue-400 hover:underline text-xs"
                         >
                           {att.filename ?? att.url}
                         </a>
@@ -419,7 +419,7 @@ export default function Page() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         key={att.id}
-                                        className="flex items-center gap-1 text-xs underline text-blue-600"
+                                        className="flex items-center gap-1 text-xs underline text-blue-500 dark:text-blue-400"
                                       >
                                         <Paperclip size={16} />{" "}
                                         {att.filename ?? att.url}

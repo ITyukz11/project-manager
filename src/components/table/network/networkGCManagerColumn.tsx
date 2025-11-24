@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDate } from "date-fns";
 import { NetworkGroupChatEditDialog } from "./NetworkGroupChatAction";
+import { Label } from "@/components/ui/label";
 
 export const networkGCManagerColumn: ColumnDef<
   GroupChat & { _count?: { users?: number }; users?: User[] }
@@ -18,12 +19,7 @@ export const networkGCManagerColumn: ColumnDef<
     cell: ({ row }) => {
       return (
         <div className="truncate font-medium cursor-default flex flex-row items-center">
-          <Link
-            href={`/network/group-chat-manager/${row.original.name}`}
-            className="text-blue-600 hover:underline text-sm capitalize"
-          >
-            {row.original.name}
-          </Link>
+          <Label>{row.original.name}</Label>
         </div>
       );
     },
@@ -37,7 +33,6 @@ export const networkGCManagerColumn: ColumnDef<
     cell: ({ row }) => {
       const isActive = row.getValue("status") as boolean;
 
-      console.log("isActive: ", isActive);
       return (
         <div className="flex flex-col">
           <Badge
