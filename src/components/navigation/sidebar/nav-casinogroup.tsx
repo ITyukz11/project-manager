@@ -12,6 +12,7 @@ import {
   Wallet,
 } from "lucide-react";
 import {
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -23,12 +24,15 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { usePusher } from "@/lib/hooks/use-pusher";
+import { useCountCashoutPending } from "@/lib/hooks/swr/cashout/useCountPending";
 
 interface MenuLink {
   href: string;
   text: string;
   icon: React.ComponentType;
   disable: boolean;
+  pendingCount?: number;
 }
 
 // Pass the casinoGroup and pathname as props!
@@ -43,6 +47,28 @@ export default function NavCasinoGroup({
 }) {
   const pathname = usePathname();
   console.log("pathname:", pathname);
+  const [pendingCashouts, setPendingCashouts] = React.useState<number>(0);
+  const [pendingConcerns, setPendingConcerns] = React.useState<number>(0);
+  const [pendingTasks, setPendingTasks] = React.useState<number>(0);
+
+  const { count, isLoading } = useCountCashoutPending(casinoGroup.name);
+
+  // Update local state when SWR loads initial value
+  React.useEffect(() => {
+    if (!isLoading && typeof count === "number") {
+      setPendingCashouts(count);
+    }
+  }, [count, isLoading]);
+
+  // Real-time updates from Pusher
+  usePusher({
+    channels: [`cashout-${casinoGroup.name.toLowerCase()}`],
+    eventName: "pending-count",
+    onEvent: (data: { count: number }) => {
+      console.log("Pusher event received:", data);
+      setPendingCashouts(data.count);
+    },
+  });
 
   // Build dynamic nav links for the group, as in your pattern
   const links: MenuLink[] = [
@@ -64,18 +90,21 @@ export default function NavCasinoGroup({
       text: "Cash Outs",
       icon: Wallet,
       disable: false,
+      pendingCount: pendingCashouts,
     },
     {
       href: `/${casinoGroup.name.toLowerCase()}/concerns`,
       text: "Concerns",
       icon: MessageCircle,
       disable: false,
+      pendingCount: pendingConcerns,
     },
     {
       href: `/${casinoGroup.name.toLowerCase()}/tasks`,
       text: "Tasks",
       icon: CheckSquare,
       disable: false,
+      pendingCount: pendingTasks,
     },
   ];
 
@@ -125,6 +154,17 @@ export default function NavCasinoGroup({
                   </Link>
                 )}
               </SidebarMenuButton>
+              {typeof link.pendingCount === "number" &&
+                link.pendingCount > 0 && (
+                  <SidebarMenuBadge
+                    className={cn(
+                      "peer-data-[active=true]:text-yellow-700 text-yellow-700 ",
+                      "dark:peer-data-[active=true]:text-yellow-400 dark:text-yellow-400"
+                    )}
+                  >
+                    {link.pendingCount}
+                  </SidebarMenuBadge>
+                )}
             </SidebarMenuItem>
           ))}
         </SidebarMenuSub>

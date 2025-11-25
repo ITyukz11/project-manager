@@ -13,6 +13,7 @@ export type CashoutForTable = {
   status: string;
 
   createdAt: Date;
+  updatedAt: Date;
   createdByAdmin?: { id: string; name?: string };
   user?: { id: string; name?: string; accName?: string };
   attachments: { id: string; url: string; filename?: string }[];
@@ -87,7 +88,17 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
       </Badge>
     ),
   },
-
+  {
+    accessorKey: "updatedAt",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Updated At" />
+    ),
+    cell: ({ row }) => (
+      <span className="font-mono text-xs">
+        {format(new Date(row.original.updatedAt), "MMM. dd, yyyy h:mm:aa")}
+      </span>
+    ),
+  },
   {
     accessorKey: "createdAt",
     header: ({ column }) => (

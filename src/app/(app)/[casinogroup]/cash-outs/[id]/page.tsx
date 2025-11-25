@@ -270,22 +270,23 @@ export default function Page() {
                   {cashout.status}
                 </Badge>
               </div>
-              {/* Admin actions */}
-              {(session?.user?.role === ADMINROLES.ADMIN ||
-                session?.user?.role === ADMINROLES.SUPERADMIN) && (
-                <div className="flex flex-row gap-2 col-span-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowStatusSheet(true)}
-                  >
-                    View Status History
-                  </Button>
+              <div className="flex flex-row gap-2 col-span-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowStatusSheet(true)}
+                >
+                  View Status History
+                </Button>
+                {/* Admin actions */}
+                {(session?.user?.role === ADMINROLES.ADMIN ||
+                  session?.user?.role === ADMINROLES.SUPERADMIN ||
+                  session?.user?.role === ADMINROLES.ACCOUNTING) && (
                   <UpdateStatusDialog
                     cashoutId={id}
                     currentStatus={cashout?.status}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">

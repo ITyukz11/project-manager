@@ -3,6 +3,13 @@ import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
+import { pusher } from "@/lib/pusher";
+
+const STATUS_SORT = {
+  PENDING: 1,
+  COMPLETED: 2,
+  REJECTED: 3,
+};
 
 // --- GET handler to fetch all cashouts with attachments and threads ---
 export async function GET(req: Request) {
@@ -33,7 +40,6 @@ export async function GET(req: Request) {
     ];
     const cashouts = await prisma.cashout.findMany({
       where: whereClause,
-      orderBy: { createdAt: "desc" },
       include: {
         attachments: true,
         cashoutThreads: true,
@@ -42,6 +48,8 @@ export async function GET(req: Request) {
         },
       },
     });
+    // Now sort in-memory
+    cashouts.sort((a, b) => STATUS_SORT[a.status] - STATUS_SORT[b.status]);
 
     return NextResponse.json(cashouts);
   } catch (e: any) {
@@ -128,6 +136,7 @@ export async function POST(req: Request) {
             mimetype: file.type || "",
           });
         } catch (err) {
+          console.error("Attachment upload error:", err);
           return NextResponse.json(
             { error: "Attachment upload failed." },
             { status: 500 }
@@ -168,7 +177,17 @@ export async function POST(req: Request) {
             performedById: currentUser.id,
           },
         });
-
+        const pendingCount = await prisma.cashout.count({
+          where: {
+            status: "PENDING",
+            casinoGroupId: casinoGroup.id, // or use casinoGroupName if you join by name
+          },
+        });
+        await pusher.trigger(
+          `cashout-${casinoGroupName.toLowerCase()}`, // channel name
+          "cashout-pending-count", // event name
+          { count: pendingCount }
+        );
         return cashout;
       });
 

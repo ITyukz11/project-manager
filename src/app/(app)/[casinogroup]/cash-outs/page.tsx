@@ -49,7 +49,7 @@ const Page = () => {
           data={cashouts}
           columns={cashoutColumns}
           cursorRowSelect
-          hiddenColumns={["accNumber", "accName"]}
+          hiddenColumns={["details", "updatedAt"]}
           onViewRowId={(id) => router.push(`/${casinoGroup}/cash-outs/` + id)}
         />
       )}

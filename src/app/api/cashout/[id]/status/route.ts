@@ -2,14 +2,20 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ADMINROLES } from "@/lib/types/role";
+import { pusher } from "@/lib/pusher";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const id = (await params).id;
-  const session = await getServerSession(authOptions); // must provide user object
-  if (!session?.user || session.user.role !== "ADMIN") {
+  const session = await getServerSession(authOptions);
+  if (
+    !session?.user ||
+    (session.user.role !== ADMINROLES.ADMIN &&
+      session.user.role !== ADMINROLES.SUPERADMIN)
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -19,20 +25,36 @@ export async function PATCH(
   }
 
   try {
-    // 1. Update the cashout status
+    // 1. Update the cashout status (get casinoGroup for channel)
     const cashout = await prisma.cashout.update({
       where: { id },
       data: { status },
+      include: { casinoGroup: true },
     });
 
     // 2. Log this status change in CashoutLogs
     await prisma.cashoutLogs.create({
       data: {
-        action: status, // record new status as the action (or use something like `Status changed to X`)
+        action: status,
         cashoutId: id,
         performedById: session.user.id,
       },
     });
+
+    // 3. Get updated pending count for this casinoGroup
+    const pendingCount = await prisma.cashout.count({
+      where: {
+        status: "PENDING",
+        casinoGroupId: cashout.casinoGroupId,
+      },
+    });
+
+    // 4. Emit Pusher event for the clients
+    await pusher.trigger(
+      `cashout-${cashout.casinoGroup.name.toLowerCase()}`,
+      "cashout-pending-count",
+      { count: pendingCount }
+    );
 
     return NextResponse.json({ success: true, cashout });
   } catch (e) {
