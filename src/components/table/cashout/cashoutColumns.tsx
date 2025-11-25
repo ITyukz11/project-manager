@@ -9,14 +9,9 @@ export type CashoutForTable = {
   id: string;
   amount: number;
   userName: string;
-  mop: string;
-  accName: string;
-  accNumber: string;
-  bankName: string;
+  details: string;
   status: string;
-  loaderTip: number;
-  agentTip: number;
-  masterAgentTip: number;
+
   createdAt: Date;
   createdByAdmin?: { id: string; name?: string };
   user?: { id: string; name?: string; accName?: string };
@@ -53,18 +48,25 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
       <DataTableColumnHeader column={column} title="Amount" />
     ),
     cell: ({ row }) => (
-      <span className="font-semibold text-green-600 font-mono">
+      <span className="font-semibold text-green-600 dark:text-green-500 font-mono">
         {row.original.amount.toLocaleString()}
       </span>
     ),
   },
-
   {
-    accessorKey: "bankName",
+    accessorKey: "details",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Bank/E-wallet" />
+      <DataTableColumnHeader column={column} title="Details" />
     ),
-    cell: ({ row }) => <span>{row.original.bankName}</span>,
+    cell: ({ row }) => {
+      const details = row.original.details || "";
+      const maxLength = 80;
+      const truncated =
+        details.length > maxLength
+          ? details.substring(0, maxLength) + "..."
+          : details;
+      return <span title={details}>{truncated}</span>;
+    },
   },
   {
     accessorKey: "status",
@@ -83,22 +85,6 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
       >
         {row.original.status}
       </Badge>
-    ),
-  },
-  {
-    accessorKey: "accName",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Account Name" />
-    ),
-    cell: ({ row }) => <span>{row.original.accName}</span>,
-  },
-  {
-    accessorKey: "accNumber",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Account Number" />
-    ),
-    cell: ({ row }) => (
-      <span className="font-mono">{row.original.accNumber}</span>
     ),
   },
 

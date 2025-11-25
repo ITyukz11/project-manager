@@ -23,42 +23,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { BankNames } from "@/lib/data";
-import { cn } from "@/lib/utils";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover-dialog";
-import { Check, ChevronsUpDown } from "lucide-react";
 import { GlobalFormField } from "@/components/common/form";
 import { toast } from "sonner";
-import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import {
   avoidDefaultDomBehavior,
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
+import { useParams } from "next/navigation";
 
 // Zod schema for Cashout form
 const CashoutFormSchema = z.object({
   userName: z.string().min(1, "Username required"),
   amount: z.number().min(1, "Amount required and must be greater than zero"),
-  mop: z.string().min(1, "Mode of Payment required"),
-  accName: z.string().min(1, "Account Name required"),
-  accNumber: z.string().min(1, "Account Number required"),
-  bankName: z.string().min(1, "Bank Name required"),
-  loaderTip: z.number().min(0, "Loader Tip cannot be negative"),
-  agentTip: z.number().min(0, "Agent Tip cannot be negative"),
-  masterAgentTip: z.number().min(0, "Master Agent Tip cannot be negative"),
+  details: z.string().min(1, "Details required"),
   // Only validate in frontend, will handle proper upload in backend
   attachment: z.any().optional(),
 });
@@ -75,21 +53,16 @@ export function CashoutFormDialog({
   onSubmitted?: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
-  const [openSearchBank, setOpenSearchBank] = React.useState(false);
   const { mutate } = useCashouts();
+  const params = useParams();
+  const casinoGroup = params.casinogroup as string;
 
   const form = useForm<CashoutFormValues>({
     resolver: zodResolver(CashoutFormSchema),
     defaultValues: {
       amount: 0,
       userName: "",
-      mop: "",
-      accName: "",
-      accNumber: "",
-      bankName: "",
-      loaderTip: 0,
-      agentTip: 0,
-      masterAgentTip: 0,
+      details: "",
       attachment: [],
     },
   });
@@ -104,13 +77,9 @@ export function CashoutFormDialog({
       const formData = new FormData();
       formData.append("amount", String(values.amount));
       formData.append("userName", values.userName);
-      formData.append("mop", values.mop);
-      formData.append("accName", values.accName);
-      formData.append("accNumber", values.accNumber);
-      formData.append("bankName", values.bankName);
-      formData.append("loaderTip", String(values.loaderTip));
-      formData.append("agentTip", String(values.agentTip));
-      formData.append("masterAgentTip", String(values.masterAgentTip));
+      formData.append("details", values.details);
+      formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
+
       if (values.attachment && Array.isArray(values.attachment)) {
         values.attachment.forEach((file) => {
           formData.append("attachment", file); // All with the same key
@@ -161,156 +130,39 @@ export function CashoutFormDialog({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <GlobalFormField
                 form={form}
-                fieldName="amount"
-                label="Amount"
-                required
-                placeholder="0.00"
-                type="amount"
-              />
-              <GlobalFormField
-                form={form}
                 fieldName="userName"
                 label="Username"
                 required
                 placeholder="Enter username"
                 type="text"
               />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <GlobalFormField
                 form={form}
-                fieldName="accName"
-                label="Account Name"
+                fieldName="amount"
+                label="Amount"
                 required
-                type="text"
-                placeholder="Enter account name"
-              />
-              <GlobalFormField
-                form={form}
-                fieldName="accNumber"
-                label="Account Number"
-                required
-                type="text"
-                placeholder="Enter account number"
+                placeholder="0.00"
+                type="amount"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <GlobalFormField
-                form={form}
-                fieldName="mop"
-                label="Mode of Payment"
-                required
-                placeholder="Enter mode of payment"
-                type="text"
-              />
-              <FormField
-                control={form.control}
-                name="bankName"
-                render={({ field }) => {
-                  const banks = BankNames.filter((b) => b.type === "BANK");
-                  const wallets = BankNames.filter((b) => b.type === "EWALLET");
-                  return (
-                    <FormItem>
-                      <FormLabel>Bank Name / E-Wallet</FormLabel>
-                      <FormControl>
-                        <Popover
-                          open={openSearchBank}
-                          onOpenChange={setOpenSearchBank}
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              aria-expanded={openSearchBank}
-                              disabled={loading}
-                              className={cn(
-                                "w-full justify-between font-normal",
-                                !form.watch().bankName &&
-                                  "text-muted-foreground"
-                              )}
-                            >
-                              {field.value
-                                ? BankNames.find(
-                                    (bank) => bank.name === field.value
-                                  )?.name
-                                : "Select Bank or E-Wallet"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50 shrink-0" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0 max-h-[300px]">
-                            <Command>
-                              <CommandInput
-                                placeholder="Search bank or e-wallet..."
-                                className="h-9"
-                              />
-                              <CommandList>
-                                <CommandEmpty>No options found.</CommandEmpty>
-                                {banks.length > 0 && (
-                                  <CommandGroup heading="Banks">
-                                    {banks.map((bank) => (
-                                      <CommandItem
-                                        key={bank.name}
-                                        value={bank.name}
-                                        onSelect={() => {
-                                          field.onChange(bank.name);
-                                          setOpenSearchBank(false);
-                                        }}
-                                      >
-                                        {bank.name}
-                                        <Check
-                                          className={cn(
-                                            "ml-auto h-4 w-4",
-                                            field.value === bank.name
-                                              ? "opacity-100"
-                                              : "opacity-0"
-                                          )}
-                                        />
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                )}
-                                {wallets.length > 0 && (
-                                  <CommandGroup heading="E-Wallets">
-                                    {wallets.map((wallet) => (
-                                      <CommandItem
-                                        key={wallet.name}
-                                        value={wallet.name}
-                                        onSelect={() => {
-                                          field.onChange(wallet.name);
-                                          setOpenSearchBank(false);
-                                        }}
-                                      >
-                                        {wallet.name}
-                                        <Check
-                                          className={cn(
-                                            "ml-auto h-4 w-4",
-                                            field.value === wallet.name
-                                              ? "opacity-100"
-                                              : "opacity-0"
-                                          )}
-                                        />
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                )}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
-              />
-            </div>
-
+            <GlobalFormField
+              form={form}
+              fieldName="details"
+              label="Details"
+              required
+              placeholder="Enter cashout details"
+              type="textarea"
+              row={10}
+            />
             <FormField
               control={form.control}
               name="attachment"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Attachments</FormLabel>
+                  <FormLabel>
+                    Attachments{" "}
+                    <span className="text-gray-500 font-light">(Optional)</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="file"
@@ -327,30 +179,6 @@ export function CashoutFormDialog({
                 </FormItem>
               )}
             />
-            <div className="flex flex-col md:flex-row gap-4">
-              <GlobalFormField
-                form={form}
-                fieldName="loaderTip"
-                label="Loader Tip"
-                placeholder="0.00"
-                type="amount"
-              />
-
-              <GlobalFormField
-                form={form}
-                fieldName="agentTip"
-                label="Agent Tip"
-                placeholder="0.00"
-                type="amount"
-              />
-              <GlobalFormField
-                form={form}
-                fieldName="masterAgentTip"
-                label="MA Tip"
-                placeholder="0.00"
-                type="amount"
-              />
-            </div>
 
             <DialogFooter>
               <Button type="submit" disabled={loading}>

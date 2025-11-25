@@ -3,7 +3,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetClose,
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -96,11 +95,6 @@ export function CashoutStatusHistorySheet({
             </div>
           )}
         </div>
-        <SheetClose asChild>
-          <button className="absolute top-2 right-2 p-2 text-xl font-bold">
-            &times;
-          </button>
-        </SheetClose>
       </SheetContent>
     </Sheet>
   );

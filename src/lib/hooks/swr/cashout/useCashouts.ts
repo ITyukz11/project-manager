@@ -8,9 +8,13 @@ const fetcher = async (url: string) => {
 };
 
 // Returns: { data, error, isLoading }
-export function useCashouts() {
+export const useCashouts = (casinoGroup?: string) => {
+  let url = "/api/cashout";
+  if (casinoGroup) {
+    url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
+  }
   // Adjust API path as needed!
-  const { data, error, isLoading, mutate } = useSWR("/api/cashout", fetcher);
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher);
 
   // data will be an array of cashouts
   return {
@@ -19,4 +23,4 @@ export function useCashouts() {
     isLoading,
     mutate, // for refetching if you post a new cashout etc
   };
-}
+};

@@ -2,22 +2,21 @@
 model Cashout {
   id              String       @id @default(uuid())
   amount          Float
-  mop             String
   userName        String  //Player Username
-  accName         String
-  accNumber       String
-  bankName        String
-  attachments     Attachment[]
   status          CashoutStatus   @default(PENDING)
-  loaderTip       Float           @default(0)
-  agentTip        Float           @default(0)
-  masterAgentTip  Float           @default(0)
+
+ 
+  attachments     Attachment[]
+
+  details         String
+
   userId          String?
   user            User?           @relation(fields: [userId], references: [id])
-  casinoGroupId String
-  casinoGroup   CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
   cashoutThreads  CashoutThread[]
   cashoutLogs     CashoutLogs[]
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 }

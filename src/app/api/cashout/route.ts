@@ -12,12 +12,27 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get casinoGroup from URL search params
+    const url = new URL(req.url);
+    const casinoGroup = url.searchParams.get("casinoGroup");
+
+    // Build base where clause for admin roles
+    const whereClause: any = {};
+
+    // If casinoGroup is provided, add filter
+    if (casinoGroup) {
+      whereClause.casinoGroup = {
+        name: { equals: casinoGroup, mode: "insensitive" },
+      };
+    }
+
     // Filter roles: include admin + network roles (customize as needed)
     const allowedRoles = [
       ...Object.values(ADMINROLES),
       ...Object.values(NETWORKROLES),
     ];
     const cashouts = await prisma.cashout.findMany({
+      where: whereClause,
       orderBy: { createdAt: "desc" },
       include: {
         attachments: true,
@@ -39,20 +54,59 @@ export async function POST(req: Request) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
     }
 
     // Accept fields
     const formData = await req.formData();
+
     const userName = formData.get("userName") as string;
-    const amount = parseFloat(formData.get("amount") as string);
-    const mop = formData.get("mop") as string;
-    const accName = formData.get("accName") as string;
-    const accNumber = formData.get("accNumber") as string;
-    const bankName = formData.get("bankName") as string;
-    const loaderTip = parseFloat(formData.get("loaderTip") as string);
-    const agentTip = parseFloat(formData.get("agentTip") as string);
-    const masterAgentTip = parseFloat(formData.get("masterAgentTip") as string);
+    const amountStr = formData.get("amount");
+    const details = formData.get("details") as string;
+    const casinoGroupName = formData.get("casinoGroup") as string;
+
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: {
+        name: { equals: casinoGroupName, mode: "insensitive" },
+      },
+    });
+    if (!casinoGroup) {
+      return NextResponse.json(
+        { error: "Invalid casino group specified." },
+        { status: 400 }
+      );
+    }
+    // --- Validation ---
+    if (!userName || typeof userName !== "string" || userName.trim() === "") {
+      return NextResponse.json(
+        { error: "Username is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!amountStr || isNaN(Number(amountStr))) {
+      return NextResponse.json(
+        { error: "Amount is required and must be a valid number." },
+        { status: 400 }
+      );
+    }
+    const amount = parseFloat(amountStr as string);
+    if (amount <= 0) {
+      return NextResponse.json(
+        { error: "Amount must be greater than zero." },
+        { status: 400 }
+      );
+    }
+
+    if (!details || typeof details !== "string" || details.trim() === "") {
+      return NextResponse.json(
+        { error: "Cashout details are required." },
+        { status: 400 }
+      );
+    }
 
     // Upload attachments
     const attachments: File[] = formData.getAll("attachment") as File[];
@@ -63,15 +117,22 @@ export async function POST(req: Request) {
     }[] = [];
     for (const file of attachments) {
       if (file && typeof file === "object" && file.size > 0) {
-        const blob = await put(file.name, file, {
-          access: "public",
-          addRandomSuffix: true,
-        });
-        attachmentData.push({
-          url: blob.url,
-          filename: file.name,
-          mimetype: file.type || "",
-        });
+        try {
+          const blob = await put(file.name, file, {
+            access: "public",
+            addRandomSuffix: true,
+          });
+          attachmentData.push({
+            url: blob.url,
+            filename: file.name,
+            mimetype: file.type || "",
+          });
+        } catch (err) {
+          return NextResponse.json(
+            { error: "Attachment upload failed." },
+            { status: 500 }
+          );
+        }
       }
     }
 
@@ -79,13 +140,8 @@ export async function POST(req: Request) {
     const cashoutData: any = {
       userName,
       amount,
-      mop,
-      accName,
-      accNumber,
-      bankName,
-      loaderTip,
-      agentTip,
-      masterAgentTip,
+      details,
+      casinoGroupId: casinoGroup.id,
       userId: currentUser.id,
       attachments: {
         createMany: {
@@ -94,26 +150,46 @@ export async function POST(req: Request) {
       },
     };
 
-    const result = await prisma.$transaction(async (prisma) => {
-      // Save to DB
-      const cashout = await prisma.cashout.create({
-        data: cashoutData,
-        include: {
-          attachments: true,
-        },
+    // --- Main transaction ---
+    try {
+      const result = await prisma.$transaction(async (prisma) => {
+        // Save to DB
+        const cashout = await prisma.cashout.create({
+          data: cashoutData,
+          include: {
+            attachments: true,
+          },
+        });
+
+        await prisma.cashoutLogs.create({
+          data: {
+            cashoutId: cashout.id,
+            action: "PENDING",
+            performedById: currentUser.id,
+          },
+        });
+
+        return cashout;
       });
 
-      await prisma.cashoutLogs.create({
-        data: {
-          cashoutId: cashout.id,
-          action: "PENDING",
-          performedById: currentUser.id,
+      return NextResponse.json({ success: true, result });
+    } catch (dbErr: any) {
+      // Prisma error messages can be cryptic, so give a generic error and log:
+      console.error("Database error during cashout creation:", dbErr);
+      return NextResponse.json(
+        {
+          error:
+            "Failed to create cashout. Please check your data and try again.",
         },
-      });
-    });
-
-    return NextResponse.json({ success: true, result });
+        { status: 500 }
+      );
+    }
   } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    // Catch-all for unexpected errors
+    console.error("Unexpected error creating cashout:", e);
+    return NextResponse.json(
+      { error: "Unexpected server error. Please try again later." },
+      { status: 500 }
+    );
   }
 }

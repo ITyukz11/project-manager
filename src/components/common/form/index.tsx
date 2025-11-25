@@ -82,6 +82,7 @@ type TextareaFieldProps = BaseProps & {
   description?: string;
   placeholder?: string;
   className?: string;
+  row?: number;
 };
 
 type FileUploadFieldProps = BaseProps & {

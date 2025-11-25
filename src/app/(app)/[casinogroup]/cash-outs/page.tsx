@@ -3,7 +3,7 @@
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { DataTable } from "@/components/table/data-table";
 import { cashoutColumns } from "@/components/table/cashout/cashoutColumns";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Tooltip,
   TooltipContent,
@@ -13,7 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TriangleAlert } from "lucide-react";
 
 const Page = () => {
-  const { cashouts, error, isLoading } = useCashouts();
+  const params = useParams();
+  const casinoGroup = params.casinogroup as string;
+  const { cashouts, error, isLoading } = useCashouts(casinoGroup);
 
   const router = useRouter();
   return (
@@ -48,7 +50,7 @@ const Page = () => {
           columns={cashoutColumns}
           cursorRowSelect
           hiddenColumns={["accNumber", "accName"]}
-          onViewRowId={(id) => router.push("/cash-outs/" + id)}
+          onViewRowId={(id) => router.push(`/${casinoGroup}/cash-outs/` + id)}
         />
       )}
     </div>

@@ -29,10 +29,8 @@ import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import RequiredField from "@/components/common/required-field";
 import { Input } from "@/components/ui/input";
-import { useParams, usePathname } from "next/navigation";
-import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
+import { useParams } from "next/navigation";
 import { useCasinoGroupNetwork } from "@/lib/hooks/swr/casino-group/useCasinoGroupNetwork";
-import { Label } from "@/components/ui/label";
 
 // Add "groupChats" to your Zod Schema
 const NetworkUserFormSchema = z.object({
@@ -52,7 +50,6 @@ export type NetworkUserFormDialogValues = z.infer<typeof NetworkUserFormSchema>;
 
 export function NetworkUserFormDialog({ open, onOpenChange }) {
   const [loading, setLoading] = React.useState(false);
-  const { groupChatsData, groupChatsLoading } = useGroupChats();
 
   const params = useParams();
   const casinoGroup = params.casinogroup;
@@ -60,8 +57,12 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
   const { refetchUsersNetwork: refetchUsersNetworkByGroup } = useUsersNetwork(
     casinoGroup?.toLocaleString()
   );
-  const { casinoGroupNetworkData, casinoGroupNetworkLoading } =
-    useCasinoGroupNetwork(casinoGroup?.toLocaleString() ?? "");
+  const { casinoGroupNetworkData } = useCasinoGroupNetwork(
+    casinoGroup?.toLocaleString() ?? ""
+  );
+  const { groupChatsData, groupChatsLoading } = useGroupChats(
+    casinoGroup?.toLocaleString() ?? ""
+  );
 
   const form = useForm<NetworkUserFormDialogValues>({
     resolver: zodResolver(NetworkUserFormSchema),

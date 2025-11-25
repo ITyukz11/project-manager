@@ -1,19 +1,27 @@
-"use client"
+"use client";
 
-import React from "react"
-import RequiredField from "@/components/common/required-field"
-import { FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
-import { Textarea } from "@/components/ui/textarea"
+import React from "react";
+import RequiredField from "@/components/common/required-field";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TextareaFormFieldProps {
-  fieldName: string
-  label?: string
-  description?: string
-  form: any
-  placeholder?: string
-  disabled?: boolean
-  required?: boolean
-  className?: string
+  fieldName: string;
+  label?: string;
+  description?: string;
+  form: any;
+  placeholder?: string;
+  disabled?: boolean;
+  required?: boolean;
+  className?: string;
+  row?: number;
 }
 
 /**
@@ -27,7 +35,8 @@ const TextareaFormField: React.FC<TextareaFormFieldProps> = ({
   placeholder = "Enter text...",
   disabled = false,
   required = false,
-  className = "resize-y"
+  className = "resize-y",
+  row = 4,
 }) => (
   <FormField
     control={form.control}
@@ -37,17 +46,27 @@ const TextareaFormField: React.FC<TextareaFormFieldProps> = ({
         {label && (
           <FormLabel>
             {label}
-            {required ? <RequiredField /> : <span className="text-gray-500 font-light">(Optional)</span>}
+            {required ? (
+              <RequiredField />
+            ) : (
+              <span className="text-gray-500 font-light">(Optional)</span>
+            )}
           </FormLabel>
         )}
         <FormControl>
-          <Textarea disabled={form.formState.isSubmitting || disabled} placeholder={placeholder} className={className} {...field} />
+          <Textarea
+            rows={row}
+            disabled={form.formState.isSubmitting || disabled}
+            placeholder={placeholder}
+            className={className}
+            {...field}
+          />
         </FormControl>
         {description && <FormDescription>{description}</FormDescription>}
         <FormMessage />
       </FormItem>
     )}
   />
-)
+);
 
-export { TextareaFormField }
+export { TextareaFormField };

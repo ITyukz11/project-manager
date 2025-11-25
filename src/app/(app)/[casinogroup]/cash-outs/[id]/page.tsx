@@ -22,7 +22,6 @@ import { formatDate } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { toast } from "sonner";
-import { ADMINROLES } from "@/lib/types/role";
 import {
   Mention,
   MentionContent,
@@ -39,9 +38,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
+import { Input } from "@/components/ui/input";
+import { ADMINROLES } from "@/lib/types/role";
 
 export default function Page() {
   const { id } = useParams();
@@ -145,7 +145,7 @@ export default function Page() {
         <ResizablePanel
           defaultSize={50}
           minSize={35}
-          className="flex flex-col justify-between"
+          className="flex flex-col justify-between px-2"
         >
           {isLoading ? (
             <div className="flex flex-col gap-3 my-4 mr-4">
@@ -173,58 +173,22 @@ export default function Page() {
             <div className="text-sm text-red-600">Error: {error.message}</div>
           ) : cashout ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-              {/* Status and Amount */}
-              <div>
-                <span className="text-muted-foreground text-xs mb-1 block">
-                  Status
-                </span>
-                <Badge
-                  className={`capitalize text-xs cursor-pointer ${
-                    cashout.status === "PENDING"
-                      ? "bg-yellow-400 text-black"
-                      : cashout.status === "COMPLETED"
-                      ? "bg-green-600 text-white"
-                      : "bg-red-600 text-white"
-                  }`}
-                >
-                  {cashout.status}
-                </Badge>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs mb-1 block">
-                  Amount
-                </Label>
-                <div className="font-mono">
-                  {formatAmountWithDecimals(cashout.amount)}
-                </div>
-              </div>
-
               {/* Username and Bank/E-wallet */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Username
                 </Label>
-                <Label>{cashout.userName}</Label>
+                <Input readOnly value={cashout.userName} />
               </div>
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
-                  Bank / E-wallet
+                  Amount
                 </Label>
-                <Label className="font-medium">{cashout.bankName}</Label>
-              </div>
-
-              {/* Account Name and Account Number */}
-              <div>
-                <Label className="text-muted-foreground text-xs mb-1 block">
-                  Account Name
-                </Label>
-                <Label>{cashout.accName}</Label>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs mb-1 block">
-                  Account Number
-                </Label>
-                <Label>{cashout.accNumber}</Label>
+                <Input
+                  readOnly
+                  value={formatAmountWithDecimals(cashout.amount)}
+                  className="font-mono"
+                />
               </div>
 
               {/* Entry By and Agent Tip */}
@@ -232,40 +196,32 @@ export default function Page() {
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Entry By
                 </Label>
-                <Label className="font-mono">
-                  {cashout.user?.name || (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </Label>
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs mb-1 block">
-                  Agent Tip
-                </Label>
-                <Label className="font-mono">
-                  {formatAmountWithDecimals(cashout.agentTip)}
-                </Label>
+                <Input readOnly value={cashout.user?.name} />
               </div>
 
-              {/* MA Tip and Loader Tip */}
+              {/* Date Requested At */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
-                  MA Tip
+                  Date of Request
                 </Label>
-                <Label className="font-mono">
-                  {formatAmountWithDecimals(cashout.masterAgentTip)}
-                </Label>
+                <Input
+                  readOnly
+                  value={
+                    cashout.createdAt
+                      ? formatDate(cashout.createdAt, "M/dd/yyyy 'at' hh:mm a")
+                      : "—"
+                  }
+                />
               </div>
+              {/* Details */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
-                  Loader Tip
+                  Details
                 </Label>
-                <Label className="font-mono">
-                  {formatAmountWithDecimals(cashout.loaderTip)}
-                </Label>
+                <Textarea readOnly value={cashout.details} />
               </div>
 
-              {/* Attachments and Requested At */}
+              {/* Attachments */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Attachments
@@ -296,21 +252,28 @@ export default function Page() {
                     ))}
                 </ul>
               </div>
+
+              {/* Status and Amount */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
-                  Requested At
+                  Status
                 </Label>
-                <Label>
-                  {cashout.createdAt
-                    ? formatDate(
-                        cashout.createdAt,
-                        "MMMM dd, yyyy 'at' hh:mm a"
-                      )
-                    : "—"}
-                </Label>
+                <Badge
+                  className={`capitalize text-xs cursor-pointer ${
+                    cashout.status === "PENDING"
+                      ? "bg-yellow-400 text-black"
+                      : cashout.status === "COMPLETED"
+                      ? "bg-green-600 text-white"
+                      : "bg-red-600 text-white"
+                  }`}
+                >
+                  {cashout.status}
+                </Badge>
               </div>
-              {session?.user?.role === "ADMIN" && (
-                <div className="flex flex-row gap-2">
+              {/* Admin actions */}
+              {(session?.user?.role === ADMINROLES.ADMIN ||
+                session?.user?.role === ADMINROLES.SUPERADMIN) && (
+                <div className="flex flex-row gap-2 col-span-2">
                   <Button
                     variant="outline"
                     onClick={() => setShowStatusSheet(true)}
