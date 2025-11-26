@@ -33,6 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export interface DataTableAction<T> {
   label: string;
@@ -244,7 +245,7 @@ export function DataTable<TData extends { id: string }, TValue>({
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     onClick={() => handleRowClick(row.original.id)}
-                    style={{ cursor: cursorRowSelect ? "pointer" : "default" }}
+                    className={cn(cursorRowSelect && "*:cursor-pointer")}
                   >
                     {row.getVisibleCells().map((cell, index) => {
                       if (cell.column.id === "actions") {
