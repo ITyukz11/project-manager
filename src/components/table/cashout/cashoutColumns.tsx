@@ -3,6 +3,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DataTableColumnHeader } from "../data-table-column-header";
+import { Label } from "@/components/ui/label";
+import { formatAmountWithDecimals } from "@/components/formatAmount";
 
 // Assuming Cashout type
 export type CashoutForTable = {
@@ -49,8 +51,8 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
       <DataTableColumnHeader column={column} title="Amount" />
     ),
     cell: ({ row }) => (
-      <span className="font-semibold text-green-600 dark:text-green-500 font-mono">
-        {row.original.amount.toLocaleString()}
+      <span className=" text-green-700 dark:text-green-500 font-mono">
+        {formatAmountWithDecimals(row.original.amount)}
       </span>
     ),
   },
