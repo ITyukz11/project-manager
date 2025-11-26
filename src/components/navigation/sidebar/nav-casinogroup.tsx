@@ -50,9 +50,7 @@ export default function NavCasinoGroup({
   const [pendingCashouts, setPendingCashouts] = React.useState<number>(0);
   const [pendingConcerns, setPendingConcerns] = React.useState<number>(0);
   const [pendingTasks, setPendingTasks] = React.useState<number>(0);
-
   const { count, isLoading } = useCountCashoutPending(casinoGroup.name);
-
   // Update local state when SWR loads initial value
   React.useEffect(() => {
     if (!isLoading && typeof count === "number") {
@@ -63,13 +61,12 @@ export default function NavCasinoGroup({
   // Real-time updates from Pusher
   usePusher({
     channels: [`cashout-${casinoGroup.name.toLowerCase()}`],
-    eventName: "pending-count",
+    eventName: "cashout-pending-count",
     onEvent: (data: { count: number }) => {
       console.log("Pusher event received:", data);
       setPendingCashouts(data.count);
     },
   });
-
   // Build dynamic nav links for the group, as in your pattern
   const links: MenuLink[] = [
     // // Build per your template! Example:
@@ -158,7 +155,7 @@ export default function NavCasinoGroup({
                 link.pendingCount > 0 && (
                   <SidebarMenuBadge
                     className={cn(
-                      "peer-data-[active=true]:text-yellow-700 text-yellow-700 ",
+                      "peer-hover/menu-button:text-yellow-600 peer-data-[active=true]/menu-button:text-yellow-600 text-yellow-600",
                       "dark:peer-data-[active=true]:text-yellow-400 dark:text-yellow-400"
                     )}
                   >
