@@ -5,7 +5,8 @@ enum Role {
   MASTER_AGENT
   TL
   LOADER
-  ACCOUNTING    
+  ACCOUNTING 
+  SSMA   
 }
 
 // SuperAdmin: the alpha entity, connected to a User
@@ -29,11 +30,24 @@ model User {
   role             Role
   messengerLink    String?
   active           Boolean         @default(true)
+  commissionSharing Float?        // percentage value (e.g., 10.5 for 10.5%)
   groupChats       GroupChat[]
+
+  referredBy       User?           @relation("UserReferrals", fields: [referredById], references: [id])
+  referredById     String?
+  referrals        User[]          @relation("UserReferrals")
+
   cashoutThreads   CashoutThread[]
   mentionedInThreads CashoutThread[] @relation("CashoutThreadMentions")
   cashouts         Cashout[]
   cashoutLogs      CashoutLogs[]
+
+  concerns         Concern[]         @relation("ConcernCreator")
+  taggedConcerns   Concern[]         @relation("ConcernTags") // tagged in concerns
+  concernThreads   ConcernThread[]
+  mentionedInConcernThreads ConcernThread[] @relation("ConcernThreadMentions")
+  concernLogs      ConcernLogs[]
+
   superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins
   casinoGroups     CasinoGroup[] // Many-to-many relationship with CasinoGroup
   createdAt        DateTime        @default(now())

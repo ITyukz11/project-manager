@@ -4,14 +4,7 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormLabel } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,17 +20,17 @@ import { Spinner } from "@/components/ui/spinner";
 import { NETWORKROLES } from "@/lib/types/role";
 import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
-import RequiredField from "@/components/common/required-field";
-import { Input } from "@/components/ui/input";
 import { useParams } from "next/navigation";
 import { useCasinoGroupNetwork } from "@/lib/hooks/swr/casino-group/useCasinoGroupNetwork";
+import { Input } from "@/components/ui/input";
 
 // Add "groupChats" to your Zod Schema
 const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  commissionShare: z.string().min(1, "Commission Share is required"),
+  referredBy: z.string().optional(),
   messengerLink: z.string().optional(),
   role: z.enum(Object.values(NETWORKROLES), {
     message: "Role is required",
@@ -48,7 +41,18 @@ const NetworkUserFormSchema = z.object({
 
 export type NetworkUserFormDialogValues = z.infer<typeof NetworkUserFormSchema>;
 
-export function NetworkUserFormDialog({ open, onOpenChange }) {
+interface NetworkUserFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  referredByUsername?: string;
+  mutate?: () => void;
+}
+export function NetworkUserFormDialog({
+  open,
+  onOpenChange,
+  referredByUsername,
+  mutate,
+}: NetworkUserFormDialogProps) {
   const [loading, setLoading] = React.useState(false);
 
   const params = useParams();
@@ -64,19 +68,25 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
     casinoGroup?.toLocaleString() ?? ""
   );
 
+  const { usersDataNetwork, usersLoadingNetwork } = useUsersNetwork(
+    casinoGroup?.toLocaleString()
+  );
+
   const form = useForm<NetworkUserFormDialogValues>({
     resolver: zodResolver(NetworkUserFormSchema),
     defaultValues: {
       name: "",
       email: "",
-      username: "",
-      password: "",
       messengerLink: "",
       role: undefined,
+      commissionShare: "",
+      username: "",
+      referredBy: undefined,
       groupChats: [],
       casinoGroups: [],
     },
   });
+  console.log("referredby: ", form.watch("referredBy"));
 
   React.useEffect(() => {
     form.reset();
@@ -87,6 +97,7 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
     try {
       const finalValues = {
         ...values,
+        referredByUsername: referredByUsername,
         casinoGroups: [casinoGroupNetworkData?.id], // <-- must be array of at least 1 string!
       };
       const res = await fetch("/api/network/users", {
@@ -100,6 +111,7 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
         return;
       }
       toast.success("Network user created successfully!");
+      mutate?.();
       refetchUsersNetwork();
       refetchUsersNetworkByGroup();
       onOpenChange?.(false);
@@ -150,42 +162,54 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
                 label="Username"
                 required
                 type="text"
-                placeholder="Enter username (optional)"
+                placeholder="Enter username"
               />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Password <RequiredField />
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter password"
-                        type="password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <GlobalFormField
+                form={form}
+                fieldName="commissionShare"
+                label="Commission Share %"
+                required
+                type="number"
+                placeholder="Enter commission share"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {referredByUsername ? (
+                <div>
+                  <FormLabel className="mb-2">Referred By</FormLabel>
+                  <Input value={referredByUsername} readOnly />
+                </div>
+              ) : (
+                <GlobalFormField
+                  form={form}
+                  fieldName="referredBy"
+                  label="Referred By"
+                  required={false}
+                  type="select"
+                  isLoading={usersLoadingNetwork}
+                  options={
+                    usersDataNetwork?.map((user) => ({
+                      label: user.name,
+                      value: user.id,
+                    })) || []
+                  }
+                  placeholder="Select referrer (optional)"
+                />
+              )}
+              <GlobalFormField
+                form={form}
+                fieldName="role"
+                label="Role"
+                required
+                type="select"
+                options={Object.values(NETWORKROLES).map((type) => ({
+                  label: type,
+                  value: type,
+                }))}
+                placeholder="Select user type"
               />
             </div>
 
-            <GlobalFormField
-              form={form}
-              fieldName="role"
-              label="Role"
-              required
-              type="select"
-              options={Object.values(NETWORKROLES).map((type) => ({
-                label: type,
-                value: type,
-              }))}
-              placeholder="Select user type"
-            />
             <GlobalFormField
               form={form}
               fieldName="groupChats"

@@ -8,3 +8,11 @@ datasource db {
 }
 
 
+enum Statuses {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REJECTED
+  COMPLETED
+}

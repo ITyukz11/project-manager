@@ -1,5 +1,4 @@
 "use client";
-import { useCashoutById } from "@/lib/hooks/swr/cashout/useCashoutById";
 import {
   ArrowLeft,
   Paperclip,
@@ -29,7 +28,6 @@ import {
   MentionItem,
 } from "@/components/ui/mention";
 import { Textarea } from "@/components/ui/textarea";
-import { formatAmountWithDecimals } from "@/components/formatAmount";
 import { useSession } from "next-auth/react";
 import { UpdateStatusDialog } from "../(components)/UpdateStatusDialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,14 +37,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
+import { ConcernStatusHistorySheet } from "../(components)/ConcernStatusHistorySheet";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
+import { useConcernById } from "@/lib/hooks/swr/concern/useConcernById";
 
 export default function Page() {
   const { id } = useParams();
   const router = useRouter();
-  const { cashout, isLoading, error, mutate } = useCashoutById(id as string);
+  const { concern, isLoading, error, mutate } = useConcernById(id as string);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { usersDataNetwork } = useUsersNetwork();
@@ -106,7 +105,7 @@ export default function Page() {
       formData.append("message", comment);
       attachments.forEach((file) => formData.append("attachment", file));
 
-      const res = await fetch(`/api/cashout/${id}/thread`, {
+      const res = await fetch(`/api/concern/${id}/thread`, {
         method: "POST",
         body: formData,
       });
@@ -171,24 +170,14 @@ export default function Page() {
             </div>
           ) : error ? (
             <div className="text-sm text-red-600">Error: {error.message}</div>
-          ) : cashout ? (
+          ) : concern ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               {/* Username and Bank/E-wallet */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
-                  Username
+                  Subject
                 </Label>
-                <Input readOnly value={cashout.userName} />
-              </div>
-              <div>
-                <Label className="text-muted-foreground text-xs mb-1 block">
-                  Amount
-                </Label>
-                <Input
-                  readOnly
-                  value={formatAmountWithDecimals(cashout.amount)}
-                  className="font-mono"
-                />
+                <Input readOnly value={concern.subject} />
               </div>
 
               {/* Entry By and Agent Tip */}
@@ -196,9 +185,15 @@ export default function Page() {
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Entry By
                 </Label>
-                <Input readOnly value={cashout.user?.name} />
+                <Input readOnly value={concern.user?.name} />
               </div>
-
+              {/* Details */}
+              <div>
+                <Label className="text-muted-foreground text-xs mb-1 block">
+                  Details
+                </Label>
+                <Textarea readOnly value={concern.details} />
+              </div>
               {/* Date Requested At */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
@@ -207,18 +202,11 @@ export default function Page() {
                 <Input
                   readOnly
                   value={
-                    cashout.createdAt
-                      ? formatDate(cashout.createdAt, "M/dd/yyyy 'at' hh:mm a")
+                    concern.createdAt
+                      ? formatDate(concern.createdAt, "M/dd/yyyy 'at' hh:mm a")
                       : "—"
                   }
                 />
-              </div>
-              {/* Details */}
-              <div>
-                <Label className="text-muted-foreground text-xs mb-1 block">
-                  Details
-                </Label>
-                <Textarea readOnly value={cashout.details} />
               </div>
 
               {/* Attachments */}
@@ -227,14 +215,14 @@ export default function Page() {
                   Attachments
                 </Label>
                 <ul className="mt-1 space-y-1">
-                  {Array.isArray(cashout.attachments) &&
-                    cashout.attachments.length === 0 && (
+                  {Array.isArray(concern.attachments) &&
+                    concern.attachments.length === 0 && (
                       <li className="text-xs text-muted-foreground">
                         No attachments
                       </li>
                     )}
-                  {Array.isArray(cashout.attachments) &&
-                    cashout.attachments.map((att) => (
+                  {Array.isArray(concern.attachments) &&
+                    concern.attachments.map((att) => (
                       <li key={att.id} className="flex items-center gap-1">
                         <Paperclip
                           size={16}
@@ -260,14 +248,14 @@ export default function Page() {
                 </Label>
                 <Badge
                   className={`capitalize text-xs cursor-pointer ${
-                    cashout.status === "PENDING"
+                    concern.status === "PENDING"
                       ? "bg-yellow-400 text-black"
-                      : cashout.status === "COMPLETED"
+                      : concern.status === "COMPLETED"
                       ? "bg-green-600 text-white"
                       : "bg-red-600 text-white"
                   }`}
                 >
-                  {cashout.status}
+                  {concern.status}
                 </Badge>
               </div>
               <div className="flex flex-row gap-2 col-span-2">
@@ -276,8 +264,8 @@ export default function Page() {
                   session?.user?.role === ADMINROLES.SUPERADMIN ||
                   session?.user?.role === ADMINROLES.ACCOUNTING) && (
                   <UpdateStatusDialog
-                    cashoutId={id}
-                    currentStatus={cashout?.status}
+                    concernId={id}
+                    currentStatus={concern?.status}
                   />
                 )}
                 <Button
@@ -290,7 +278,7 @@ export default function Page() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
-              No cashout found.
+              No concern found.
             </div>
           )}
         </ResizablePanel>
@@ -306,7 +294,7 @@ export default function Page() {
               Comments
             </div>
             <ScrollArea className="flex-1 min-h-[200px] max-h-[calc(100vh-300px)] pr-2">
-              {!isLoading && cashout && cashout.cashoutThreads.length === 0 && (
+              {!isLoading && concern && concern.concernThreads.length === 0 && (
                 <div className="flex flex-col h-full text-muted-foreground text-sm">
                   <span className="italic">
                     No comments yet.
@@ -315,9 +303,9 @@ export default function Page() {
                 </div>
               )}
 
-              {!isLoading && cashout && cashout.cashoutThreads.length > 0 && (
+              {!isLoading && concern && concern.concernThreads.length > 0 && (
                 <ul className="flex flex-col gap-3">
-                  {cashout.cashoutThreads.map((thread) => {
+                  {concern.concernThreads.map((thread) => {
                     const author = thread.author?.name || "—";
                     const role = thread.author?.role;
                     const isUser = session?.user?.id === thread.author?.id;
@@ -527,10 +515,10 @@ export default function Page() {
           )}
         </DialogContent>
       </Dialog>
-      <CashoutStatusHistorySheet
+      <ConcernStatusHistorySheet
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
-        data={cashout?.cashoutLogs || []}
+        data={concern?.concernLogs || []}
       />
     </div>
   );

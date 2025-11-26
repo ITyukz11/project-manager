@@ -29,21 +29,20 @@ import {
   avoidDefaultDomBehavior,
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
-import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { useParams } from "next/navigation";
+import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 
-// Zod schema for Cashout form
-const CashoutFormSchema = z.object({
-  userName: z.string().min(1, "Username required"),
-  amount: z.number().min(1, "Amount required and must be greater than zero"),
+// Zod schema for Concern form
+const ConcernFormSchema = z.object({
+  subject: z.string().min(1, "Subject required"),
   details: z.string().min(1, "Details required"),
-  // Only validate in frontend, will handle proper upload in backend
+  users: z.array(z.string()).optional(), // user IDs
   attachment: z.any().optional(),
 });
 
-export type CashoutFormValues = z.infer<typeof CashoutFormSchema>;
+export type ConcernFormValues = z.infer<typeof ConcernFormSchema>;
 
-export function CashoutFormDialog({
+export function ConcernFormDialog({
   open,
   onOpenChange,
   onSubmitted,
@@ -55,15 +54,15 @@ export function CashoutFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { mutate } = useCashouts(casinoGroup);
+  const { mutate } = useConcerns(casinoGroup);
 
-  const form = useForm<CashoutFormValues>({
-    resolver: zodResolver(CashoutFormSchema),
+  const form = useForm<ConcernFormValues>({
+    resolver: zodResolver(ConcernFormSchema),
     defaultValues: {
-      amount: 0,
-      userName: "",
+      subject: "",
       details: "",
       attachment: [],
+      users: [],
     },
   });
 
@@ -71,12 +70,11 @@ export function CashoutFormDialog({
     if (open) form.reset();
   }, [open, form]);
 
-  async function handleSubmit(values: CashoutFormValues) {
+  async function handleSubmit(values: ConcernFormValues) {
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("amount", String(values.amount));
-      formData.append("userName", values.userName);
+      formData.append("subject", values.subject);
       formData.append("details", values.details);
       formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
 
@@ -86,18 +84,18 @@ export function CashoutFormDialog({
         });
       }
 
-      const res = await fetch("/api/cashout", {
+      const res = await fetch("/api/concern", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data?.error || "Cashout failed!");
+        toast.error(data?.error || "Concern failed!");
         return;
       }
 
-      toast.success("Cashout request submitted successfully!");
+      toast.success("Concern request submitted successfully!");
       // Optionally, reset form or close dialog
       form.reset();
       onOpenChange(false);
@@ -120,31 +118,21 @@ export function CashoutFormDialog({
         style={{ maxHeight: "90vh" }}
       >
         <DialogHeader>
-          <DialogTitle>Request Cashout</DialogTitle>
+          <DialogTitle>Request Concern</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <GlobalFormField
-                form={form}
-                fieldName="userName"
-                label="Username"
-                required
-                placeholder="Enter username"
-                type="text"
-              />
-              <GlobalFormField
-                form={form}
-                fieldName="amount"
-                label="Amount"
-                required
-                placeholder="0.00"
-                type="amount"
-              />
-            </div>
+            <GlobalFormField
+              form={form}
+              fieldName="subject"
+              label="Subject"
+              required
+              placeholder="Enter subject"
+              type="text"
+            />
             <GlobalFormField
               form={form}
               fieldName="details"

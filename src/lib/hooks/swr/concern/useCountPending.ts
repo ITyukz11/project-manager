@@ -8,8 +8,8 @@ const fetcher = async (url: string) => {
 };
 
 // Returns: { data, error, isLoading }
-export const useCountCashoutPending = (casinoGroup: string) => {
-  const url = `/api/cashout/count-pending?casinoGroup=${encodeURIComponent(
+export const useCountConcernPending = (casinoGroup: string) => {
+  const url = `/api/concern/count-pending?casinoGroup=${encodeURIComponent(
     casinoGroup
   )}`;
 
@@ -18,9 +18,9 @@ export const useCountCashoutPending = (casinoGroup: string) => {
 
   // data will be an array of cashouts
   return {
-    pendingCashoutCount: data?.count ?? 0,
-    pendingCashoutCountError: error,
-    pendingCashoutCountIsLoading: isLoading,
-    pendingCashoutCountMutate: mutate, // for refetching if you post a new cashout etc
+    pendingConcernCount: data?.count ?? 0,
+    pendingConcernCountError: error,
+    pendingConcernCountIsLoading: isLoading,
+    pendingConcernCountMutate: mutate, // for refetching if you post a new cashout etc
   };
 };

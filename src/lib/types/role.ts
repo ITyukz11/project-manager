@@ -13,6 +13,7 @@ export type ADMINROLES = (typeof ADMINROLES)[keyof typeof ADMINROLES];
 export const NETWORKROLES = {
   FAP: "FAP",
   MASTER_AGENT: "MASTER_AGENT",
+  SSMA: "SSMA",
 } as const;
 
 export type NETWORKROLES = (typeof NETWORKROLES)[keyof typeof NETWORKROLES];

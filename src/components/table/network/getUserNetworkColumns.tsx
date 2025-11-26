@@ -14,7 +14,7 @@ export type UserNetworkColumnProps = {
 export function getUserNetworkColumns({
   casinoGroup,
 }: UserNetworkColumnProps): ColumnDef<
-  User & { _count?: { groupChats?: number } }
+  User & { _count?: { groupChats?: number; referrals?: number } }
 >[] {
   console.log("casinoGroup in columns:", casinoGroup);
   return [
@@ -31,7 +31,7 @@ export function getUserNetworkColumns({
                 href={`/${casinoGroup}/network/accounts/${row.original.username}`}
                 className="text-blue-500 dark:text-blue-400 hover:underline text-sm capitalize"
               >
-                {row.original.name}
+                {row.original.username}
               </Link>
               <p className="text-bold text-xs text-gray-500">
                 {row.original.email}
@@ -100,6 +100,19 @@ export function getUserNetworkColumns({
       },
     },
     {
+      accessorKey: "commissionSharing",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Commissions" />
+      ),
+      cell: ({ row }) => {
+        return (
+          <Badge variant={"secondary"} className="font-mono">
+            {row.original.commissionSharing ?? 0}%
+          </Badge>
+        );
+      },
+    },
+    {
       accessorKey: "# of GCs",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="# of GCs" />
@@ -108,6 +121,19 @@ export function getUserNetworkColumns({
         return (
           <Badge variant={"outline"} className="font-mono">
             {row.original._count?.groupChats ?? 0}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "# of Referrals",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="# of Referrals" />
+      ),
+      cell: ({ row }) => {
+        return (
+          <Badge variant={"outline"} className="font-mono">
+            {row.original._count?.referrals ?? 0}
           </Badge>
         );
       },

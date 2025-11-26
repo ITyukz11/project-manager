@@ -23,12 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { useCashoutById } from "@/lib/hooks/swr/cashout/useCashoutById";
+import { useConcernById } from "@/lib/hooks/swr/concern/useConcernById";
 
-export function UpdateStatusDialog({ cashoutId, currentStatus }) {
+export function UpdateStatusDialog({ concernId, currentStatus }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { mutate } = useCashoutById(cashoutId);
+  const { mutate } = useConcernById(concernId);
 
   // 1. Setup react-hook-form
   const form = useForm({
@@ -43,7 +43,7 @@ export function UpdateStatusDialog({ cashoutId, currentStatus }) {
   async function onSubmit(values) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/cashout/${cashoutId}/status`, {
+      const res = await fetch(`/api/concern/${concernId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: values.status }),
@@ -70,7 +70,7 @@ export function UpdateStatusDialog({ cashoutId, currentStatus }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update Cashout Status</DialogTitle>
+          <DialogTitle>Update Concern Status</DialogTitle>
         </DialogHeader>
         {/* 3. Use Form from shadcn/ui */}
         <Form {...form}>

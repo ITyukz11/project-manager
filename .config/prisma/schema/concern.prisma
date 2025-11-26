@@ -1,0 +1,60 @@
+// Cashout: attributed to a User (admin, superadmin, regular user)
+model Concern {
+  id              String       @id @default(uuid())
+  status          Statuses   @default(PENDING)
+
+  subject         String
+  details         String
+  attachments     ConcernAttachment[]
+
+  // creator
+  userId          String?           // who created it
+  user            User?             @relation("ConcernCreator", fields: [userId], references: [id])
+
+  // tagged users (many-to-many)
+  tagUsers        User[]            @relation("ConcernTags")
+
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+
+  concernThreads  ConcernThread[]
+  concernLogs     ConcernLogs[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model ConcernLogs{
+  id           String     @id @default(uuid())
+  action       String
+  concernId    String
+  concern      Concern    @relation(fields: [concernId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model ConcernThread {
+  id           String     @id @default(uuid())
+  message      String
+  concernId    String
+  concern      Concern    @relation(fields: [concernId], references: [id])
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  mentions     User[]     @relation("ConcernThreadMentions")
+  attachments  ConcernAttachment[] // <-- NEW!
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model ConcernAttachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  concernId         String?      // <-- Make optional
+  concern           Concern?     @relation(fields: [concernId], references: [id])
+  concernThreadId   String?      // <-- NEW
+  concernThread     ConcernThread? @relation(fields: [concernThreadId], references: [id])
+  createdAt         DateTime @default(now())
+}

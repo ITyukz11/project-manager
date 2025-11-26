@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       where: whereClause,
       include: {
         _count: {
-          select: { groupChats: true },
+          select: { groupChats: true, referrals: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -67,19 +67,37 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-
+    const password = "1234657890"; // Default password for network users
     // Accept casinoGroups as array of IDs (not names)
     const {
       name,
       email,
       username,
-      password,
+      commissionShare,
+      referredBy,
       messengerLink,
       role,
       casinoGroups,
       groupChats,
+      referredByUsername,
     } = body;
 
+    let referredById = referredBy || null;
+
+    if (referredByUsername) {
+      const foundUser = await prisma.user.findUnique({
+        where: { username: referredByUsername },
+        select: { id: true },
+      });
+
+      if (!foundUser) {
+        return NextResponse.json(
+          { error: `User with username ${referredByUsername} not found` },
+          { status: 400 }
+        );
+      }
+      referredById = foundUser.id;
+    }
     if (!name || !email || !role) {
       return NextResponse.json(
         { error: "Required fields missing" },
@@ -136,6 +154,8 @@ export async function POST(request: Request) {
         email,
         username: username || null,
         password,
+        commissionSharing: parseFloat(commissionShare) || null,
+        referredById: referredById,
         messengerLink: messengerLink || null,
         role,
         active: true,

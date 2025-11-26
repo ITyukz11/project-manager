@@ -7,7 +7,7 @@ import { formatDate } from "date-fns";
 import { User } from "@prisma/client";
 
 export const userNetworkColumns: ColumnDef<
-  User & { _count?: { groupChats?: number } }
+  User & { _count?: { groupChats?: number; referrals?: number } }
 >[] = [
   {
     accessorKey: "name",
@@ -22,7 +22,7 @@ export const userNetworkColumns: ColumnDef<
               href={`/network/accounts/${row.original.username}`}
               className="text-blue-600 hover:underline text-sm capitalize"
             >
-              {row.original.name}
+              {row.original.username}
             </Link>
             <p className="text-bold text-xs text-gray-500">
               {row.original.email}

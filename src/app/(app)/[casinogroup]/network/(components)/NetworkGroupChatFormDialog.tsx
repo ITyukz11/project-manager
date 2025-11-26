@@ -33,12 +33,11 @@ export type GroupChatFormValues = z.infer<typeof GroupChatFormSchema>;
 export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
-  const casinoGroup = params.casinogroup;
+  const casinoGroup = params.casinogroup?.toLocaleString();
   // Fetch network users to be assigned to the group chat
-  const { usersDataNetwork, usersLoadingNetwork } = useUsersNetwork(
-    casinoGroup?.toLocaleString()
-  );
-  const { refetchGroupChats } = useGroupChats();
+  const { usersDataNetwork, usersLoadingNetwork } =
+    useUsersNetwork(casinoGroup);
+  const { refetchGroupChats } = useGroupChats(casinoGroup);
 
   const form = useForm<GroupChatFormValues>({
     resolver: zodResolver(GroupChatFormSchema),
@@ -113,7 +112,8 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
                 usersLoadingNetwork
                   ? []
                   : usersDataNetwork.map((user) => ({
-                      label: user.name + (user.role ? ` (${user.role})` : ""),
+                      label:
+                        user.username + (user.role ? ` (${user.role})` : ""),
                       value: user.id,
                     }))
               }
