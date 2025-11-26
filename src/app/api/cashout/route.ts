@@ -47,6 +47,7 @@ export async function GET(req: Request) {
           where: { role: { in: allowedRoles } },
         },
       },
+      orderBy: { createdAt: "desc" },
     });
     // Now sort in-memory
     cashouts.sort((a, b) => STATUS_SORT[a.status] - STATUS_SORT[b.status]);
