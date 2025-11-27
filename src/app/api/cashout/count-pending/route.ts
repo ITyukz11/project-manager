@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // adjust import if needed
+import { CashoutStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -29,7 +30,9 @@ export async function GET(req: Request) {
   // Count pending cashouts for this group
   const count = await prisma.cashout.count({
     where: {
-      status: "PENDING",
+      status: {
+        in: [CashoutStatus.PENDING, CashoutStatus.PARTIAL],
+      },
       casinoGroupId: casinoGroup.id,
     },
   });
