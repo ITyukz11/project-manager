@@ -29,7 +29,7 @@ const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   username: z.string().min(1, "Username is required"),
-  commissionShare: z.string().min(1, "Commission Share is required"),
+  remarks: z.string().min(1, "Remarks is required"),
   referredBy: z.string().optional(),
   messengerLink: z.string().optional(),
   role: z.enum(Object.values(NETWORKROLES), {
@@ -79,7 +79,7 @@ export function NetworkUserFormDialog({
       email: "",
       messengerLink: "",
       role: undefined,
-      commissionShare: "",
+      remarks: "",
       username: "",
       referredBy: undefined,
       groupChats: [],
@@ -166,11 +166,15 @@ export function NetworkUserFormDialog({
               />
               <GlobalFormField
                 form={form}
-                fieldName="commissionShare"
-                label="Commission Share %"
+                fieldName="role"
+                label="Role"
                 required
-                type="number"
-                placeholder="Enter commission share"
+                type="select"
+                options={Object.values(NETWORKROLES).map((type) => ({
+                  label: type,
+                  value: type,
+                }))}
+                placeholder="Select user type"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -196,17 +200,14 @@ export function NetworkUserFormDialog({
                   placeholder="Select referrer (optional)"
                 />
               )}
+
               <GlobalFormField
                 form={form}
-                fieldName="role"
-                label="Role"
+                fieldName="remarks"
+                label="Remarks"
                 required
-                type="select"
-                options={Object.values(NETWORKROLES).map((type) => ({
-                  label: type,
-                  value: type,
-                }))}
-                placeholder="Select user type"
+                type="text"
+                placeholder="Enter remarks"
               />
             </div>
 

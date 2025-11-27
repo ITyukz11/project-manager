@@ -68,12 +68,11 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const password = "1234657890"; // Default password for network users
-    // Accept casinoGroups as array of IDs (not names)
     const {
       name,
       email,
       username,
-      commissionShare,
+      remarks,
       referredBy,
       messengerLink,
       role,
@@ -115,7 +114,6 @@ export async function POST(request: Request) {
     // Validate casinoGroups array and check if those group ids exist
     let casinoGroupsToConnect: { id: string }[] = [];
     if (Array.isArray(casinoGroups) && casinoGroups.length) {
-      // Filter IDs that really exist
       const foundCasinoGroups = await prisma.casinoGroup.findMany({
         where: { id: { in: casinoGroups } },
         select: { id: true },
@@ -154,7 +152,7 @@ export async function POST(request: Request) {
         email,
         username: username || null,
         password,
-        commissionSharing: parseFloat(commissionShare) || null,
+        remarks: remarks,
         referredById: referredById,
         messengerLink: messengerLink || null,
         role,
@@ -171,6 +169,27 @@ export async function POST(request: Request) {
     return NextResponse.json(newUser, { status: 201 });
   } catch (error: any) {
     console.error("Error creating network user:", error);
+
+    // Prisma unique constraint violation error code is "P2002"
+    if (error.code === "P2002" && Array.isArray(error.meta?.target)) {
+      const field = error.meta.target[0];
+      let message = "Field value is already taken.";
+      if (field === "email") message = "Email is already taken.";
+      if (field === "username") message = "Username is already taken.";
+      // You can add other fields and custom messages as needed
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+    // Prisma validation error P2003 for foreign key issues
+    if (error.code === "P2003") {
+      return NextResponse.json(
+        {
+          error:
+            "Foreign key constraint failed. Make sure all relationships exist.",
+        },
+        { status: 400 }
+      );
+    }
+    // Generic error fallback
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }

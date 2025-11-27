@@ -30,7 +30,7 @@ model User {
   role             Role
   messengerLink    String?
   active           Boolean         @default(true)
-  commissionSharing Float?        // percentage value (e.g., 10.5 for 10.5%)
+  remarks          String?        // additional remarks or notes
   groupChats       GroupChat[]
 
   referredBy       User?           @relation("UserReferrals", fields: [referredById], references: [id])

@@ -100,16 +100,12 @@ export function getUserNetworkColumns({
       },
     },
     {
-      accessorKey: "commissionSharing",
+      accessorKey: "remarks",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Commissions" />
+        <DataTableColumnHeader column={column} title="Remarks" />
       ),
       cell: ({ row }) => {
-        return (
-          <Badge variant={"secondary"} className="font-mono">
-            {row.original.commissionSharing ?? 0}%
-          </Badge>
-        );
+        return <span className="font-mono">{row.original.remarks ?? "-"}</span>;
       },
     },
     {
