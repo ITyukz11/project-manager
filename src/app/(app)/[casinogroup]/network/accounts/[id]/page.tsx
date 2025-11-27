@@ -5,7 +5,6 @@ import { getUserNetworkColumns } from "@/components/table/network/getUserNetwork
 import { networkGCManagerColumn } from "@/components/table/network/networkGCManagerColumn";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
 import { Label } from "@/components/ui/label";
 import {
   Select,

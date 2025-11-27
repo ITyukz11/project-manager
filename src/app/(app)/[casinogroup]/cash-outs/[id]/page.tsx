@@ -42,6 +42,7 @@ import {
 import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
+import { getStatusColorClass } from "@/components/getStatusColorClass";
 
 export default function Page() {
   const { id } = useParams();
@@ -259,13 +260,9 @@ export default function Page() {
                   Status
                 </Label>
                 <Badge
-                  className={`capitalize text-xs cursor-pointer ${
-                    cashout.status === "PENDING"
-                      ? "bg-yellow-400 text-black"
-                      : cashout.status === "COMPLETED"
-                      ? "bg-green-600 text-white"
-                      : "bg-red-600 text-white"
-                  }`}
+                  className={`capitalize text-xs cursor-pointer ${getStatusColorClass(
+                    cashout.status
+                  )}`}
                 >
                   {cashout.status}
                 </Badge>

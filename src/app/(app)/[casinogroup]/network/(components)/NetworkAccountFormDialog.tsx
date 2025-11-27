@@ -29,7 +29,7 @@ const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   username: z.string().min(1, "Username is required"),
-  remarks: z.string().min(1, "Remarks is required"),
+  remarks: z.string().min(1, "Comms. Details is required"),
   referredBy: z.string().optional(),
   messengerLink: z.string().optional(),
   role: z.enum(Object.values(NETWORKROLES), {
@@ -204,10 +204,10 @@ export function NetworkUserFormDialog({
               <GlobalFormField
                 form={form}
                 fieldName="remarks"
-                label="Remarks"
+                label="Comms. Details"
                 required
                 type="text"
-                placeholder="Enter remarks"
+                placeholder="Enter Comms. Details"
               />
             </div>
 

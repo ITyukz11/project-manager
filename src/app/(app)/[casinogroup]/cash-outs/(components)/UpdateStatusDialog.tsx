@@ -37,7 +37,7 @@ export function UpdateStatusDialog({ cashoutId, currentStatus }) {
     },
   });
 
-  const statuses = ["PENDING", "COMPLETED", "REJECTED"];
+  const statuses = ["PENDING", "PARTIAL", "COMPLETED", "REJECTED"];
 
   // 2. Submission handler (native form submit)
   async function onSubmit(values) {

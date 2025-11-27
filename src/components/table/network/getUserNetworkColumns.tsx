@@ -102,7 +102,7 @@ export function getUserNetworkColumns({
     {
       accessorKey: "remarks",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Remarks" />
+        <DataTableColumnHeader column={column} title="Comms. Details" />
       ),
       cell: ({ row }) => {
         return <span className="font-mono">{row.original.remarks ?? "-"}</span>;

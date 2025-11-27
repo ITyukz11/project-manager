@@ -58,6 +58,7 @@ model Attachment {
 
 enum CashoutStatus {
   PENDING
+  PARTIAL
   COMPLETED
   REJECTED
 }
