@@ -6,9 +6,10 @@ import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 
 const STATUS_SORT = {
-  PENDING: 1,
-  COMPLETED: 2,
-  REJECTED: 3,
+  PARTIAL: 1,
+  PENDING: 2,
+  COMPLETED: 3,
+  REJECTED: 4,
 };
 
 // --- GET handler to fetch all cashouts with attachments and threads ---
