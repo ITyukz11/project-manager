@@ -31,6 +31,7 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { useParams } from "next/navigation";
 import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
+import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 
 // Zod schema for Concern form
 const ConcernFormSchema = z.object({
@@ -55,6 +56,9 @@ export function ConcernFormDialog({
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
   const { mutate } = useConcerns(casinoGroup);
+  // Fetch network users to be assigned to the group chat
+  const { usersDataNetwork, usersLoadingNetwork } =
+    useUsersNetwork(casinoGroup);
 
   const form = useForm<ConcernFormValues>({
     resolver: zodResolver(ConcernFormSchema),
@@ -77,6 +81,10 @@ export function ConcernFormDialog({
       formData.append("subject", values.subject);
       formData.append("details", values.details);
       formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
+      formData.append(
+        "users",
+        JSON.stringify(values.users || []) // Send as JSON string
+      );
 
       if (values.attachment && Array.isArray(values.attachment)) {
         values.attachment.forEach((file) => {
@@ -141,6 +149,27 @@ export function ConcernFormDialog({
               placeholder="Enter cashout details"
               type="textarea"
               row={10}
+            />
+            <GlobalFormField
+              form={form}
+              fieldName="users"
+              label="Users to Notify"
+              required={false}
+              type="multiselect"
+              items={
+                usersLoadingNetwork
+                  ? []
+                  : usersDataNetwork.map((user) => ({
+                      label:
+                        user.username + (user.role ? ` (${user.role})` : ""),
+                      value: user.id,
+                    }))
+              }
+              placeholder={
+                usersLoadingNetwork
+                  ? "Loading users..."
+                  : "Select users (optional)"
+              }
             />
             <FormField
               control={form.control}

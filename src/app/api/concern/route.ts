@@ -75,6 +75,7 @@ export async function POST(req: Request) {
     const subject = formData.get("subject") as string;
     const details = formData.get("details") as string;
     const casinoGroupName = formData.get("casinoGroup") as string;
+    const users = formData.get("users") as string; // JSON string of user IDs
 
     const casinoGroup = await prisma.casinoGroup.findFirst({
       where: {
@@ -137,6 +138,9 @@ export async function POST(req: Request) {
       details,
       casinoGroupId: casinoGroup.id,
       userId: currentUser.id,
+      tagUsers: {
+        connect: JSON.parse(users).map((id: string) => ({ id })),
+      },
       attachments: {
         createMany: {
           data: attachmentData,
@@ -150,9 +154,7 @@ export async function POST(req: Request) {
         // Save to DB
         const concern = await prisma.concern.create({
           data: concernData,
-          include: {
-            attachments: true,
-          },
+          include: { attachments: true },
         });
 
         await prisma.concernLogs.create({
@@ -165,17 +167,37 @@ export async function POST(req: Request) {
         const pendingCount = await prisma.concern.count({
           where: {
             status: "PENDING",
-            casinoGroupId: casinoGroup.id, // or use casinoGroupName if you join by name
+            casinoGroupId: casinoGroup.id,
           },
         });
+
+        // Notify casino group channel
         await pusher.trigger(
           `concern-${casinoGroupName.toLowerCase()}`, // channel name
-          "concern-pending-count", // event name
+          "concern-pending-count",
           { count: pendingCount }
         );
+
+        // Notify each tagged user
+        const taggedUserIds: string[] = JSON.parse(users);
+        await Promise.all(
+          taggedUserIds.map((userId) =>
+            pusher.trigger(
+              `user-notify-${userId}`, // user channel
+              "concern-tagged", // event name
+              {
+                concernId: concern.id,
+                subject: concern.subject,
+                details: concern.details,
+                casinoGroup: casinoGroupName,
+                createdBy: currentUser.id,
+              }
+            )
+          )
+        );
+
         return concern;
       });
-
       return NextResponse.json({ success: true, result });
     } catch (dbErr: any) {
       // Prisma error messages can be cryptic, so give a generic error and log:

@@ -17,7 +17,8 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Bell, BellDot } from "lucide-react";
+import { Bell } from "lucide-react";
+import { NotificationDropdown } from "../notification-dropdown";
 
 type Crumb = {
   href: string;
@@ -158,9 +159,8 @@ export const AppHeader = ({
               Search <Kbd>Ctrl</Kbd>
               <Kbd>K</Kbd>
             </Button>
-            <Button size={"sm"} variant={"outline"}>
-              <Bell className="w-4 h-4" />
-            </Button>
+            <NotificationDropdown />
+
             <ModeToggle />
           </nav>
         </div>

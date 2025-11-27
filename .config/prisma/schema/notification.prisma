@@ -1,0 +1,11 @@
+model Notifications {
+  id            String   @id @default(cuid())
+  expoPushToken String?
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  isRead        Boolean
+  link          String?
+  message       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt @map(name: "updated_at")
+}

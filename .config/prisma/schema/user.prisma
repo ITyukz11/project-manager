@@ -50,6 +50,8 @@ model User {
 
   superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins
   casinoGroups     CasinoGroup[] // Many-to-many relationship with CasinoGroup
+
+  notifications  Notifications[]
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 }
