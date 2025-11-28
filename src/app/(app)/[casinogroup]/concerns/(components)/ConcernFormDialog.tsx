@@ -31,7 +31,6 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { useParams } from "next/navigation";
 import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
-import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 // Zod schema for Concern form
