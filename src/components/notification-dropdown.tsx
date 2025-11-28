@@ -9,45 +9,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import React, { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import Pusher from "pusher-js";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { usePusher } from "@/lib/hooks/use-pusher";
-
-interface Notification {
-  id: string;
-  isRead: boolean;
-  message: string;
-  createdAt: string;
-  link?: string;
-  userId?: string;
-  type?: string;
-}
+import { Spinner } from "./ui/spinner";
+import { Notifications } from "@prisma/client";
 
 export const NotificationDropdown = () => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notifications[]>([]);
   const [archiveNotifications, setArchiveNotifications] = useState<
-    Notification[]
+    Notifications[]
   >([]);
-  const [commentNotifications, setCommentNotifications] = useState<
-    Notification[]
-  >([]);
-  const [activeTab, setActiveTab] = useState<"inbox" | "archives" | "comments">(
-    "inbox"
-  );
+
+  const [activeTab, setActiveTab] = useState<"inbox" | "archives">("inbox");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
 
-  const getTimeAgo = (date: string) =>
-    formatDistanceToNow(new Date(date), { addSuffix: true });
+  const getTimeAgo = (date?: Date) => {
+    if (!date) return "Unknown";
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) return "Unknown";
+    return formatDistanceToNow(parsedDate, { addSuffix: true });
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -60,19 +51,10 @@ export const NotificationDropdown = () => {
         const data = await res.json();
 
         setNotifications(
-          data.notifications?.filter(
-            (n: Notification) => !n.isRead && n.type !== "comment"
-          ) || []
+          data.notifications?.filter((n: Notifications) => !n.isRead) || []
         );
         setArchiveNotifications(
-          data.notifications?.filter(
-            (n: Notification) => n.isRead && n.type !== "comment"
-          ) || []
-        );
-        setCommentNotifications(
-          data.notifications?.filter(
-            (n: Notification) => n.type === "comment"
-          ) || []
+          data.notifications?.filter((n: Notifications) => n.isRead) || []
         );
       } catch (e) {
         console.error("Failed to fetch notifications", e);
@@ -88,27 +70,25 @@ export const NotificationDropdown = () => {
   usePusher({
     channels: userId ? [`user-notify-${userId}`] : [],
     eventName: "concern-tagged",
-    onEvent: (newNotification: Notification) => {
-      if (newNotification.type === "comment") {
-        setCommentNotifications((prev) => [newNotification, ...prev]);
-      } else if (newNotification.isRead) {
-        setArchiveNotifications((prev) => [newNotification, ...prev]);
+    onEvent: (newNotification: Notifications) => {
+      if (newNotification.isRead) {
+        setArchiveNotifications((prev) =>
+          prev.some((n) => n.id === newNotification.id)
+            ? prev
+            : [newNotification, ...prev]
+        );
       } else {
-        setNotifications((prev) => [newNotification, ...prev]);
+        setNotifications((prev) =>
+          prev.some((n) => n.id === newNotification.id)
+            ? prev
+            : [newNotification, ...prev]
+        );
       }
     },
   });
 
-  // Real-time Pusher updates for comments (optional, if your backend supports this event)
-  usePusher({
-    channels: userId ? [`user-notify-${userId}`] : [],
-    eventName: "new-comment",
-    onEvent: (newCommentNotification: Notification) => {
-      setCommentNotifications((prev) => [newCommentNotification, ...prev]);
-    },
-  });
   // Mark a single notification as read and move to archive
-  const markAsRead = async (notificationId: string, link?: string) => {
+  const markAsRead = async (notificationId: string, link?: string | null) => {
     try {
       await fetch("/api/notifications/read", {
         method: "POST",
@@ -118,10 +98,11 @@ export const NotificationDropdown = () => {
       setNotifications((prev) => {
         const notif = prev.find((n) => n.id === notificationId);
         if (!notif) return prev;
-        setArchiveNotifications((arch) => [
-          { ...notif, isRead: true },
-          ...arch,
-        ]);
+        setArchiveNotifications((arch) => {
+          // Remove any existing item with the same id first
+          const archNoDup = arch.filter((n) => n.id !== notificationId);
+          return [{ ...notif, isRead: true }, ...archNoDup];
+        });
         return prev.filter((n) => n.id !== notificationId);
       });
 
@@ -142,7 +123,7 @@ export const NotificationDropdown = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size={"sm"} variant={"outline"}>
+        <Button size={"sm"} variant={"outline"} className="relative">
           <Bell className="w-4 h-4" />
           {notifications.length > 0 && (
             <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -155,10 +136,10 @@ export const NotificationDropdown = () => {
         {/* Tabs */}
         <div className="flex border-b  px-4">
           <button
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+            className={`cursor-pointer flex-1 py-2 text-sm font-semibold transition-colors ${
               activeTab === "inbox"
-                ? "border-b-2 border-black dark:border-white text-black dark:text-white"
-                : "text-gray-500 dark:text-gray-400"
+                ? "border-b-2  border-black dark:border-white text-black dark:text-white"
+                : "text-gray-500 hover:text-black dark:text-gray-400"
             }`}
             onClick={() => setActiveTab("inbox")}
           >
@@ -170,10 +151,10 @@ export const NotificationDropdown = () => {
             )}
           </button>
           <button
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${
+            className={`cursor-pointer flex-1 py-2 text-sm font-semibold transition-colors ${
               activeTab === "archives"
                 ? "border-b-2 border-black dark:border-white text-black dark:text-white"
-                : "text-gray-500 dark:text-gray-400"
+                : " hover:text-black"
             }`}
             onClick={() => setActiveTab("archives")}
           >
@@ -184,26 +165,13 @@ export const NotificationDropdown = () => {
               </span>
             )}
           </button>
-          <button
-            className={`flex-1 py-2 text-sm font-semibold transition-colors ${
-              activeTab === "comments"
-                ? "border-b-2 border-black dark:border-white text-black dark:text-white"
-                : "text-gray-500 dark:text-gray-400"
-            }`}
-            onClick={() => setActiveTab("comments")}
-          >
-            Comments
-            {archiveNotifications.length > 0 && (
-              <span className="ml-2 bg-gray-300 dark:bg-gray-700 text-black dark:text-white rounded-full px-2 text-xs font-bold">
-                {archiveNotifications.length}
-              </span>
-            )}
-          </button>
         </div>
         {/* Notifications list */}
         <DropdownMenuGroup className="max-h-80 overflow-y-auto bg-white dark:bg-neutral-900 px-2">
-          {(activeTab === "inbox" ? notifications : archiveNotifications)
-            .length === 0 ? (
+          {loading ? (
+            <Spinner />
+          ) : (activeTab === "inbox" ? notifications : archiveNotifications)
+              .length === 0 ? (
             <div className="p-6 text-sm text-gray-500 dark:text-gray-400 text-center">
               No{" "}
               {activeTab === "inbox"
@@ -218,7 +186,7 @@ export const NotificationDropdown = () => {
               (notification) => (
                 <DropdownMenuItem
                   key={notification.id}
-                  className={`flex justify-between items-start gap-2 py-3 px-2 border-b border-gray-100  cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-slate-800`}
+                  className={`flex justify-between items-start gap-2 py-3 px-2 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-muted/50`}
                   onClick={
                     activeTab === "inbox"
                       ? () => markAsRead(notification.id, notification.link)
@@ -233,7 +201,57 @@ export const NotificationDropdown = () => {
                           : "text-gray-800 dark:text-gray-200"
                       }`}
                     >
-                      {notification.message}
+                      {notification.actor && notification.subject ? (
+                        <>
+                          <span className="font-bold">
+                            {notification.actor}
+                          </span>
+                          {notification.type === "concerns" && (
+                            <>
+                              <span> tagged you in Concerns </span>
+                              <span className="font-bold">
+                                &quot;{notification.subject}&quot;
+                              </span>
+                            </>
+                          )}
+                          {notification.type === "cashout" && (
+                            <>
+                              <span> requested a Cashout: </span>
+                              <span className="font-bold">
+                                &quot;{notification.subject}&quot;
+                              </span>
+                            </>
+                          )}
+                          {notification.type === "tasks" && (
+                            <>
+                              <span> assigned you a Task: </span>
+                              <span className="font-bold">
+                                &quot;{notification.subject}&quot;
+                              </span>
+                            </>
+                          )}
+                          {notification.type === "remittance" && (
+                            <>
+                              <span> initiated a Remittance: </span>
+                              <span className="font-bold">
+                                &quot;{notification.subject}&quot;
+                              </span>
+                            </>
+                          )}
+                          {/* If a casino group exists, add it */}
+                          {notification.casinoGroup && (
+                            <>
+                              <span> in </span>
+                              <span className="font-bold">
+                                {notification.casinoGroup}
+                              </span>
+                            </>
+                          )}
+                          .
+                        </>
+                      ) : (
+                        <>{notification.message}</>
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground dark:text-gray-400">
                       {getTimeAgo(notification.createdAt)}

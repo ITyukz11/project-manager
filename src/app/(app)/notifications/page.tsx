@@ -94,7 +94,7 @@ export default function NotificationsPage() {
       </CardHeader>
       <CardContent>
         {/* Search and status filter */}
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end mb-4">
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end mb-4">
           <Input
             placeholder="Search notifications..."
             value={search}
@@ -174,12 +174,22 @@ export default function NotificationsPage() {
               <div className="min-w-0">
                 <Table className="min-w-[700px]">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>#</TableHead>
-                      <TableHead>Message</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Action</TableHead>
+                    <TableRow className="hover:bg-primary/90 bg-primary">
+                      <TableHead className="text-white hover:bg-primary/90 bg-primary dark:text-black">
+                        #
+                      </TableHead>
+                      <TableHead className="text-white hover:bg-primary/90 bg-primary dark:text-black">
+                        Message
+                      </TableHead>
+                      <TableHead className="text-white hover:bg-primary/90 bg-primary dark:text-black">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-white hover:bg-primary/90 bg-primary dark:text-black">
+                        Date
+                      </TableHead>
+                      <TableHead className="text-white hover:bg-primary/90 bg-primary dark:text-black">
+                        Action
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

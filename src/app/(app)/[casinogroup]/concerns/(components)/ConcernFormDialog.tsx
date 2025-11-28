@@ -32,6 +32,7 @@ import {
 import { useParams } from "next/navigation";
 import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 // Zod schema for Concern form
 const ConcernFormSchema = z.object({
@@ -57,8 +58,7 @@ export function ConcernFormDialog({
   const casinoGroup = params.casinogroup as string;
   const { mutate } = useConcerns(casinoGroup);
   // Fetch network users to be assigned to the group chat
-  const { usersDataNetwork, usersLoadingNetwork } =
-    useUsersNetwork(casinoGroup);
+  const { usersData, usersLoading } = useUsers();
 
   const form = useForm<ConcernFormValues>({
     resolver: zodResolver(ConcernFormSchema),
@@ -157,18 +157,16 @@ export function ConcernFormDialog({
               required={false}
               type="multiselect"
               items={
-                usersLoadingNetwork
+                usersData === undefined
                   ? []
-                  : usersDataNetwork.map((user) => ({
+                  : usersData.map((user) => ({
                       label:
                         user.username + (user.role ? ` (${user.role})` : ""),
                       value: user.id,
                     }))
               }
               placeholder={
-                usersLoadingNetwork
-                  ? "Loading users..."
-                  : "Select users (optional)"
+                usersLoading ? "Loading users..." : "Select users (optional)"
               }
             />
             <FormField
