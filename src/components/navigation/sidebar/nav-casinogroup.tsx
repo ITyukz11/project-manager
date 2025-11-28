@@ -29,6 +29,7 @@ import { usePusher } from "@/lib/hooks/use-pusher";
 import { useCountCashoutPending } from "@/lib/hooks/swr/cashout/useCountPending";
 import { useCountConcernPending } from "@/lib/hooks/swr/concern/useCountPending";
 import { useCountRemittancePending } from "@/lib/hooks/swr/remittance/useCountRemittancePending";
+import { useCountTaskPending } from "@/lib/hooks/swr/task/useCountTaskPending";
 
 interface MenuLink {
   href: string;
@@ -61,6 +62,10 @@ export default function NavCasinoGroup({
     useCountRemittancePending(casinoGroup.name);
   const { pendingConcernCount, pendingConcernCountIsLoading } =
     useCountConcernPending(casinoGroup.name);
+
+  const { pendingTaskCount, pendingTaskCountIsLoading } = useCountTaskPending(
+    casinoGroup.name
+  );
   // Update local state when SWR loads initial value
   React.useEffect(() => {
     if (
@@ -81,11 +86,18 @@ export default function NavCasinoGroup({
     ) {
       setPendingConcerns(pendingConcernCount);
     }
+    if (!pendingTaskCountIsLoading && typeof pendingTaskCount === "number") {
+      setPendingTasks(pendingTaskCount);
+    }
   }, [
     pendingCashoutCount,
     pendingCashoutCountIsLoading,
     pendingConcernCount,
     pendingConcernCountIsLoading,
+    pendingRemittanceCount,
+    pendingRemittanceCountIsLoading,
+    pendingTaskCount,
+    pendingTaskCountIsLoading,
   ]);
 
   // Real-time updates from Pusher
@@ -115,6 +127,16 @@ export default function NavCasinoGroup({
     onEvent: (data: { count: number }) => {
       console.log("Pusher event received:", data);
       setPendingConcerns(data.count);
+    },
+  });
+
+  // Real-time updates from Pusher
+  usePusher({
+    channels: [`task-${casinoGroup.name.toLowerCase()}`],
+    eventName: "task-pending-count",
+    onEvent: (data: { count: number }) => {
+      console.log("Pusher event received:", data);
+      setPendingTasks(data.count);
     },
   });
   // Build dynamic nav links for the group, as in your pattern
