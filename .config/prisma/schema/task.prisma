@@ -1,0 +1,59 @@
+// Cashout: attributed to a User (admin, superadmin, regular user)
+model Task {
+  id              String       @id @default(uuid())
+  status          Statuses   @default(PENDING)
+
+  subject         String
+  details         String
+  attachments     TaskAttachment[]
+
+  // creator
+  userId          String?           // who created it
+  user            User?             @relation("TaskCreator", fields: [userId], references: [id])
+  // tagged users (many-to-many)
+  tagUsers        User[]            @relation("TaskTags")
+
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+
+  taskThreads  TaskThread[]
+  taskLogs     TaskLogs[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model TaskLogs{
+  id           String     @id @default(uuid())
+  action       String
+  taskId    String
+  task      Task    @relation(fields: [taskId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model TaskThread {
+  id           String     @id @default(uuid())
+  message      String
+  taskId    String
+  task      Task    @relation(fields: [taskId], references: [id])
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  mentions     User[]     @relation("TaskThreadMentions")
+  attachments  TaskAttachment[] // <-- NEW!
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model TaskAttachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  taskId         String?      // <-- Make optional
+  task           Task?     @relation(fields: [taskId], references: [id])
+  taskThreadId   String?      // <-- NEW
+  taskThread     TaskThread? @relation(fields: [taskThreadId], references: [id])
+  createdAt         DateTime @default(now())
+}

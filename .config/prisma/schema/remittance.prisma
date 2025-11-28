@@ -1,0 +1,60 @@
+// Cashout: attributed to a User (admin, superadmin, regular user)
+model Remittance {
+  id              String       @id @default(uuid())
+  status          Statuses   @default(PENDING)
+
+  subject         String
+  details         String
+  attachments     RemittanceAttachment[]
+
+  // creator
+  userId          String?           // who created it
+  user            User?             @relation("RemittanceCreator", fields: [userId], references: [id])
+
+  // tagged users (many-to-many)
+  tagUsers        User[]            @relation("RemittanceTags")
+
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+
+  remittanceThreads  RemittanceThread[]
+  remittanceLogs     RemittanceLogs[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model RemittanceLogs{
+  id           String     @id @default(uuid())
+  action       String
+  remittanceId    String
+  remittance      Remittance    @relation(fields: [remittanceId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model RemittanceThread {
+  id           String     @id @default(uuid())
+  message      String
+  remittanceId    String
+  remittance      Remittance    @relation(fields: [remittanceId], references: [id])
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  mentions     User[]     @relation("RemittanceThreadMentions")
+  attachments  RemittanceAttachment[] // <-- NEW!
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model RemittanceAttachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  remittanceId         String?      // <-- Make optional
+  remittance           Remittance?     @relation(fields: [remittanceId], references: [id])
+  remittanceThreadId   String?      // <-- NEW
+  remittanceThread     RemittanceThread? @relation(fields: [remittanceThreadId], references: [id])
+  createdAt         DateTime @default(now())
+}

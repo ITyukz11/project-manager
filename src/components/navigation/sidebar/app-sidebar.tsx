@@ -22,7 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useUserCasinoGroups } from "@/lib/hooks/swr/user/useUserCasinoGroup";
 
 export const AppSidebar = () => {
-  const { data: currentUser, status } = useSession();
+  const { data: currentUser } = useSession();
   const { state } = useSidebar();
   const { casinoGroups, casinoGroupsLoading, casinoGroupsError } =
     useUserCasinoGroups(currentUser?.user?.id);

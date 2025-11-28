@@ -30,20 +30,20 @@ import {
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
 import { useParams } from "next/navigation";
-import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
 
-// Zod schema for Concern form
-const ConcernFormSchema = z.object({
+// Zod schema for Remittance form
+const RemittanceFormSchema = z.object({
   subject: z.string().min(1, "Subject required"),
   details: z.string().min(1, "Details required"),
   users: z.array(z.string()).optional(), // user IDs
   attachment: z.any().optional(),
 });
 
-export type ConcernFormValues = z.infer<typeof ConcernFormSchema>;
+export type RemittanceFormValues = z.infer<typeof RemittanceFormSchema>;
 
-export function ConcernFormDialog({
+export function RemittanceFormDialog({
   open,
   onOpenChange,
   onSubmitted,
@@ -55,12 +55,12 @@ export function ConcernFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { mutate } = useConcerns(casinoGroup);
+  const { mutate } = useRemittance(casinoGroup);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 
-  const form = useForm<ConcernFormValues>({
-    resolver: zodResolver(ConcernFormSchema),
+  const form = useForm<RemittanceFormValues>({
+    resolver: zodResolver(RemittanceFormSchema),
     defaultValues: {
       subject: "",
       details: "",
@@ -73,7 +73,7 @@ export function ConcernFormDialog({
     if (open) form.reset();
   }, [open, form]);
 
-  async function handleSubmit(values: ConcernFormValues) {
+  async function handleSubmit(values: RemittanceFormValues) {
     setLoading(true);
     try {
       const formData = new FormData();
@@ -91,18 +91,18 @@ export function ConcernFormDialog({
         });
       }
 
-      const res = await fetch("/api/concern", {
+      const res = await fetch("/api/remittance", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data?.error || "Concern failed!");
+        toast.error(data?.error || "Remittance failed!");
         return;
       }
 
-      toast.success("Concern request submitted successfully!");
+      toast.success("Remittance request submitted successfully!");
       // Optionally, reset form or close dialog
       form.reset();
       onOpenChange(false);
@@ -125,7 +125,7 @@ export function ConcernFormDialog({
         style={{ maxHeight: "90vh" }}
       >
         <DialogHeader>
-          <DialogTitle>Request Concern</DialogTitle>
+          <DialogTitle>Submit Remittance</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -145,7 +145,7 @@ export function ConcernFormDialog({
               fieldName="details"
               label="Details"
               required
-              placeholder="Enter concern details"
+              placeholder="Enter remittance details"
               type="textarea"
               row={10}
             />

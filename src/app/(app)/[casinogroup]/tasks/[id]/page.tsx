@@ -39,13 +39,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
-import { useConcernById } from "@/lib/hooks/swr/concern/useConcernById";
 import { StatusHistorySheet } from "@/components/StatusHistorySheet";
+import { useTaskById } from "@/lib/hooks/swr/task/useTaskById";
 
 export default function Page() {
   const { id } = useParams();
   const router = useRouter();
-  const { concern, isLoading, error, mutate } = useConcernById(id as string);
+  const { task, isLoading, error, mutate } = useTaskById(id as string);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { usersDataNetwork } = useUsersNetwork();
@@ -105,7 +105,7 @@ export default function Page() {
       formData.append("message", comment);
       attachments.forEach((file) => formData.append("attachment", file));
 
-      const res = await fetch(`/api/concern/${id}/thread`, {
+      const res = await fetch(`/api/task/${id}/thread`, {
         method: "POST",
         body: formData,
       });
@@ -170,14 +170,14 @@ export default function Page() {
             </div>
           ) : error ? (
             <div className="text-sm text-red-600">Error: {error.message}</div>
-          ) : concern ? (
+          ) : task ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               {/* Username and Bank/E-wallet */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Subject
                 </Label>
-                <Input readOnly value={concern.subject} />
+                <Input readOnly value={task.subject} />
               </div>
 
               {/* Entry By and Agent Tip */}
@@ -185,14 +185,14 @@ export default function Page() {
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Entry By
                 </Label>
-                <Input readOnly value={concern.user?.name} />
+                <Input readOnly value={task.user?.name} />
               </div>
               {/* Details */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Details
                 </Label>
-                <Textarea readOnly value={concern.details} />
+                <Textarea readOnly value={task.details} />
               </div>
               {/* Date Requested At */}
               <div>
@@ -202,8 +202,8 @@ export default function Page() {
                 <Input
                   readOnly
                   value={
-                    concern.createdAt
-                      ? formatDate(concern.createdAt, "M/dd/yyyy 'at' hh:mm a")
+                    task.createdAt
+                      ? formatDate(task.createdAt, "M/dd/yyyy 'at' hh:mm a")
                       : "—"
                   }
                 />
@@ -215,14 +215,14 @@ export default function Page() {
                   Attachments
                 </Label>
                 <ul className="mt-1 space-y-1">
-                  {Array.isArray(concern.attachments) &&
-                    concern.attachments.length === 0 && (
+                  {Array.isArray(task.attachments) &&
+                    task.attachments.length === 0 && (
                       <li className="text-xs text-muted-foreground">
                         No attachments
                       </li>
                     )}
-                  {Array.isArray(concern.attachments) &&
-                    concern.attachments.map((att) => (
+                  {Array.isArray(task.attachments) &&
+                    task.attachments.map((att) => (
                       <li key={att.id} className="flex items-center gap-1">
                         <Paperclip
                           size={16}
@@ -248,14 +248,14 @@ export default function Page() {
                 </Label>
                 <Badge
                   className={`capitalize text-xs cursor-pointer ${
-                    concern.status === "PENDING"
+                    task.status === "PENDING"
                       ? "bg-yellow-400 text-black"
-                      : concern.status === "COMPLETED"
+                      : task.status === "COMPLETED"
                       ? "bg-green-600 text-white"
                       : "bg-red-600 text-white"
                   }`}
                 >
-                  {concern.status}
+                  {task.status}
                 </Badge>
               </div>
               <div className="flex flex-row gap-2 col-span-2">
@@ -264,8 +264,8 @@ export default function Page() {
                   session?.user?.role === ADMINROLES.SUPERADMIN ||
                   session?.user?.role === ADMINROLES.ACCOUNTING) && (
                   <UpdateStatusDialog
-                    concernId={id}
-                    currentStatus={concern?.status}
+                    taskId={id}
+                    currentStatus={task?.status}
                   />
                 )}
                 <Button
@@ -277,9 +277,7 @@ export default function Page() {
               </div>
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">
-              No concern found.
-            </div>
+            <div className="text-sm text-muted-foreground">No task found.</div>
           )}
         </ResizablePanel>
         <ResizableHandle />
@@ -294,7 +292,7 @@ export default function Page() {
               Comments
             </div>
             <ScrollArea className="flex-1 min-h-[200px] max-h-[calc(100vh-300px)] pr-2">
-              {!isLoading && concern && concern.concernThreads.length === 0 && (
+              {!isLoading && task && task.taskThreads.length === 0 && (
                 <div className="flex flex-col h-full text-muted-foreground text-sm">
                   <span className="italic">
                     No comments yet.
@@ -303,9 +301,9 @@ export default function Page() {
                 </div>
               )}
 
-              {!isLoading && concern && concern.concernThreads.length > 0 && (
+              {!isLoading && task && task.taskThreads.length > 0 && (
                 <ul className="flex flex-col gap-3">
-                  {concern.concernThreads.map((thread) => {
+                  {task.taskThreads.map((thread) => {
                     const author = thread.author?.name || "—";
                     const role = thread.author?.role;
                     const isUser = session?.user?.id === thread.author?.id;
@@ -518,7 +516,7 @@ export default function Page() {
       <StatusHistorySheet
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
-        data={concern?.concernLogs || []}
+        data={task?.taskLogs || []}
       />
     </div>
   );

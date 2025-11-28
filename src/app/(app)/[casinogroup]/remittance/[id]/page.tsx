@@ -39,13 +39,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
-import { useConcernById } from "@/lib/hooks/swr/concern/useConcernById";
 import { StatusHistorySheet } from "@/components/StatusHistorySheet";
+import { useRemittanceById } from "@/lib/hooks/swr/remittance/useRemittanceById";
 
 export default function Page() {
   const { id } = useParams();
   const router = useRouter();
-  const { concern, isLoading, error, mutate } = useConcernById(id as string);
+  const { remittance, isLoading, error, mutate } = useRemittanceById(
+    id as string
+  );
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { usersDataNetwork } = useUsersNetwork();
@@ -105,7 +107,7 @@ export default function Page() {
       formData.append("message", comment);
       attachments.forEach((file) => formData.append("attachment", file));
 
-      const res = await fetch(`/api/concern/${id}/thread`, {
+      const res = await fetch(`/api/remittance/${id}/thread`, {
         method: "POST",
         body: formData,
       });
@@ -170,14 +172,14 @@ export default function Page() {
             </div>
           ) : error ? (
             <div className="text-sm text-red-600">Error: {error.message}</div>
-          ) : concern ? (
+          ) : remittance ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
               {/* Username and Bank/E-wallet */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Subject
                 </Label>
-                <Input readOnly value={concern.subject} />
+                <Input readOnly value={remittance.subject} />
               </div>
 
               {/* Entry By and Agent Tip */}
@@ -185,14 +187,14 @@ export default function Page() {
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Entry By
                 </Label>
-                <Input readOnly value={concern.user?.name} />
+                <Input readOnly value={remittance.user?.name} />
               </div>
               {/* Details */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Details
                 </Label>
-                <Textarea readOnly value={concern.details} />
+                <Textarea readOnly value={remittance.details} />
               </div>
               {/* Date Requested At */}
               <div>
@@ -202,8 +204,11 @@ export default function Page() {
                 <Input
                   readOnly
                   value={
-                    concern.createdAt
-                      ? formatDate(concern.createdAt, "M/dd/yyyy 'at' hh:mm a")
+                    remittance.createdAt
+                      ? formatDate(
+                          remittance.createdAt,
+                          "M/dd/yyyy 'at' hh:mm a"
+                        )
                       : "—"
                   }
                 />
@@ -215,14 +220,14 @@ export default function Page() {
                   Attachments
                 </Label>
                 <ul className="mt-1 space-y-1">
-                  {Array.isArray(concern.attachments) &&
-                    concern.attachments.length === 0 && (
+                  {Array.isArray(remittance.attachments) &&
+                    remittance.attachments.length === 0 && (
                       <li className="text-xs text-muted-foreground">
                         No attachments
                       </li>
                     )}
-                  {Array.isArray(concern.attachments) &&
-                    concern.attachments.map((att) => (
+                  {Array.isArray(remittance.attachments) &&
+                    remittance.attachments.map((att) => (
                       <li key={att.id} className="flex items-center gap-1">
                         <Paperclip
                           size={16}
@@ -248,14 +253,14 @@ export default function Page() {
                 </Label>
                 <Badge
                   className={`capitalize text-xs cursor-pointer ${
-                    concern.status === "PENDING"
+                    remittance.status === "PENDING"
                       ? "bg-yellow-400 text-black"
-                      : concern.status === "COMPLETED"
+                      : remittance.status === "COMPLETED"
                       ? "bg-green-600 text-white"
                       : "bg-red-600 text-white"
                   }`}
                 >
-                  {concern.status}
+                  {remittance.status}
                 </Badge>
               </div>
               <div className="flex flex-row gap-2 col-span-2">
@@ -264,8 +269,8 @@ export default function Page() {
                   session?.user?.role === ADMINROLES.SUPERADMIN ||
                   session?.user?.role === ADMINROLES.ACCOUNTING) && (
                   <UpdateStatusDialog
-                    concernId={id}
-                    currentStatus={concern?.status}
+                    remittanceId={id}
+                    currentStatus={remittance?.status}
                   />
                 )}
                 <Button
@@ -278,7 +283,7 @@ export default function Page() {
             </div>
           ) : (
             <div className="text-sm text-muted-foreground">
-              No concern found.
+              No remittance found.
             </div>
           )}
         </ResizablePanel>
@@ -294,108 +299,112 @@ export default function Page() {
               Comments
             </div>
             <ScrollArea className="flex-1 min-h-[200px] max-h-[calc(100vh-300px)] pr-2">
-              {!isLoading && concern && concern.concernThreads.length === 0 && (
-                <div className="flex flex-col h-full text-muted-foreground text-sm">
-                  <span className="italic">
-                    No comments yet.
-                    <br />
-                  </span>
-                </div>
-              )}
+              {!isLoading &&
+                remittance &&
+                remittance.remittanceThreads.length === 0 && (
+                  <div className="flex flex-col h-full text-muted-foreground text-sm">
+                    <span className="italic">
+                      No comments yet.
+                      <br />
+                    </span>
+                  </div>
+                )}
 
-              {!isLoading && concern && concern.concernThreads.length > 0 && (
-                <ul className="flex flex-col gap-3">
-                  {concern.concernThreads.map((thread) => {
-                    const author = thread.author?.name || "—";
-                    const role = thread.author?.role;
-                    const isUser = session?.user?.id === thread.author?.id;
-                    const dateTime = formatDate(
-                      thread.createdAt,
-                      "MM/dd/yy 'at' hh:mm a"
-                    );
+              {!isLoading &&
+                remittance &&
+                remittance.remittanceThreads.length > 0 && (
+                  <ul className="flex flex-col gap-3">
+                    {remittance.remittanceThreads.map((thread) => {
+                      const author = thread.author?.name || "—";
+                      const role = thread.author?.role;
+                      const isUser = session?.user?.id === thread.author?.id;
+                      const dateTime = formatDate(
+                        thread.createdAt,
+                        "MM/dd/yy 'at' hh:mm a"
+                      );
 
-                    return (
-                      <li
-                        key={thread.id}
-                        className="flex flex-col items-start overflow-visible px-1 w-full"
-                      >
-                        <div
-                          className={`flex items-end mb-1 w-full ${
-                            isUser ? "justify-end" : "justify-start"
-                          }`}
+                      return (
+                        <li
+                          key={thread.id}
+                          className="flex flex-col items-start overflow-visible px-1 w-full"
                         >
-                          {!isUser && (
-                            <UserCircle className="text-gray-400 mr-2 w-5 h-5 shrink-0" />
-                          )}
                           <div
-                            className={`rounded-xl px-4 py-2 text-base max-w-[75%] ${
-                              isUser
-                                ? "bg-black text-white"
-                                : "bg-gray-100 text-gray-900 dark:bg-neutral-900 dark:text-white"
+                            className={`flex items-end mb-1 w-full ${
+                              isUser ? "justify-end" : "justify-start"
                             }`}
                           >
-                            {thread.message}
-                            {/* Attachments: display image previews, other files as download links */}
-                            {Array.isArray(thread.attachments) &&
-                              thread.attachments.length > 0 && (
-                                <div className="mt-2 flex flex-row flex-wrap gap-2">
-                                  {thread.attachments.map((att) =>
-                                    att.mimetype?.startsWith("image/") ? (
-                                      <button
-                                        type="button"
-                                        key={att.id}
-                                        className="cursor-pointer block border rounded max-w-24 max-h-24 overflow-hidden focus:ring"
-                                        onClick={() => {
-                                          setPreviewImg(att.url);
-                                          setPreviewFilename(att.filename);
-                                        }}
-                                        style={{
-                                          padding: 0,
-                                          background: "none",
-                                          border: "none",
-                                        }}
-                                      >
-                                        <img
-                                          src={att.url}
-                                          alt={att.filename}
-                                          className="object-cover w-full h-full"
-                                          style={{
-                                            maxWidth: "6rem",
-                                            maxHeight: "6rem",
+                            {!isUser && (
+                              <UserCircle className="text-gray-400 mr-2 w-5 h-5 shrink-0" />
+                            )}
+                            <div
+                              className={`rounded-xl px-4 py-2 text-base max-w-[75%] ${
+                                isUser
+                                  ? "bg-black text-white"
+                                  : "bg-gray-100 text-gray-900 dark:bg-neutral-900 dark:text-white"
+                              }`}
+                            >
+                              {thread.message}
+                              {/* Attachments: display image previews, other files as download links */}
+                              {Array.isArray(thread.attachments) &&
+                                thread.attachments.length > 0 && (
+                                  <div className="mt-2 flex flex-row flex-wrap gap-2">
+                                    {thread.attachments.map((att) =>
+                                      att.mimetype?.startsWith("image/") ? (
+                                        <button
+                                          type="button"
+                                          key={att.id}
+                                          className="cursor-pointer block border rounded max-w-24 max-h-24 overflow-hidden focus:ring"
+                                          onClick={() => {
+                                            setPreviewImg(att.url);
+                                            setPreviewFilename(att.filename);
                                           }}
-                                        />
-                                      </button>
-                                    ) : (
-                                      <a
-                                        href={att.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        key={att.id}
-                                        className="flex items-center gap-1 text-xs underline text-blue-500 dark:text-blue-400"
-                                      >
-                                        <Paperclip size={16} />{" "}
-                                        {att.filename ?? att.url}
-                                      </a>
-                                    )
-                                  )}
-                                </div>
-                              )}
+                                          style={{
+                                            padding: 0,
+                                            background: "none",
+                                            border: "none",
+                                          }}
+                                        >
+                                          <img
+                                            src={att.url}
+                                            alt={att.filename}
+                                            className="object-cover w-full h-full"
+                                            style={{
+                                              maxWidth: "6rem",
+                                              maxHeight: "6rem",
+                                            }}
+                                          />
+                                        </button>
+                                      ) : (
+                                        <a
+                                          href={att.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          key={att.id}
+                                          className="flex items-center gap-1 text-xs underline text-blue-500 dark:text-blue-400"
+                                        >
+                                          <Paperclip size={16} />{" "}
+                                          {att.filename ?? att.url}
+                                        </a>
+                                      )
+                                    )}
+                                  </div>
+                                )}
+                            </div>
                           </div>
-                        </div>
-                        <div
-                          className={`w-full flex items-center ${
-                            isUser ? "justify-end pr-2" : "justify-start pl-8"
-                          }`}
-                        >
-                          <span className="text-xs text-muted-foreground dark:text-gray-400">
-                            {role} &middot; {author} &middot; {dateTime}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                          <div
+                            className={`w-full flex items-center ${
+                              isUser ? "justify-end pr-2" : "justify-start pl-8"
+                            }`}
+                          >
+                            <span className="text-xs text-muted-foreground dark:text-gray-400">
+                              {role} &middot; {author} &middot; {dateTime}
+                            </span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
             </ScrollArea>
 
             {/* Comment form */}
@@ -518,7 +527,7 @@ export default function Page() {
       <StatusHistorySheet
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
-        data={concern?.concernLogs || []}
+        data={remittance?.remittanceLogs || []}
       />
     </div>
   );

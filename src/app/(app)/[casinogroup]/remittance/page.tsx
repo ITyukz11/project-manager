@@ -9,13 +9,13 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TriangleAlert } from "lucide-react";
-import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
-import { concernColumn } from "@/components/table/concern/concernColumn";
+import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
+import { remittanceColumn } from "@/components/table/remittance/remittanceColumns";
 
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { concerns, error, isLoading } = useConcerns(casinoGroup);
+  const { remittances, error, isLoading } = useRemittance(casinoGroup);
 
   const router = useRouter();
   return (
@@ -46,11 +46,11 @@ const Page = () => {
         </div>
       ) : (
         <DataTable
-          data={concerns}
-          columns={concernColumn}
+          data={remittances}
+          columns={remittanceColumn}
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
-          onViewRowId={(id) => router.push(`/${casinoGroup}/concerns/` + id)}
+          onViewRowId={(id) => router.push(`/${casinoGroup}/remittance/` + id)}
         />
       )}
     </div>

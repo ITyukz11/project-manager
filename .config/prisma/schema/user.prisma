@@ -42,12 +42,24 @@ model User {
   cashouts         Cashout[]
   cashoutLogs      CashoutLogs[]
 
+  remittance         Remittance[]         @relation("RemittanceCreator")
+  taggedRemittance   Remittance[]         @relation("RemittanceTags") // tagged in remittances
+  remittanceThreads   RemittanceThread[]
+  mentionedInRemittanceThreads RemittanceThread[] @relation("RemittanceThreadMentions")
+  remittanceLogs      RemittanceLogs[]
+
   concerns         Concern[]         @relation("ConcernCreator")
   taggedConcerns   Concern[]         @relation("ConcernTags") // tagged in concerns
   concernThreads   ConcernThread[]
   mentionedInConcernThreads ConcernThread[] @relation("ConcernThreadMentions")
   concernLogs      ConcernLogs[]
 
+
+  tasks         Task[]         @relation("TaskCreator")
+  taggedTasks   Task[]         @relation("TaskTags") // tagged in tasks
+  taskThreads   TaskThread[]
+  mentionedInTaskThreads TaskThread[] @relation("TaskThreadMentions")
+  taskLogs      TaskLogs[]
   superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins
   casinoGroups     CasinoGroup[] // Many-to-many relationship with CasinoGroup
 

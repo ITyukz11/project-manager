@@ -6,7 +6,9 @@ model CasinoGroup {
   superAdmin    SuperAdmin    @relation(fields: [superAdminId], references: [id])
   users         User[]        // NEW: users in this casino group
   cashouts      Cashout[]     // NEW: cashouts for this casino group
+  remittances   Remittance[]  // NEW: remittances for this casino group
   concerns      Concern[]     // NEW: concerns for this casino group
+  tasks         Task[]        // NEW: tasks for this casino group
   groupChats    GroupChat[]   // NEW: group chats associated with this casino group
   active        Boolean       @default(true)
   createdAt     DateTime      @default(now())

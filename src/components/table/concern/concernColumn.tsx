@@ -105,7 +105,7 @@ export const concernColumn: ColumnDef<ConcernForTable>[] = [
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {row.original.concernThreads.length} msgs
+        {row.original.concernThreads?.length ?? 0} msgs
       </span>
     ),
   },

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  BanknoteArrowUp,
   CheckSquare,
   ChevronRight,
   ClipboardList,
@@ -27,6 +28,7 @@ import { usePathname } from "next/navigation";
 import { usePusher } from "@/lib/hooks/use-pusher";
 import { useCountCashoutPending } from "@/lib/hooks/swr/cashout/useCountPending";
 import { useCountConcernPending } from "@/lib/hooks/swr/concern/useCountPending";
+import { useCountRemittancePending } from "@/lib/hooks/swr/remittance/useCountRemittancePending";
 
 interface MenuLink {
   href: string;
@@ -51,9 +53,12 @@ export default function NavCasinoGroup({
   console.log("pathname:", pathname);
   const [pendingCashouts, setPendingCashouts] = React.useState<number>(0);
   const [pendingConcerns, setPendingConcerns] = React.useState<number>(0);
+  const [pendingRemittances, setPendingRemittances] = React.useState<number>(0);
   const [pendingTasks, setPendingTasks] = React.useState<number>(0);
   const { pendingCashoutCount, pendingCashoutCountIsLoading } =
     useCountCashoutPending(casinoGroup.name);
+  const { pendingRemittanceCount, pendingRemittanceCountIsLoading } =
+    useCountRemittancePending(casinoGroup.name);
   const { pendingConcernCount, pendingConcernCountIsLoading } =
     useCountConcernPending(casinoGroup.name);
   // Update local state when SWR loads initial value
@@ -63,6 +68,12 @@ export default function NavCasinoGroup({
       typeof pendingCashoutCount === "number"
     ) {
       setPendingCashouts(pendingCashoutCount);
+    }
+    if (
+      !pendingRemittanceCountIsLoading &&
+      typeof pendingRemittanceCount === "number"
+    ) {
+      setPendingRemittances(pendingRemittanceCount);
     }
     if (
       !pendingConcernCountIsLoading &&
@@ -84,6 +95,16 @@ export default function NavCasinoGroup({
     onEvent: (data: { count: number }) => {
       console.log("Pusher event received:", data);
       setPendingCashouts(data.count);
+    },
+  });
+
+  // Real-time updates from Pusher
+  usePusher({
+    channels: [`remittance-${casinoGroup.name.toLowerCase()}`],
+    eventName: "remittance-pending-count",
+    onEvent: (data: { count: number }) => {
+      console.log("Pusher event received:", data);
+      setPendingRemittances(data.count);
     },
   });
 
@@ -118,6 +139,14 @@ export default function NavCasinoGroup({
       disable: false,
       pendingCount: pendingCashouts,
       loading: pendingCashoutCountIsLoading,
+    },
+    {
+      href: `/${casinoGroup.name.toLowerCase()}/remittance`,
+      text: "Remittance",
+      icon: BanknoteArrowUp,
+      disable: false,
+      pendingCount: pendingRemittances,
+      loading: pendingRemittanceCountIsLoading,
     },
     {
       href: `/${casinoGroup.name.toLowerCase()}/concerns`,
