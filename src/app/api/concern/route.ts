@@ -180,9 +180,24 @@ export async function POST(req: Request) {
 
         // Notify each tagged user
         const taggedUserIds: string[] = JSON.parse(users);
+
         await Promise.all(
-          taggedUserIds.map((userId) =>
-            pusher.trigger(
+          taggedUserIds.map(async (userId) => {
+            // 1. Create a notification in the DB
+            await prisma.notifications.create({
+              data: {
+                userId: userId,
+                message: `${currentUser.username} tagged you in a concern "${concern.subject}".`,
+                link: `/${casinoGroupName.toLowerCase()}/concerns/${
+                  concern.id
+                }`,
+                isRead: false,
+                // Add type if you want: type: "concern"
+              },
+            });
+
+            // 2. Send real-time notification
+            await pusher.trigger(
               `user-notify-${userId}`, // user channel
               "concern-tagged", // event name
               {
@@ -192,8 +207,8 @@ export async function POST(req: Request) {
                 casinoGroup: casinoGroupName,
                 createdBy: currentUser.id,
               }
-            )
-          )
+            );
+          })
         );
 
         return concern;

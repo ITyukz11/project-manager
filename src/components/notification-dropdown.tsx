@@ -141,7 +141,7 @@ export const NotificationDropdown = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>
         <Button size={"sm"} variant={"outline"}>
           <Bell className="w-4 h-4" />
           {notifications.length > 0 && (
