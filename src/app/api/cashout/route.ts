@@ -185,11 +185,58 @@ export async function POST(req: Request) {
             casinoGroupId: casinoGroup.id, // or use casinoGroupName if you join by name
           },
         });
+
         await pusher.trigger(
           `cashout-${casinoGroupName.toLowerCase()}`, // channel name
           "cashout-pending-count", // event name
           { count: pendingCount }
         );
+
+        // Get all tagged users for this notification
+        const taggedUserIds = await prisma.user
+          .findMany({
+            where: {
+              role: {
+                in: [
+                  ADMINROLES.SUPERADMIN,
+                  ADMINROLES.ADMIN,
+                  ADMINROLES.ACCOUNTING,
+                  ADMINROLES.LOADER,
+                  ADMINROLES.TL,
+                ],
+              },
+            },
+            select: { id: true },
+          })
+          .then((users) => users.map((user) => user.id));
+
+        // For each user, create the notification and send via Pusher
+        await Promise.all(
+          taggedUserIds.map(async (userId) => {
+            const notification = await prisma.notifications.create({
+              data: {
+                userId,
+                message: `${currentUser.username} requested a Cashout: "${cashout.amount}" in ${casinoGroupName}.`,
+                link: `/${casinoGroupName.toLowerCase()}/cash-outs/${
+                  cashout.id
+                }`,
+                isRead: false,
+                type: "cashout",
+                actor: currentUser.username,
+                subject: cashout.amount.toLocaleString(),
+                casinoGroup: casinoGroupName,
+              },
+            });
+
+            // You can use a specific event name for this type
+            await pusher.trigger(
+              `user-notify-${userId}`,
+              "notifications-event", // Event name by notification type
+              notification
+            );
+          })
+        );
+
         return cashout;
       });
 

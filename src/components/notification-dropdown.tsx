@@ -69,7 +69,7 @@ export const NotificationDropdown = () => {
   // Real-time Pusher updates for tagged concerns
   usePusher({
     channels: userId ? [`user-notify-${userId}`] : [],
-    eventName: "concern-tagged",
+    eventName: "notifications-event",
     onEvent: (newNotification: Notifications) => {
       if (newNotification.isRead) {
         setArchiveNotifications((prev) =>

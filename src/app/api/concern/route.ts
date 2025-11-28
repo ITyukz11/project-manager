@@ -203,7 +203,7 @@ export async function POST(req: Request) {
             // 2. Send real-time notification
             await pusher.trigger(
               `user-notify-${userId}`, // user channel
-              "concern-tagged", // event name
+              "notifications-event", // event name
               notification
             );
           })
