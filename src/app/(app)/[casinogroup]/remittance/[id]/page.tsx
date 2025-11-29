@@ -42,6 +42,10 @@ import { ADMINROLES } from "@/lib/types/role";
 import { StatusHistorySheet } from "@/components/StatusHistorySheet";
 import { useRemittanceById } from "@/lib/hooks/swr/remittance/useRemittanceById";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 export default function Page() {
   const { id } = useParams();
@@ -513,7 +517,12 @@ export default function Page() {
         </ResizablePanel>
       </ResizablePanelGroup>
       <Dialog open={!!previewImg} onOpenChange={() => setPreviewImg(null)}>
-        <DialogContent className="max-w-lg md:max-w-xl">
+        <DialogContent
+          className="max-w-lg md:max-w-xl"
+          onPointerDownOutside={avoidDefaultDomBehavior}
+          onInteractOutside={avoidDefaultDomBehavior}
+          onKeyDown={handleKeyDown}
+        >
           <DialogHeader>
             <DialogTitle>{previewFilename}</DialogTitle>
           </DialogHeader>

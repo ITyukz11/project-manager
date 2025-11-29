@@ -20,6 +20,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { useParams } from "next/navigation";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 // Zod schema for GroupChat creation
 const GroupChatFormSchema = z.object({
@@ -80,7 +84,12 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-y-auto max-h-[90vh] w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-6 py-6 rounded-lg">
+      <DialogContent
+        className="overflow-y-auto max-h-[90vh] w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-6 py-6 rounded-lg"
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-bold">
             New Group Chat

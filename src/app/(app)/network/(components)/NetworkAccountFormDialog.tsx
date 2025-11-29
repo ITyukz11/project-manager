@@ -30,6 +30,10 @@ import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import RequiredField from "@/components/common/required-field";
 import { Input } from "@/components/ui/input";
 import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup"; // <-- Added!
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 // Add "groupChats" AND "casinoGroups" to your Zod Schema
 const NetworkUserFormSchema = z.object({
@@ -97,7 +101,12 @@ export function NetworkUserFormDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-y-auto max-h-[90vh]">
+      <DialogContent
+        className="overflow-y-auto max-h-[90vh]"
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>New Network User</DialogTitle>
         </DialogHeader>

@@ -23,11 +23,15 @@ import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { useParams } from "next/navigation";
 import { useCasinoGroupNetwork } from "@/lib/hooks/swr/casino-group/useCasinoGroupNetwork";
 import { Input } from "@/components/ui/input";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 // Add "groupChats" to your Zod Schema
 const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional(),
   username: z.string().min(1, "Username is required"),
   remarks: z.string().min(1, "Comms. Details is required"),
   referredBy: z.string().optional(),
@@ -126,7 +130,12 @@ export function NetworkUserFormDialog({
   console.log("form errors:", form.formState.errors);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-y-auto max-h-[90vh]">
+      <DialogContent
+        className="overflow-y-auto max-h-[90vh]"
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>New Network User</DialogTitle>
         </DialogHeader>
@@ -150,7 +159,7 @@ export function NetworkUserFormDialog({
                 form={form}
                 fieldName="email"
                 label="Email"
-                required
+                required={false}
                 type="text"
                 placeholder="Enter email"
               />

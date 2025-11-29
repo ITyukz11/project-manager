@@ -19,6 +19,10 @@ import {
 import { ArrowRight } from "lucide-react";
 import { Label } from "./ui/label";
 import { Kbd } from "./ui/kbd";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 type Item = { id: string; title: string; href: string; group: string };
 
@@ -110,7 +114,12 @@ export default function SearchModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="rounded-2xl overflow-hidden sm:max-w-lg w-[min(90vw,600px)] gap-0 border-accent p-0 border-4 [&>button]:hidden">
+      <DialogContent
+        className="rounded-2xl overflow-hidden sm:max-w-lg w-[min(90vw,600px)] gap-0 border-accent p-0 border-4 [&>button]:hidden"
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogTitle className="hidden"></DialogTitle>
         <Command className="rounded-1xl dark:border-gray-900 border-accent">
           <div className="p-2 relative">

@@ -30,6 +30,10 @@ import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 // INCLUDE useCasinoGroup HOOK!
 import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 // Zod validation schema
 const AccountFormSchema = z.object({
@@ -112,7 +116,12 @@ export function AccountFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[95vh] overflow-y-auto">
+      <DialogContent
+        className="max-h-[95vh] overflow-y-auto"
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>New User</DialogTitle>
         </DialogHeader>
