@@ -17,13 +17,13 @@ import {
 import { GlobalFormField } from "@/components/common/form";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
-import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { useParams } from "next/navigation";
 import {
   avoidDefaultDomBehavior,
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 // Zod schema for GroupChat creation
 const GroupChatFormSchema = z.object({
@@ -39,8 +39,7 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
   const params = useParams();
   const casinoGroup = params.casinogroup?.toLocaleString();
   // Fetch network users to be assigned to the group chat
-  const { usersDataNetwork, usersLoadingNetwork } =
-    useUsersNetwork(casinoGroup);
+  const { usersData, usersLoading } = useUsers(casinoGroup);
   const { refetchGroupChats } = useGroupChats(casinoGroup);
 
   const form = useForm<GroupChatFormValues>({
@@ -118,18 +117,16 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
               required={false}
               type="multiselect"
               items={
-                usersLoadingNetwork
+                usersData == null
                   ? []
-                  : usersDataNetwork.map((user) => ({
+                  : usersData?.map((user) => ({
                       label:
                         user.username + (user.role ? ` (${user.role})` : ""),
                       value: user.id,
                     }))
               }
               placeholder={
-                usersLoadingNetwork
-                  ? "Loading users..."
-                  : "Select users (optional)"
+                usersLoading ? "Loading users..." : "Select users (optional)"
               }
             />
 
