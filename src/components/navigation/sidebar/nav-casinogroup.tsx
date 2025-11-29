@@ -30,6 +30,7 @@ import { useCountCashoutPending } from "@/lib/hooks/swr/cashout/useCountPending"
 import { useCountConcernPending } from "@/lib/hooks/swr/concern/useCountPending";
 import { useCountRemittancePending } from "@/lib/hooks/swr/remittance/useCountRemittancePending";
 import { useCountTaskPending } from "@/lib/hooks/swr/task/useCountTaskPending";
+import { Badge } from "@/components/ui/badge";
 
 interface MenuLink {
   href: string;
@@ -139,6 +140,7 @@ export default function NavCasinoGroup({
       setPendingTasks(data.count);
     },
   });
+
   // Build dynamic nav links for the group, as in your pattern
   const links: MenuLink[] = [
     // // Build per your template! Example:
@@ -187,6 +189,11 @@ export default function NavCasinoGroup({
     },
   ];
 
+  const totalPending = React.useMemo(() => {
+    return (
+      pendingCashouts + pendingRemittances + pendingConcerns + pendingTasks
+    );
+  }, [pendingCashouts, pendingRemittances, pendingConcerns, pendingTasks]);
   // Pick an icon for your casino group, or use a default (optional)
   const SectionIcon = ClipboardList; // or any
 
@@ -198,10 +205,15 @@ export default function NavCasinoGroup({
       <CollapsibleTrigger asChild className="cursor-pointer select-none">
         <SidebarMenuButton>
           <SectionIcon /> {casinoGroup.name.toUpperCase()}
-          <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+          <Badge
+            variant={"destructive"}
+            className="ml-auto transition-transform"
+          >
+            {totalPending}
+          </Badge>
+          <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
         </SidebarMenuButton>
       </CollapsibleTrigger>
-
       <CollapsibleContent
         className={cn(
           "outline-none data-[state=open]:animate-in data-[state=closed]:animate-out",
