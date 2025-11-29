@@ -28,6 +28,7 @@ export async function GET(
         taskThreads: {
           include: { author: true, attachments: true },
         },
+        tagUsers: true,
       },
     });
 

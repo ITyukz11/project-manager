@@ -28,6 +28,7 @@ export async function GET(
         concernThreads: {
           include: { author: true, attachments: true },
         },
+        tagUsers: true,
       },
     });
 

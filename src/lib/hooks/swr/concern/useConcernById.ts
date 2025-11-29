@@ -23,6 +23,8 @@ export function useConcernById(id: string | undefined) {
     } & {
       attachments: ConcernAttachment[];
     } & {
+      tagUsers: User[];
+    } & {
       concernThreads: (ConcernThread & {
         author: User;
         attachments: ConcernAttachment[];

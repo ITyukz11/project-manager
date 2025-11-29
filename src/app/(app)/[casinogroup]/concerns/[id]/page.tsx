@@ -245,9 +245,24 @@ export default function Page() {
                     ))}
                 </ul>
               </div>
-
-              {/* Status and Amount */}
               <div>
+                {concern.tagUsers.length > 0 && (
+                  <>
+                    <Label className="text-muted-foreground text-xs mb-1 block">
+                      Tagged Users
+                    </Label>
+                    <ul className="mt-1 space-y-1">
+                      {concern.tagUsers.map((user) => (
+                        <li key={user.id} className="text-sm text-foreground">
+                          {user.username} ({user.role})
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+              {/* Status and Amount */}
+              <div className="col-span-2">
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Status
                 </Label>
@@ -265,9 +280,11 @@ export default function Page() {
               </div>
               <div className="flex flex-row gap-2 col-span-2">
                 {/* Admin actions */}
-                {(session?.user?.role === ADMINROLES.ADMIN ||
-                  session?.user?.role === ADMINROLES.SUPERADMIN ||
-                  session?.user?.role === ADMINROLES.ACCOUNTING) && (
+                {(session?.user.id === concern.userId ||
+                  (session?.user?.id &&
+                    concern.tagUsers.some(
+                      (user) => user.id === session.user.id
+                    ))) && (
                   <UpdateStatusDialog
                     concernId={id}
                     currentStatus={concern?.status}

@@ -25,6 +25,8 @@ export function useTaskById(id: string | undefined) {
     } & {
       attachments: TaskAttachment[];
     } & {
+      tagUsers: User[];
+    } & {
       taskThreads: (TaskThread & {
         author: User;
         attachments: TaskAttachment[];

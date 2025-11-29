@@ -52,7 +52,7 @@ export const authOptions: NextAuthOptions = {
 
         const authUser: AuthUser = {
           id: user.id,
-          email: user.email,
+          email: user.email || "",
           username: user.username || "",
           name: user.name || "",
           role: user.role,
@@ -95,7 +95,7 @@ export const authOptions: NextAuthOptions = {
           session.user = {
             ...session.user,
             id: user.id,
-            email: user.email,
+            email: user.email || "",
             username: user.username,
             name: user.name,
             role: user.role,
