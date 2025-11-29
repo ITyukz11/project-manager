@@ -33,6 +33,10 @@ import { useGroupChats } from "@/lib/hooks/swr/network/useGroupChat";
 import { Label } from "@/components/ui/label";
 import { MultiSelectExpandable } from "@/components/ui/select-multiple-expandable";
 import { User } from "@prisma/client";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 // Zod validation schema for GroupChat fields
 const GroupChatFormSchema = z.object({
@@ -138,7 +142,11 @@ export function NetworkGroupChatEditDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>Edit Group Chat</DialogTitle>
         </DialogHeader>

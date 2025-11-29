@@ -33,6 +33,10 @@ import { useUserCasinoGroups } from "@/lib/hooks/swr/user/useUserCasinoGroup";
 import { useSession } from "next-auth/react";
 import CustomFormDialog from "@/components/CustomFormDialog";
 import { useState } from "react";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 const CasinoGroupEditSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -151,7 +155,11 @@ export function CasinoGroupEditDialog({
   if (casinoGroupLoading && open) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
+        <DialogContent
+          onPointerDownOutside={avoidDefaultDomBehavior}
+          onInteractOutside={avoidDefaultDomBehavior}
+          onKeyDown={handleKeyDown}
+        >
           <DialogHeader>
             <DialogTitle>Edit Casino Group</DialogTitle>
           </DialogHeader>

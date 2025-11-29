@@ -30,6 +30,10 @@ import { GlobalFormField } from "@/components/common/form";
 import { useUserCasinoGroups } from "@/lib/hooks/swr/user/useUserCasinoGroup";
 import { useSession } from "next-auth/react";
 import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 // Validation schema (now include users as array!)
 export const CasinoGroupFormSchema = z.object({
@@ -98,7 +102,11 @@ export function CasinoGroupFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent
+        onPointerDownOutside={avoidDefaultDomBehavior}
+        onInteractOutside={avoidDefaultDomBehavior}
+        onKeyDown={handleKeyDown}
+      >
         <DialogHeader>
           <DialogTitle>Create Casino Group </DialogTitle>
         </DialogHeader>
