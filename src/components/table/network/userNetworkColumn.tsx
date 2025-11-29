@@ -20,7 +20,7 @@ export const userNetworkColumns: ColumnDef<
           <div className="flex flex-col">
             <Link
               href={`/network/accounts/${row.original.username}`}
-              className="text-blue-600 hover:underline text-sm capitalize"
+              className="text-blue-600 dark:text-blue-500 hover:underline text-sm capitalize"
             >
               {row.original.username}
             </Link>
