@@ -43,14 +43,20 @@ import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistoryS
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 export default function Page() {
-  const { id } = useParams();
+  const { id, casinogroup } = useParams();
+
   const router = useRouter();
   const { cashout, isLoading, error, mutate } = useCashoutById(id as string);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { usersDataNetwork } = useUsersNetwork();
+  const { usersData } = useUsers(casinogroup?.toLocaleString());
   const { data: session } = useSession();
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const [previewFilename, setPreviewFilename] = useState<string | null>(null);
@@ -462,7 +468,7 @@ export default function Page() {
                     />
                   </MentionInput>
                   <MentionContent>
-                    {usersDataNetwork.map((user) => (
+                    {usersData?.map((user) => (
                       <MentionItem
                         key={user.id}
                         value={user.username}
@@ -511,7 +517,12 @@ export default function Page() {
         </ResizablePanel>
       </ResizablePanelGroup>
       <Dialog open={!!previewImg} onOpenChange={() => setPreviewImg(null)}>
-        <DialogContent className="max-w-lg md:max-w-xl">
+        <DialogContent
+          className="max-w-lg md:max-w-xl"
+          onPointerDownOutside={avoidDefaultDomBehavior}
+          onInteractOutside={avoidDefaultDomBehavior}
+          onKeyDown={handleKeyDown}
+        >
           <DialogHeader>
             <DialogTitle>{previewFilename}</DialogTitle>
           </DialogHeader>

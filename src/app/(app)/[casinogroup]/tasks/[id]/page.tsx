@@ -41,14 +41,15 @@ import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
 import { StatusHistorySheet } from "@/components/StatusHistorySheet";
 import { useTaskById } from "@/lib/hooks/swr/task/useTaskById";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 export default function Page() {
-  const { id } = useParams();
+  const { id, casinogroup } = useParams();
   const router = useRouter();
   const { task, isLoading, error, mutate } = useTaskById(id as string);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { usersDataNetwork } = useUsersNetwork();
+  const { usersData } = useUsers(casinogroup?.toLocaleString());
   const { data: session } = useSession();
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const [previewFilename, setPreviewFilename] = useState<string | null>(null);
@@ -451,7 +452,7 @@ export default function Page() {
                     />
                   </MentionInput>
                   <MentionContent>
-                    {usersDataNetwork.map((user) => (
+                    {usersData?.map((user) => (
                       <MentionItem
                         key={user.id}
                         value={user.username}

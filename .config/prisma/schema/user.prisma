@@ -23,7 +23,7 @@ model SuperAdmin {
 // Unified User: single model for all roles
 model User {
   id               String          @id @default(uuid())
-  email            String          @unique
+  email            String?          @unique
   password         String
   name             String
   username         String         @unique
