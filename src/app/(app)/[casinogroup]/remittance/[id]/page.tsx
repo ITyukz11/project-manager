@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/resizable";
 import { formatDate } from "date-fns";
 import { Label } from "@/components/ui/label";
-import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 import { toast } from "sonner";
 import {
   Mention,
@@ -200,7 +199,7 @@ export default function Page() {
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Details
                 </Label>
-                <Textarea readOnly value={remittance.details} />
+                <Textarea readOnly value={remittance.details ?? ""} />
               </div>
               {/* Date Requested At */}
               <div>
@@ -252,7 +251,7 @@ export default function Page() {
                 </ul>
               </div>
 
-              {/* Status and Amount */}
+              {/* Status  */}
               <div>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Status
@@ -271,9 +270,7 @@ export default function Page() {
               </div>
               <div className="flex flex-row gap-2 col-span-2">
                 {/* Admin actions */}
-                {(session?.user?.role === ADMINROLES.ADMIN ||
-                  session?.user?.role === ADMINROLES.SUPERADMIN ||
-                  session?.user?.role === ADMINROLES.ACCOUNTING) && (
+                {session?.user.id === remittance.userId && (
                   <UpdateStatusDialog
                     remittanceId={id}
                     currentStatus={remittance?.status}

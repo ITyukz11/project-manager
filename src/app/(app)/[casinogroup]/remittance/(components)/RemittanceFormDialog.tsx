@@ -36,7 +36,7 @@ import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
 // Zod schema for Remittance form
 const RemittanceFormSchema = z.object({
   subject: z.string().min(1, "Subject required"),
-  details: z.string().min(1, "Details required"),
+  details: z.string().optional(),
   users: z.array(z.string()).optional(), // user IDs
   attachment: z.any().optional(),
 });
@@ -78,7 +78,9 @@ export function RemittanceFormDialog({
     try {
       const formData = new FormData();
       formData.append("subject", values.subject);
-      formData.append("details", values.details);
+      if (values.details) {
+        formData.append("details", values.details);
+      }
       formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
       formData.append(
         "users",
@@ -144,7 +146,7 @@ export function RemittanceFormDialog({
               form={form}
               fieldName="details"
               label="Details"
-              required
+              required={false}
               placeholder="Enter remittance details"
               type="textarea"
               row={10}
