@@ -38,7 +38,7 @@ const AccountFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   casinoGroupId: z.array(z.string()).optional(), // <-- support an array
   password: z.string().min(1, "Password is required"),
-  messengerLink: z.string().min(1, "Messenger Link is required"),
+  messengerLink: z.string().optional(),
   role: z.enum(["ADMIN", "FAP", "MASTER_AGENT", "TL", "LOADER", "ACCOUNTING"], {
     message: "Account Type is required",
   }),
@@ -154,7 +154,7 @@ export function AccountFormDialog({
               form={form}
               fieldName="messengerLink"
               label="Messenger Link"
-              required
+              required={false}
               type="text"
               placeholder="Enter messenger link"
             />
