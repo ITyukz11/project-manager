@@ -138,8 +138,8 @@ export const NotificationDropdown = () => {
           <button
             className={`cursor-pointer flex-1 py-2 text-sm font-semibold transition-colors ${
               activeTab === "inbox"
-                ? "border-b-2  border-black dark:border-white text-black dark:text-white"
-                : "text-gray-500 hover:text-black dark:text-gray-400"
+                ? "border-b-2 border-black dark:border-white text-black dark:text-white"
+                : "text-gray-500 hover:text-black dark:hover:text-gray-400"
             }`}
             onClick={() => setActiveTab("inbox")}
           >
@@ -154,7 +154,7 @@ export const NotificationDropdown = () => {
             className={`cursor-pointer flex-1 py-2 text-sm font-semibold transition-colors ${
               activeTab === "archives"
                 ? "border-b-2 border-black dark:border-white text-black dark:text-white"
-                : " hover:text-black"
+                : "text-gray-500 hover:text-black dark:hover:text-gray-400"
             }`}
             onClick={() => setActiveTab("archives")}
           >
@@ -267,7 +267,7 @@ export const NotificationDropdown = () => {
         </DropdownMenuGroup>
         <Link href="/notifications">
           <Button
-            className="w-full mt-2 rounded-none border-t border-gray-100  bg-white dark:bg-neutral-900 text-black dark:text-white"
+            className="w-full mt-2 border-0 border-t rounded-none bg-white dark:bg-neutral-900 text-black dark:text-white"
             variant="outline"
           >
             See all notifications
