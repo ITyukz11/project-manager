@@ -205,10 +205,7 @@ export default function NavCasinoGroup({
       <CollapsibleTrigger asChild className="cursor-pointer select-none">
         <SidebarMenuButton>
           <SectionIcon /> {casinoGroup.name.toUpperCase()}
-          <Badge
-            variant={"destructive"}
-            className="ml-auto transition-transform"
-          >
+          <Badge className="ml-auto transition-transform bg-yellow-500 dark:bg-yellow-600 dark:text-white">
             {totalPending}
           </Badge>
           <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
