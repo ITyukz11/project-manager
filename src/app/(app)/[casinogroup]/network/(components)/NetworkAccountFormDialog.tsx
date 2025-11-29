@@ -126,8 +126,7 @@ export function NetworkUserFormDialog({
       setLoading(false);
     }
   }
-  console.log("casinoGroupNetworkData: ", casinoGroupNetworkData);
-  console.log("form errors:", form.formState.errors);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
