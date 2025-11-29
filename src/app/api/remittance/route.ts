@@ -96,13 +96,6 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!details || typeof details !== "string" || details.trim() === "") {
-      return NextResponse.json(
-        { error: "Remittance details are required." },
-        { status: 400 }
-      );
-    }
-
     // Upload attachments
     const attachments: File[] = formData.getAll("attachment") as File[];
     const attachmentData: {

@@ -37,13 +37,16 @@ export const usePusher = <T = any>({
       });
     }
 
+    // Unlock audio on first user interaction
     const handleInteraction = () => {
       if (!hasInteracted.current && audioRef?.current) {
         hasInteracted.current = true;
+
         audioRef.current
           .play()
           .then(() => audioRef.current?.pause())
           .catch(() => {});
+
         document.removeEventListener("click", handleInteraction);
         document.removeEventListener("keydown", handleInteraction);
       }
@@ -71,6 +74,12 @@ export const usePusher = <T = any>({
         channel.bind(eventName, (data: T) => {
           console.log(`[Pusher] Event '${eventName}' on ${channelName}`, data);
           onEvent(data);
+
+          // 🔔 PLAY AUDIO WHEN EVENT HAPPENS
+          if (audioRef?.current && hasInteracted.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(() => {});
+          }
         });
       }
     });
@@ -82,6 +91,7 @@ export const usePusher = <T = any>({
         pusherClient?.unsubscribe(name);
         console.log(`[Pusher] Unsubscribed from ${name}`);
       });
+
       subscribedChannels.current = subscribedChannels.current.filter(
         (ch) => !channels.includes(ch)
       );
@@ -91,5 +101,5 @@ export const usePusher = <T = any>({
         document.removeEventListener("keydown", handleInteraction);
       }
     };
-  }, [channels.join(","), eventName, onEvent]);
+  }, [audioRef, channels, eventName, onEvent]);
 };
