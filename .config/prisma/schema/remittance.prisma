@@ -4,7 +4,7 @@ model Remittance {
   status          Statuses   @default(PENDING)
 
   subject         String
-  details         String
+  details         String?
   attachments     RemittanceAttachment[]
 
   // creator

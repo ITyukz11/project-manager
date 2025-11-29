@@ -32,8 +32,7 @@ export default function CasinoGroupsPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Casino Groups</h1>
 
-          {session?.user?.role === ADMINROLES.ADMIN ||
-          session?.user?.role === ADMINROLES.SUPERADMIN ? (
+          {session?.user?.role === ADMINROLES.SUPERADMIN ? (
             <div className="flex flex-row gap-2 items-center">
               {casinoGroupError && <TriangleAlert className="text-red-500" />}
               <Button onClick={() => setOpen(true)}>
