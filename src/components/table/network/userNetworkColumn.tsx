@@ -10,9 +10,9 @@ export const userNetworkColumns: ColumnDef<
   User & { _count?: { groupChats?: number; referrals?: number } }
 >[] = [
   {
-    accessorKey: "name",
+    accessorKey: "username",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
+      <DataTableColumnHeader column={column} title="Username" />
     ),
     cell: ({ row }) => {
       return (

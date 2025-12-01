@@ -37,6 +37,8 @@ import {
   avoidDefaultDomBehavior,
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
+import { useParams } from "next/navigation";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 // Zod validation schema for GroupChat fields
 const GroupChatFormSchema = z.object({
@@ -62,23 +64,42 @@ export function NetworkGroupChatEditDialog({
   members = [],
   onEdit,
 }: NetworkGroupChatEditDialogProps) {
+  const params = useParams();
+  const casinoGroup = params.casinogroup?.toString();
   const [loading, setLoading] = React.useState(false);
 
-  const { usersDataNetwork, usersLoadingNetwork } = useUsersNetwork();
-  const { refetchGroupChats } = useGroupChats();
-  console.log("groupchatname: ", groupChatName);
+  const { usersDataNetwork, usersLoadingNetwork } =
+    useUsersNetwork(casinoGroup);
+  const { usersData, usersLoading } = useUsers(casinoGroup);
+  const { refetchGroupChats } = useGroupChats(casinoGroup);
+
   // prepare options for member selection
   const memberIds = React.useMemo(
     () => members.map((user) => user.id),
     [members]
   );
 
-  const options =
-    usersDataNetwork?.map((user) => ({
-      value: user.id,
-      label: `${user.role} - ${user.name}`,
-      tooltip: user.email,
-    })) || [];
+  const options = React.useMemo(() => {
+    if (!usersData && !usersDataNetwork) return [];
+
+    const merged = [...(usersData ?? []), ...(usersDataNetwork ?? [])];
+
+    // Remove duplicates by user.id
+    const unique = Array.from(
+      new Map(
+        merged.map((user) => [
+          user.id,
+          {
+            value: user.id,
+            label: `${user.role ?? "No Role"} - ${user.username ?? user.name}`,
+            tooltip: user.email ?? "",
+          },
+        ])
+      ).values()
+    );
+
+    return unique;
+  }, [usersData, usersDataNetwork]);
 
   // Setup react-hook-form
   const form = useForm<GroupChatEditDialogValues>({

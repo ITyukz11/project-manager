@@ -24,6 +24,7 @@ import {
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import { useUsersNetwork } from "@/lib/hooks/swr/network/useUserNetwork";
 
 // Zod schema for GroupChat creation
 const GroupChatFormSchema = z.object({
@@ -40,6 +41,8 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
   const casinoGroup = params.casinogroup?.toLocaleString();
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers(casinoGroup);
+  const { usersDataNetwork, usersLoadingNetwork } =
+    useUsersNetwork(casinoGroup);
   const { refetchGroupChats } = useGroupChats(casinoGroup);
 
   const form = useForm<GroupChatFormValues>({
@@ -117,16 +120,26 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
               required={false}
               type="multiselect"
               items={
-                usersData == null
-                  ? []
-                  : usersData?.map((user) => ({
-                      label:
-                        user.username + (user.role ? ` (${user.role})` : ""),
-                      value: user.id,
-                    }))
+                usersData && usersDataNetwork
+                  ? Array.from(
+                      new Map(
+                        [...usersData, ...usersDataNetwork].map((user) => [
+                          user.id,
+                          {
+                            label:
+                              user.username +
+                              (user.role ? ` (${user.role})` : ""),
+                            value: user.id,
+                          },
+                        ])
+                      ).values()
+                    )
+                  : []
               }
               placeholder={
-                usersLoading ? "Loading users..." : "Select users (optional)"
+                usersLoading || usersLoadingNetwork
+                  ? "Loading users..."
+                  : "Select users (optional)"
               }
             />
 
