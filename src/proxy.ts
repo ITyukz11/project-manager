@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  const casinoGroup = (token?.casinoGroups?.[0].name || "").toLowerCase();
+  const casinoGroup = (token?.casinoGroups?.[0]?.name || "").toLowerCase();
 
   // If logged in and tries to access /login or /, redirect to accounts
   if (token && (pathname === "/login" || pathname === "/")) {
