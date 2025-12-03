@@ -111,14 +111,16 @@ export async function POST(req: Request) {
         );
       }
 
+      userIds.push(superAdminId.ownerId); // Ensure superadmin is included
+      const uniqueUserIds = Array.from(new Set(userIds)); // Remove duplicates
       // Create group and connect users if provided
       const group = await tx.casinoGroup.create({
         data: {
           name: values.name,
           description: values.description,
           superAdminId: superAdminId.id,
-          users: userIds.length
-            ? { connect: userIds.map((id: string) => ({ id })) }
+          users: uniqueUserIds.length
+            ? { connect: uniqueUserIds.map((id: string) => ({ id })) }
             : undefined,
         },
       });
