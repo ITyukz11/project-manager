@@ -10,6 +10,6 @@ export default defineConfig({
   migrations: {
     path: path.join("db", "migrations"),
     // The command to execute for seeding, using 'tsx' to run the TS file
-    seed: "tsx .config/prisma/seeder/main.seed.ts",
+    seed: "tsx .config/prisma/seed/user.seed.ts",
   },
 });
