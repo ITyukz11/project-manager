@@ -13,7 +13,7 @@ const UserSchema = z.object({
   username: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(1),
-  messengerLink: z.string().min(1),
+  messengerLink: z.string().optional(),
   casinoGroups: z.array(z.string()).optional(), // <-- support an array
   role: z.enum(adminRolesArray as [string, ...string[]]), // Only ADMINROLES allowed!
 });
