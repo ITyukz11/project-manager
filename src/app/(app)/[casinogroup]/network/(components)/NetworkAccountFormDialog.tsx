@@ -31,7 +31,7 @@ import {
 // Add "groupChats" to your Zod Schema
 const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address").optional(),
+  email: z.union([z.literal(""), z.string().email()]),
   username: z.string().min(1, "Username is required"),
   remarks: z.string().min(1, "Comms. Details is required"),
   referredBy: z.string().optional(),

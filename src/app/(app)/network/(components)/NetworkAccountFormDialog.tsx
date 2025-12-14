@@ -38,7 +38,7 @@ import {
 // Add "groupChats" AND "casinoGroups" to your Zod Schema
 const NetworkUserFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.union([z.literal(""), z.string().email()]),
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
   messengerLink: z.string().optional(),

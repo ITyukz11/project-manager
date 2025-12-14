@@ -39,7 +39,7 @@ import {
 const AccountFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   username: z.string().min(1, "Username is required"),
-  email: z.string().email("Invalid email address"),
+  email: z.union([z.literal(""), z.string().email()]),
   casinoGroupId: z.array(z.string()).optional(), // <-- support an array
   password: z.string().min(1, "Password is required"),
   messengerLink: z.string().optional(),
