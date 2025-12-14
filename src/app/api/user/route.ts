@@ -83,16 +83,6 @@ export async function POST(req: Request) {
 
 // This GET is for `api/users?casinoGroupId=...`
 export async function GET(req: Request) {
-  const currentUser = await getCurrentUser();
-
-  if (
-    !currentUser ||
-    !currentUser.role ||
-    (currentUser.role !== "ADMIN" && currentUser.role !== "SUPERADMIN")
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
   // Get casinoGroup from URL search params
   const url = new URL(req.url);
   const casinoGroup = url.searchParams.get("casinoGroup");

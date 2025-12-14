@@ -61,7 +61,8 @@ export async function POST(request: Request) {
     if (
       !currentUser ||
       (currentUser.role !== ADMINROLES.ADMIN &&
-        currentUser.role !== ADMINROLES.SUPERADMIN)
+        currentUser.role !== ADMINROLES.SUPERADMIN &&
+        currentUser.role !== ADMINROLES.TL)
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
       }
       referredById = foundUser.id;
     }
-    if (!name || !email || !role) {
+    if (!name || !role) {
       return NextResponse.json(
         { error: "Required fields missing" },
         { status: 400 }
