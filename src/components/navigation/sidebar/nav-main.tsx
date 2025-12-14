@@ -8,13 +8,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { ADMINROLES } from "@/lib/types/role";
 
 import { Airplay, Share2, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export const NavMain = () => {
+  const { data } = useSession();
   const pathname = usePathname();
+
+  const isSuperAdmin = data?.user?.role === ADMINROLES.SUPERADMIN;
+
   // Menu items.
   const items = [
     {
@@ -34,12 +40,17 @@ export const NavMain = () => {
     },
   ];
 
+  // Show only the Casino item for SUPERADMIN, otherwise show the other items.
+  const visibleItems = items.filter((item) =>
+    isSuperAdmin ? item.title === "Casino" : item.title !== "Casino"
+  );
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Main Application</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild isActive={pathname === item.url}>
                 <Link href={item.url}>
