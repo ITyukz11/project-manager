@@ -26,7 +26,7 @@ export default function Page() {
   console.log("casinoGroup: ", casinoGroup);
   const { usersData, usersLoading, usersError } = useUsers();
   const [open, setOpen] = useState(false);
-  const hiddenColumns = ["color"];
+  const hiddenColumns = ["messengerLink"];
   // Advanced Filter Sheet UI
 
   console.log("Current User Session: ", session);

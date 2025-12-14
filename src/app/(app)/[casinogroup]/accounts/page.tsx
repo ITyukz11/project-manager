@@ -24,7 +24,7 @@ export default function Page() {
   const { usersData, usersLoading, usersError } = useUsers(
     casinoGroup?.toLocaleString() || ""
   );
-  const hiddenColumns = ["color"];
+  const hiddenColumns = ["messengerLink"];
   // Advanced Filter Sheet UI
 
   console.log("Current User Session: ", session);
