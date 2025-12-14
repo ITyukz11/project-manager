@@ -88,7 +88,7 @@ export function NetworkGroupChatFormDialog({ open, onOpenChange }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="overflow-y-auto max-h-[90vh] w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-6 py-6 rounded-lg"
+        className="overflow-y-auto max-h-[90vh] w-full max-w-sm sm:max-w-md md:max-w-lg px-2 sm:px-6 py-6 rounded-lg  overflow-visible"
         onPointerDownOutside={avoidDefaultDomBehavior}
         onInteractOutside={avoidDefaultDomBehavior}
         onKeyDown={handleKeyDown}
