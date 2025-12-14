@@ -1,9 +1,11 @@
 "use client";
+import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { User } from "@prisma/client";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { UserActionMenu } from "./UserActionMenu";
 
 export const userColumns: ColumnDef<User>[] = [
   {
@@ -99,5 +101,12 @@ export const userColumns: ColumnDef<User>[] = [
       });
       return <span>{formattedDate}</span>;
     },
+  },
+  {
+    id: "action",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Actions" />
+    ),
+    cell: ({ row }) => <UserActionMenu userId={row.original.id} />,
   },
 ];
