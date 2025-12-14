@@ -1,40 +1,61 @@
-// Simple in-memory store for demo. Replace with Redis/DB in production.
+// Simple in-memory store that uses globalThis to survive HMR reloads in development.
+// Replace with Redis/DB for production.
+
 export type ReadyCheckParticipant = {
   id: string;
-  name: string;
-  username: string;
+  name?: string | null;
+  username?: string | null;
+  role?: string | null;
 };
 
 export type ReadyCheckRecord = {
   id: string;
-  initiator: { id: string; name: string; username?: string };
+  initiator: {
+    id: string;
+    name?: string | null;
+    username?: string | null;
+    role?: string | null;
+  };
   participants: ReadyCheckParticipant[];
-  // responses: Map of userId -> boolean
   responses: Record<string, boolean>;
   createdAt: string;
 };
 
-const readyChecks = new Map<string, ReadyCheckRecord>();
+declare global {
+  // eslint-disable-next-line no-var
+  var __READY_CHECKS__: Map<string, ReadyCheckRecord> | undefined;
+}
+
+const getStore = (): Map<string, ReadyCheckRecord> => {
+  if (!globalThis.__READY_CHECKS__) {
+    globalThis.__READY_CHECKS__ = new Map<string, ReadyCheckRecord>();
+  }
+  return globalThis.__READY_CHECKS__;
+};
 
 export function createReadyCheck(record: ReadyCheckRecord) {
-  readyChecks.set(record.id, record);
+  const store = getStore();
+  store.set(record.id, record);
 }
 
 export function getReadyCheck(id: string) {
-  return readyChecks.get(id);
+  const store = getStore();
+  return store.get(id);
 }
 
 export function updateResponse(id: string, userId: string, ready: boolean) {
-  const rec = readyChecks.get(id);
+  const store = getStore();
+  const rec = store.get(id);
   if (!rec) return null;
   rec.responses[userId] = ready;
   return rec;
 }
 
 export function deleteReadyCheck(id: string) {
-  readyChecks.delete(id);
+  const store = getStore();
+  store.delete(id);
 }
 
 export function listReadyChecks() {
-  return Array.from(readyChecks.values());
+  return Array.from(getStore().values());
 }

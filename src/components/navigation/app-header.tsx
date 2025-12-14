@@ -17,9 +17,11 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Bell, CheckSquare, Clock, Clock8 } from "lucide-react";
+import { CheckSquare, Clock8, Search as SearchIcon } from "lucide-react";
 import { NotificationDropdown } from "../notification-dropdown";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
+import { ADMINROLES } from "@/lib/types/role";
 
 type Crumb = {
   href: string;
@@ -76,6 +78,7 @@ export const AppHeader = ({
 }) => {
   const pathname = usePathname() || "/";
   const crumbs = useMemo(() => getBreadcrumbs(pathname), [pathname]);
+  const { data: session } = useSession();
 
   // map href -> resolved label
   const [labels, setLabels] = useState<Record<string, string>>({});
@@ -91,8 +94,8 @@ export const AppHeader = ({
           body?.error || body?.message || "Failed to start ready check"
         );
       }
-      const json = await res.json();
-      toast.success("Ready check started");
+      await res.json();
+      // toast.success("Ready check started");
       // server will broadcast start; ReadyCheckListener will handle opening dialog.
     } catch (err: any) {
       toast.error(err?.message || "Error starting ready check");
@@ -134,6 +137,11 @@ export const AppHeader = ({
     };
   }, [crumbs, pathname, resolveCrumb]);
 
+  // last crumb label (for mobile compact header)
+  const lastLabel =
+    labels[crumbs[crumbs.length - 1].href] ??
+    crumbs[crumbs.length - 1].labelDefault;
+
   return (
     <header
       className={clsx("sticky top-0 z-50 border-b bg-card border-border/80")}
@@ -142,51 +150,108 @@ export const AppHeader = ({
         <SidebarTrigger className="p-0" />
         <Separator orientation="vertical" />
 
-        {/* shadcn Breadcrumbs */}
-        <Breadcrumb className="text-sm text-muted-foreground">
-          <BreadcrumbList>
-            {crumbs.map((c, i) => {
-              const isLast = i === crumbs.length - 1;
-              const label = labels[c.href] ?? c.labelDefault;
-              return (
-                <Fragment key={c.href}>
-                  <BreadcrumbItem>
-                    {!isLast ? (
-                      <BreadcrumbLink asChild>
-                        <Link href={c.href} className="hover:text-foreground">
+        {/* Desktop breadcrumbs: visible on md+ */}
+        <div className="hidden md:block">
+          <Breadcrumb className="text-sm text-muted-foreground">
+            <BreadcrumbList>
+              {crumbs.map((c, i) => {
+                const isLast = i === crumbs.length - 1;
+                const label = labels[c.href] ?? c.labelDefault;
+                return (
+                  <Fragment key={c.href}>
+                    <BreadcrumbItem>
+                      {!isLast ? (
+                        <BreadcrumbLink asChild>
+                          <Link href={c.href} className="hover:text-foreground">
+                            {label}
+                          </Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        <span className="font-medium text-foreground">
                           {label}
-                        </Link>
-                      </BreadcrumbLink>
-                    ) : (
-                      // last item: plain text / current page
-                      <span className="font-medium text-foreground">
-                        {label}
-                      </span>
-                    )}
-                  </BreadcrumbItem>
+                        </span>
+                      )}
+                    </BreadcrumbItem>
 
-                  {i !== crumbs.length - 1 && <BreadcrumbSeparator />}
-                </Fragment>
-              );
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
+                    {i !== crumbs.length - 1 && <BreadcrumbSeparator />}
+                  </Fragment>
+                );
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+
+        {/* Mobile compact title: visible below md */}
+        <div className="md:hidden flex items-center">
+          <span className="text-sm font-medium text-foreground truncate max-w-xs">
+            {lastLabel}
+          </span>
+        </div>
 
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none" />
-          <nav className="flex items-center gap-2 ml-auto">
+
+          {/* Desktop actions */}
+          <nav className="hidden md:flex items-center gap-2 ml-auto">
             <Button variant={"outline"} size={"sm"}>
-              Clock In <Clock8 />
+              Clock In <Clock8 className="ml-2" />
             </Button>
-            <Button variant={"outline"} size={"sm"} onClick={startReadyCheck}>
-              Ready Check <CheckSquare />
-            </Button>
+            {(session?.user?.role === ADMINROLES.SUPERADMIN ||
+              session?.user?.role === ADMINROLES.ADMIN) && (
+              <Button variant="outline" size="sm" onClick={startReadyCheck}>
+                Ready Check <CheckSquare className="ml-2" />
+              </Button>
+            )}
+
             <Button size={"sm"} variant={"outline"} onClick={openSearch}>
-              Search <Kbd>Ctrl</Kbd>
-              <Kbd>K</Kbd>
+              Search <Kbd className="ml-1">Ctrl</Kbd>
+              <Kbd className="ml-1">K</Kbd>
             </Button>
+
             <NotificationDropdown />
 
+            <ModeToggle />
+          </nav>
+
+          {/* Mobile actions: icon-only compact row */}
+          <nav className="flex md:hidden items-center gap-1 ml-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="p-2"
+              title="Clock In"
+              aria-label="Clock In"
+            >
+              <Clock8 />
+            </Button>
+
+            {(session?.user?.role === ADMINROLES.SUPERADMIN ||
+              session?.user?.role === ADMINROLES.ADMIN) && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="p-2"
+                title="Ready Check"
+                aria-label="Ready Check"
+                onClick={startReadyCheck}
+              >
+                <CheckSquare />
+              </Button>
+            )}
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="p-2"
+              title="Search"
+              aria-label="Search"
+              onClick={openSearch}
+            >
+              <SearchIcon />
+            </Button>
+
+            {/* keep notifications and mode toggle on mobile */}
+            <NotificationDropdown />
             <ModeToggle />
           </nav>
         </div>

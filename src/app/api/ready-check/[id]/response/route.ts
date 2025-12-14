@@ -1,17 +1,9 @@
+import { getCurrentUser } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import Pusher from "pusher";
-import { getReadyCheck, updateResponse } from "../../store"; // path: app/api/ready-check/store.ts
-import { getCurrentUser } from "@/lib/auth";
-
-// Server-side Pusher client (uses server env vars)
-const pusher = new Pusher({
-  appId: process.env.PUSHER_APP_ID ?? "",
-  key: process.env.PUSHER_KEY ?? "",
-  secret: process.env.PUSHER_SECRET ?? "",
-  cluster: process.env.PUSHER_CLUSTER ?? "",
-  useTLS: true,
-});
+import { getReadyCheck, updateResponse } from "../../store";
+import { pusher } from "@/lib/pusher";
 
 export async function PATCH(
   req: NextRequest,
@@ -20,6 +12,8 @@ export async function PATCH(
   try {
     const params = await context.params;
     const id = params?.id;
+    console.log(`[ReadyCheck] PATCH called for id=${id}`);
+
     if (!id) {
       return NextResponse.json(
         { error: "Missing ready-check id" },
@@ -27,30 +21,25 @@ export async function PATCH(
       );
     }
 
-    // Ensure user is authenticated
     const currentUser = await getCurrentUser();
+    console.log(`[ReadyCheck] Current user: ${currentUser?.id}`);
+
     if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Parse body
     const json = await req.json().catch(() => ({}));
     const ready = !!json.ready;
 
-    console.log(
-      `[ReadyCheck] response PATCH called. id=${id} user=${currentUser.id} ready=${ready}`
-    );
-
-    // Lookup the ready-check record in memory (or DB if you replaced store)
     const rec = getReadyCheck(id);
     if (!rec) {
+      console.warn(`[ReadyCheck] record not found for id=${id}`);
       return NextResponse.json(
         { error: "Ready-check not found" },
         { status: 404 }
       );
     }
 
-    // Ensure the current user is a participant
     const isParticipant = rec.participants.some((p) => p.id === currentUser.id);
     if (!isParticipant) {
       return NextResponse.json(
@@ -59,7 +48,6 @@ export async function PATCH(
       );
     }
 
-    // Update the in-memory record
     const updated = updateResponse(id, currentUser.id, ready);
     if (!updated) {
       return NextResponse.json(
@@ -71,7 +59,6 @@ export async function PATCH(
     const total = updated.participants.length;
     const readyCount = Object.values(updated.responses).filter(Boolean).length;
 
-    // Broadcast update to all clients subscribed to the public "ready-check" channel
     try {
       await pusher.trigger("ready-check", "ready-check-update", {
         id: updated.id,

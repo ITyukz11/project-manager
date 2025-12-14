@@ -1,5 +1,11 @@
 "use client";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSession } from "next-auth/react";
 import {
   Dialog,
@@ -11,6 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { usePusher } from "@/lib/hooks/use-pusher";
+import {
+  avoidDefaultDomBehavior,
+  handleKeyDown,
+} from "@/lib/utils/dialogcontent.utils";
 
 /**
  * Shape of payloads that server sends.
@@ -41,6 +51,8 @@ type UpdatePayload = {
 export function ReadyCheckListener() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
+
+  // dialog + ready-check state
   const [open, setOpen] = useState(false);
   const [readyId, setReadyId] = useState<string | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -48,6 +60,15 @@ export function ReadyCheckListener() {
   const [initiator, setInitiator] = useState<StartPayload["initiator"] | null>(
     null
   );
+
+  // timer state
+  const TIMER_SECONDS = 30;
+  const [secondsLeft, setSecondsLeft] = useState<number>(TIMER_SECONDS);
+  const [ended, setEnded] = useState<boolean>(false);
+  const timerRef = useRef<number | null>(null);
+
+  console.log("participants: ", participants);
+  // audio ref for usePusher
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // derived counts
@@ -57,7 +78,7 @@ export function ReadyCheckListener() {
     [responses]
   );
 
-  // When start event arrives, open dialog and initialize state
+  // start a new ready-check: initialize state + start timer
   const handleStart = useCallback((payload: StartPayload) => {
     setReadyId(payload.id);
 
@@ -75,14 +96,17 @@ export function ReadyCheckListener() {
     setParticipants(list);
     setResponses(Object.fromEntries(list.map((p) => [p.id, false])));
     setInitiator(payload.initiator);
+
+    // reset timer and ended state
+    setSecondsLeft(TIMER_SECONDS);
+    setEnded(false);
     setOpen(true);
 
-    // show toast using role (fallback to name if role missing)
     const initiatorLabel = payload.initiator.role ?? payload.initiator.name;
     toast.success(`${initiatorLabel} started a Ready Check`);
   }, []);
 
-  // When update event arrives, update responses and counts
+  // update responses when server broadcasts update
   const handleUpdate = useCallback(
     (payload: UpdatePayload) => {
       if (!payload || payload.id !== readyId) return;
@@ -122,12 +146,11 @@ export function ReadyCheckListener() {
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           const msg = body?.error || body?.message || "Failed to set ready";
-          toast.error(msg);
           console.error("Ready response error:", res.status, body);
+          toast.error(msg);
           return;
         }
-        const okMsg = body?.message || "Ready status sent";
-        toast.success(okMsg);
+        // success - server broadcasts update; we don't forcibly update here
       } catch (err: any) {
         console.error("Ready response network error:", err);
         toast.error(err?.message || "Failed to set ready");
@@ -136,27 +159,84 @@ export function ReadyCheckListener() {
     [readyId]
   );
 
-  // helper exposed to current user: set ready/unready, optimistic update
+  // helper exposed to current user: set ready/unready, optimistic update (disabled after end)
   const setMyReady = useCallback(
     (value: boolean) => {
       if (!userId) {
         toast.error("You must be signed in to respond.");
         return;
       }
-      // only allow if current user is a participant
       if (!participants.some((p) => p.id === userId)) {
         toast.error("You are not part of this ready check.");
         return;
       }
-
+      if (ended) {
+        toast.error("Ready check has ended.");
+        return;
+      }
       // optimistic update
       setResponses((prev) => ({ ...prev, [userId]: value }));
       sendResponse(value);
     },
-    [sendResponse, userId, participants]
+    [sendResponse, userId, participants, ended]
   );
 
-  // Tight, small card styles: reduce padding, font sizes, allow grid to auto-fill many columns
+  // timer effect: run when dialog opens for a readyId and not already ended
+  useEffect(() => {
+    // clear previous timer
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (!open || !readyId || ended) return;
+
+    setSecondsLeft(TIMER_SECONDS);
+    setEnded(false);
+
+    timerRef.current = window.setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          // time up
+          if (timerRef.current) {
+            window.clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          setEnded(true);
+          // show final summary toast
+          const ready = Object.values(responses).filter(Boolean).length;
+          const totalNow = participants.length;
+          if (ready === totalNow) {
+            toast.success(`All ${totalNow} users are ready.`);
+          } else {
+            toast(`Ready check ended: ${ready}/${totalNow} ready`);
+          }
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, readyId]);
+
+  // cleanup on unmount: clear timer
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, []);
+
+  // compact grid and card styles
   const gridStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
@@ -167,15 +247,24 @@ export function ReadyCheckListener() {
   const cardBase =
     "p-2 rounded-md flex flex-col items-start space-y-1 border text-xs";
 
-  // current user's ready state (derived)
+  // derived states
   const myReady = useMemo(
     () => (userId ? responses[userId] === true : false),
     [responses, userId]
   );
-
   const currentUserIsParticipant = useMemo(
     () => (userId ? participants.some((p) => p.id === userId) : false),
     [participants, userId]
+  );
+
+  // results computed after end: arrays of ready / not ready participants (use current responses)
+  const readyList = useMemo(
+    () => participants.filter((p) => responses[p.id] === true),
+    [participants, responses]
+  );
+  const notReadyList = useMemo(
+    () => participants.filter((p) => responses[p.id] !== true),
+    [participants, responses]
   );
 
   return (
@@ -183,7 +272,12 @@ export function ReadyCheckListener() {
       <audio ref={audioRef as any} src="/sounds/notify.mp3" preload="auto" />
 
       <Dialog open={open} onOpenChange={(v) => setOpen(v)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent
+          className="max-w-4xl [&>button]:hidden"
+          onPointerDownOutside={avoidDefaultDomBehavior}
+          onInteractOutside={avoidDefaultDomBehavior}
+          onKeyDown={handleKeyDown}
+        >
           <DialogHeader>
             <div className="flex items-center justify-between w-full">
               <div>
@@ -199,7 +293,36 @@ export function ReadyCheckListener() {
                     </span>
                   </div>
                 )}
+                {/* timer / status */}
+                <div className="mt-2">
+                  {!ended ? (
+                    <div className="text-xs text-muted-foreground">
+                      Time left:{" "}
+                      <span className="font-medium">{secondsLeft}s</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs font-medium">
+                      Ready check finished — {readyCount}/{total} ready
+                    </div>
+                  )}
+                  {/* simple linear progress */}
+                  <div className="w-full h-2 bg-border rounded mt-2">
+                    <div
+                      className={`h-2 rounded ${
+                        ended ? "bg-gray-400" : "bg-green-500"
+                      }`}
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          ((TIMER_SECONDS - secondsLeft) / TIMER_SECONDS) * 100
+                        )}%`,
+                        transition: "width 500ms linear",
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
+
               <div className="text-right text-xs text-muted-foreground">
                 <div>Options</div>
                 <div className="mt-1">
@@ -214,6 +337,7 @@ export function ReadyCheckListener() {
             </div>
           </DialogHeader>
 
+          {/* participant grid */}
           <div style={gridStyle}>
             {participants.map((p) => {
               const isReady = responses[p.id] === true;
@@ -230,15 +354,14 @@ export function ReadyCheckListener() {
                 >
                   <div className="flex items-center justify-between w-full">
                     <div>
-                      {/* primary: role (fallback to name), secondary: username */}
                       <div
-                        className="font-medium truncate"
-                        title={p.role ?? p.name}
+                        className="font-medium truncate dark:text-black"
+                        title={p.username ?? p.name}
                       >
-                        {p.role ?? p.name}
+                        {p.username ?? p.name}
                       </div>
                       <div className="text-muted-foreground text-[11px] truncate">
-                        @{p.username ?? p.id.slice(0, 6)}
+                        @{p.role ?? p.id.slice(0, 6)}
                       </div>
                     </div>
 
@@ -255,13 +378,66 @@ export function ReadyCheckListener() {
             })}
           </div>
 
+          {/* results (shown after timer ends) */}
+          {ended && (
+            <div className="mt-4">
+              <div className="text-sm font-medium mb-2">Results</div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Ready ({readyList.length})
+                  </div>
+                  <div className="space-y-1">
+                    {readyList.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="truncate">{p.role ?? p.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          @{p.username ?? p.id.slice(0, 6)}
+                        </div>
+                      </div>
+                    ))}
+                    {readyList.length === 0 && (
+                      <div className="text-xs text-muted-foreground">—</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Not ready ({notReadyList.length})
+                  </div>
+                  <div className="space-y-1">
+                    {notReadyList.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="truncate">{p.role ?? p.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          @{p.username ?? p.id.slice(0, 6)}
+                        </div>
+                      </div>
+                    ))}
+                    {notReadyList.length === 0 && (
+                      <div className="text-xs text-muted-foreground">—</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="mt-4 flex items-center justify-between space-x-2">
             <div className="flex items-center space-x-2">
               <Button
                 size="sm"
                 variant={myReady ? "secondary" : "default"}
                 onClick={() => setMyReady(true)}
-                disabled={!currentUserIsParticipant || !readyId}
+                disabled={!currentUserIsParticipant || !readyId || ended}
                 aria-pressed={myReady}
               >
                 Ready
@@ -271,18 +447,19 @@ export function ReadyCheckListener() {
                 size="sm"
                 variant={!myReady ? "destructive" : "outline"}
                 onClick={() => setMyReady(false)}
-                disabled={!currentUserIsParticipant || !readyId}
+                disabled={!currentUserIsParticipant || !readyId || ended}
                 aria-pressed={!myReady}
               >
                 Not ready
               </Button>
             </div>
-
-            <div>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Close
-              </Button>
-            </div>
+            {ended && (
+              <div>
+                <Button variant="outline" onClick={() => setOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
