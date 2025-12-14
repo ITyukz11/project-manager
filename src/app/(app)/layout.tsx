@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/navigation/sidebar/app-sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SessionProvider } from "next-auth/react";
 import SearchModal from "@/components/SearchModal";
+import { ReadyCheckListener } from "@/components/ready-check/ReadyCheckListener";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [openSearch, setOpenSearch] = useState<boolean>(false);
@@ -32,6 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <AppHeader openSearch={() => setOpenSearch(true)} />
           <div className="p-1 sm:p-4">{children}</div>
           <SearchModal open={openSearch} onClose={() => setOpenSearch(false)} />
+          <ReadyCheckListener />
         </main>
       </SidebarProvider>
     </SessionProvider>

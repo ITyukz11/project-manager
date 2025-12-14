@@ -17,8 +17,9 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { Bell } from "lucide-react";
+import { Bell, CheckSquare, Clock, Clock8 } from "lucide-react";
 import { NotificationDropdown } from "../notification-dropdown";
+import { toast } from "sonner";
 
 type Crumb = {
   href: string;
@@ -78,6 +79,25 @@ export const AppHeader = ({
 
   // map href -> resolved label
   const [labels, setLabels] = useState<Record<string, string>>({});
+
+  async function startReadyCheck() {
+    try {
+      const res = await fetch("/api/ready-check/start", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(
+          body?.error || body?.message || "Failed to start ready check"
+        );
+      }
+      const json = await res.json();
+      toast.success("Ready check started");
+      // server will broadcast start; ReadyCheckListener will handle opening dialog.
+    } catch (err: any) {
+      toast.error(err?.message || "Error starting ready check");
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -155,6 +175,12 @@ export const AppHeader = ({
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none" />
           <nav className="flex items-center gap-2 ml-auto">
+            <Button variant={"outline"} size={"sm"}>
+              Clock In <Clock8 />
+            </Button>
+            <Button variant={"outline"} size={"sm"} onClick={startReadyCheck}>
+              Ready Check <CheckSquare />
+            </Button>
             <Button size={"sm"} variant={"outline"} onClick={openSearch}>
               Search <Kbd>Ctrl</Kbd>
               <Kbd>K</Kbd>
