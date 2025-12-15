@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import Loading from "./Loading";
 import { ThemeProvider } from "@/components/theme-provider";
 import TopLoader from "@/components/animated-top-loader";
+import { ReadyCheckTimerProvider } from "@/lib/context/ReadyCheckTimerContext";
 
 const geistSans = Inter({
   variable: "--font-geist-sans",

@@ -30,10 +30,11 @@ import { usePusher } from "@/lib/hooks/use-pusher";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ADMINROLES } from "@/lib/types/role";
+import { Skeleton } from "../ui/skeleton";
+import { ReadyCheckTimerDialog } from "../ReadyCheckTimerDialog";
 
 type Crumb = {
   href: string;
@@ -89,6 +90,7 @@ export const AppHeader = ({
 }) => {
   const pathname = usePathname() || "/";
   const crumbs = useMemo(() => getBreadcrumbs(pathname), [pathname]);
+  const [readyCheckOpen, setReadyCheckOpen] = useState(false);
   const { data: session } = useSession();
 
   // map href -> resolved label
@@ -96,7 +98,7 @@ export const AppHeader = ({
 
   // Clock state — authoritative value fetched from DB
   const [isClockedIn, setIsClockedIn] = useState<boolean>(false);
-  const [clockLoading, setClockLoading] = useState<boolean>(false);
+  const [clockLoading, setClockLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<"idle" | "in" | "out">(
     "idle"
   );
@@ -104,6 +106,7 @@ export const AppHeader = ({
   // Fetch authoritative attendance status from the DB on mount / when user changes
   useEffect(() => {
     let mounted = true;
+    setClockLoading(true);
     if (!session?.user?.id) {
       setIsClockedIn(false);
       return;
@@ -119,8 +122,10 @@ export const AppHeader = ({
         }
         const body = await res.json();
         setIsClockedIn(Boolean(body?.isClockedIn));
+        setClockLoading(false);
       } catch {
         // ignore network errors — keep false
+        setClockLoading(false);
       }
     })();
 
@@ -297,63 +302,71 @@ export const AppHeader = ({
 
           <nav className="hidden md:flex items-center gap-2 ml-auto">
             {/* Clock status + dropdown button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className={clsx(
-                    "flex items-center gap-2",
-                    isClockedIn
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : "bg-red-600 hover:bg-red-700 text-white"
-                  )}
-                  aria-label="Attendance options"
+            {clockLoading ? (
+              <Skeleton className="h-8 w-24 rounded-md" />
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className={clsx(
+                      "flex items-center gap-2",
+                      isClockedIn
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "bg-red-600 hover:bg-red-700 text-white"
+                    )}
+                    aria-label="Attendance options"
+                  >
+                    <span className="text-sm font-medium flex items-center gap-1">
+                      <Clock />
+                      {isClockedIn ? "Clocked In" : "Clocked Out"}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  side="bottom"
+                  align="end"
+                  className="min-w-[180px]"
                 >
-                  <span className="text-sm font-medium flex items-center gap-1">
-                    <Clock />
-                    {isClockedIn ? "Clocked In" : "Clocked Out"}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
+                  <div className="p-2">
+                    <div className="text-xs text-muted-foreground mb-2">
+                      Attendance
+                    </div>
 
-              <DropdownMenuContent
-                side="bottom"
-                align="end"
-                className="min-w-[180px]"
-              >
-                <div className="p-2">
-                  <div className="text-xs text-muted-foreground mb-2">
-                    Attendance
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleAction("clock-in")}
+                        disabled={isClockedIn || actionLoading !== "idle"}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                        aria-disabled={isClockedIn || actionLoading !== "idle"}
+                      >
+                        <Clock8 /> Clock In
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        onClick={() => handleAction("clock-out")}
+                        disabled={!isClockedIn || actionLoading !== "idle"}
+                        className="w-full bg-red-600 hover:bg-red-700"
+                        aria-disabled={!isClockedIn || actionLoading !== "idle"}
+                      >
+                        <Clock3 /> Clock Out
+                      </Button>
+                    </div>
                   </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleAction("clock-in")}
-                      disabled={isClockedIn || actionLoading !== "idle"}
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      aria-disabled={isClockedIn || actionLoading !== "idle"}
-                    >
-                      <Clock8 /> Clock In
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      onClick={() => handleAction("clock-out")}
-                      disabled={!isClockedIn || actionLoading !== "idle"}
-                      className="w-full bg-red-600 hover:bg-red-700"
-                      aria-disabled={!isClockedIn || actionLoading !== "idle"}
-                    >
-                      <Clock3 /> Clock Out
-                    </Button>
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {(session?.user?.role === ADMINROLES.SUPERADMIN ||
               session?.user?.role === ADMINROLES.ADMIN) && (
-              <Button variant="outline" size="sm" onClick={startReadyCheck}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReadyCheckOpen(true)}
+              >
                 Ready Check <CheckSquare className="ml-2" />
               </Button>
             )}
@@ -377,7 +390,7 @@ export const AppHeader = ({
                 className="p-2"
                 title="Ready Check"
                 aria-label="Ready Check"
-                onClick={startReadyCheck}
+                onClick={() => setReadyCheckOpen(true)}
               >
                 <CheckSquare />
               </Button>
@@ -409,6 +422,10 @@ export const AppHeader = ({
 
             <NotificationDropdown />
             <ModeToggle />
+            <ReadyCheckTimerDialog
+              open={readyCheckOpen}
+              onOpenChange={setReadyCheckOpen}
+            />
           </nav>
         </div>
       </nav>

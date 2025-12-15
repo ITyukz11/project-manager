@@ -23,6 +23,7 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { format } from "path";
 import { formatDate } from "date-fns";
+import { useReadyCheckTimer } from "@/lib/context/ReadyCheckTimerContext";
 
 /**
  * Shape of payloads that server sends.
@@ -63,12 +64,14 @@ export function ReadyCheckListener() {
     null
   );
 
+  const { timerSeconds } = useReadyCheckTimer();
+
   // UI mode: initially show only big buttons + timer.
   // When the current user presses Ready, showDetails becomes true and the participant grid/info is revealed for that user.
   const [showDetails, setShowDetails] = useState(false);
 
   // timer state
-  const TIMER_SECONDS = 30;
+  const TIMER_SECONDS = timerSeconds || 30;
   const [secondsLeft, setSecondsLeft] = useState<number>(TIMER_SECONDS);
   const [ended, setEnded] = useState<boolean>(false);
   const timerRef = useRef<number | null>(null);

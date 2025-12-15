@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { SessionProvider } from "next-auth/react";
 import SearchModal from "@/components/SearchModal";
 import { ReadyCheckListener } from "@/components/ready-check/ReadyCheckListener";
+import { ReadyCheckTimerProvider } from "@/lib/context/ReadyCheckTimerContext";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [openSearch, setOpenSearch] = useState<boolean>(false);
@@ -27,15 +28,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      <SidebarProvider defaultOpen={true}>
-        <AppSidebar />
-        <main className="dark:bg-black bg-[#F1F5F9] flex flex-col flex-1 w-full relative">
-          <AppHeader openSearch={() => setOpenSearch(true)} />
-          <div className="p-1 sm:p-4">{children}</div>
-          <SearchModal open={openSearch} onClose={() => setOpenSearch(false)} />
-          <ReadyCheckListener />
-        </main>
-      </SidebarProvider>
+      <ReadyCheckTimerProvider>
+        <SidebarProvider defaultOpen={true}>
+          <AppSidebar />
+          <main className="dark:bg-black bg-[#F1F5F9] flex flex-col flex-1 w-full relative">
+            <AppHeader openSearch={() => setOpenSearch(true)} />
+            <div className="p-1 sm:p-4">{children}</div>
+            <SearchModal
+              open={openSearch}
+              onClose={() => setOpenSearch(false)}
+            />
+            <ReadyCheckListener />
+          </main>
+        </SidebarProvider>
+      </ReadyCheckTimerProvider>
     </SessionProvider>
   );
 }
