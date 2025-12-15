@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Settings, HelpCircle, Clock } from "lucide-react";
+import { Settings, HelpCircle, Clock, CheckSquare } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -24,9 +24,20 @@ const navSecondary: {
   icon: IconType;
   disable: boolean;
 }[] = [
-  { title: "Attendance Logs", url: "#", icon: Clock, disable: true },
-  { title: "Settings", url: "#", icon: Settings, disable: true },
-  { title: "Get Help", url: "#", icon: HelpCircle, disable: true },
+  {
+    title: "Attendance Logs",
+    url: "/attendance-logs",
+    icon: Clock,
+    disable: false,
+  },
+  {
+    title: "Ready Check Logs",
+    url: "/ready-check-logs",
+    icon: CheckSquare,
+    disable: false,
+  },
+  { title: "Configuration", url: "#", icon: Settings, disable: true },
+  { title: "Guide", url: "#", icon: HelpCircle, disable: true },
 ];
 
 export function NavSecondary(

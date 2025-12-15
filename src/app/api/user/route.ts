@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import z from "zod";
 import * as bcrypt from "bcrypt";
 import { ADMINROLES } from "@/lib/types/role";
-import { getCurrentUser } from "@/lib/auth";
 
 // Convert ADMINROLES to an array of values
 const adminRolesArray = Object.values(ADMINROLES);

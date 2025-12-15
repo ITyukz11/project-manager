@@ -9,7 +9,6 @@ import { ModeToggle } from "../mode-toggle";
 import { Button } from "../ui/button";
 import { Kbd } from "../ui/kbd";
 import { Separator } from "../ui/separator";
-/* shadcn breadcrumb components (adjust import path if your project uses a different file name) */
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,10 +16,23 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { CheckSquare, Clock8, Search as SearchIcon } from "lucide-react";
+import {
+  CheckSquare,
+  Clock,
+  Clock3,
+  Clock8,
+  Search as SearchIcon,
+} from "lucide-react";
 import { NotificationDropdown } from "../notification-dropdown";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { usePusher } from "@/lib/hooks/use-pusher";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ADMINROLES } from "@/lib/types/role";
 
 type Crumb = {
@@ -30,14 +42,13 @@ type Crumb = {
 };
 
 export type CrumbResolver = (
-  segment: string, // decoded segment (e.g. "my-project" or "123")
-  href: string, // accumulated href for that crumb (e.g. "/projects/123")
+  segment: string,
+  href: string,
   signal?: AbortSignal
 ) => string | Promise<string | undefined> | undefined;
 
 function prettifySegment(seg: string) {
   const decoded = decodeURIComponent(seg);
-  // If it looks like an id, keep it raw (you can resolve it via resolver if you want nicer label)
   if (/^[0-9a-fA-F-]{8,}$/.test(seg) || /^[0-9]+$/.test(seg)) return decoded;
   return decoded
     .replace(/[-_]+/g, " ")
@@ -83,6 +94,65 @@ export const AppHeader = ({
   // map href -> resolved label
   const [labels, setLabels] = useState<Record<string, string>>({});
 
+  // Clock state — authoritative value fetched from DB
+  const [isClockedIn, setIsClockedIn] = useState<boolean>(false);
+  const [clockLoading, setClockLoading] = useState<boolean>(false);
+  const [actionLoading, setActionLoading] = useState<"idle" | "in" | "out">(
+    "idle"
+  );
+
+  // Fetch authoritative attendance status from the DB on mount / when user changes
+  useEffect(() => {
+    let mounted = true;
+    if (!session?.user?.id) {
+      setIsClockedIn(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch("/api/attendance/status");
+        if (!mounted) return;
+        if (!res.ok) {
+          // keep default false
+          return;
+        }
+        const body = await res.json();
+        setIsClockedIn(Boolean(body?.isClockedIn));
+      } catch {
+        // ignore network errors — keep false
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [session?.user?.id]);
+
+  // Listen for attendance events via pusher so status updates in real-time across tabs/clients.
+  // Only update if the event refers to the current user.
+  usePusher<{ userId: string; clockedIn: boolean }>({
+    channels: ["attendance"],
+    eventName: "user-clocked-in",
+    onEvent: (payload) => {
+      if (!session?.user?.id) return;
+      if (payload.userId === session.user.id) {
+        setIsClockedIn(true);
+      }
+    },
+  });
+
+  usePusher<{ userId: string; clockedIn: boolean }>({
+    channels: ["attendance"],
+    eventName: "user-clocked-out",
+    onEvent: (payload) => {
+      if (!session?.user?.id) return;
+      if (payload.userId === session.user.id) {
+        setIsClockedIn(false);
+      }
+    },
+  });
+
   async function startReadyCheck() {
     try {
       const res = await fetch("/api/ready-check/start", {
@@ -95,10 +165,46 @@ export const AppHeader = ({
         );
       }
       await res.json();
-      // toast.success("Ready check started");
-      // server will broadcast start; ReadyCheckListener will handle opening dialog.
     } catch (err: any) {
       toast.error(err?.message || "Error starting ready check");
+    }
+  }
+
+  // handlers
+  async function handleAction(action: "clock-in" | "clock-out") {
+    if (!session?.user?.id) {
+      toast.error("You must be signed in to clock in/out.");
+      return;
+    }
+    // prevent invalid actions
+    if (action === "clock-in" && isClockedIn) return;
+    if (action === "clock-out" && !isClockedIn) return;
+
+    setActionLoading(action === "clock-in" ? "in" : "out");
+    try {
+      const res = await fetch("/api/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          body?.error || body?.message || "Failed to update attendance";
+        throw new Error(msg);
+      }
+
+      const newState =
+        typeof body?.user?.isClockedIn === "boolean"
+          ? Boolean(body.user.isClockedIn)
+          : action === "clock-in";
+
+      setIsClockedIn(newState);
+      toast.success(action === "clock-in" ? "Clocked in" : "Clocked out");
+    } catch (err: any) {
+      toast.error(err?.message || "Error updating attendance");
+    } finally {
+      setActionLoading("idle");
     }
   }
 
@@ -135,9 +241,9 @@ export const AppHeader = ({
       mounted = false;
       ac.abort();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [crumbs, pathname, resolveCrumb]);
 
-  // last crumb label (for mobile compact header)
   const lastLabel =
     labels[crumbs[crumbs.length - 1].href] ??
     crumbs[crumbs.length - 1].labelDefault;
@@ -150,7 +256,6 @@ export const AppHeader = ({
         <SidebarTrigger className="p-0" />
         <Separator orientation="vertical" />
 
-        {/* Desktop breadcrumbs: visible on md+ */}
         <div className="hidden md:block">
           <Breadcrumb className="text-sm text-muted-foreground">
             <BreadcrumbList>
@@ -181,7 +286,6 @@ export const AppHeader = ({
           </Breadcrumb>
         </div>
 
-        {/* Mobile compact title: visible below md */}
         <div className="md:hidden flex items-center">
           <span className="text-sm font-medium text-foreground truncate max-w-xs">
             {lastLabel}
@@ -191,18 +295,68 @@ export const AppHeader = ({
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none" />
 
-          {/* Desktop actions */}
           <nav className="hidden md:flex items-center gap-2 ml-auto">
-            <Button variant={"outline"} size={"sm"}>
-              Clock In <Clock8 className="ml-2" />
-            </Button>
+            {/* Clock status + dropdown button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className={clsx(
+                    "flex items-center gap-2",
+                    isClockedIn
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-red-600 hover:bg-red-700 text-white"
+                  )}
+                  aria-label="Attendance options"
+                >
+                  <span className="text-sm font-medium flex items-center gap-1">
+                    <Clock />
+                    {isClockedIn ? "Clocked In" : "Clocked Out"}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                side="bottom"
+                align="end"
+                className="min-w-[180px]"
+              >
+                <div className="p-2">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Attendance
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleAction("clock-in")}
+                      disabled={isClockedIn || actionLoading !== "idle"}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      aria-disabled={isClockedIn || actionLoading !== "idle"}
+                    >
+                      <Clock8 /> Clock In
+                    </Button>
+
+                    <Button
+                      size="sm"
+                      onClick={() => handleAction("clock-out")}
+                      disabled={!isClockedIn || actionLoading !== "idle"}
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      aria-disabled={!isClockedIn || actionLoading !== "idle"}
+                    >
+                      <Clock3 /> Clock Out
+                    </Button>
+                  </div>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {(session?.user?.role === ADMINROLES.SUPERADMIN ||
               session?.user?.role === ADMINROLES.ADMIN) && (
               <Button variant="outline" size="sm" onClick={startReadyCheck}>
                 Ready Check <CheckSquare className="ml-2" />
               </Button>
             )}
-
             <Button size={"sm"} variant={"outline"} onClick={openSearch}>
               Search <Kbd className="ml-1">Ctrl</Kbd>
               <Kbd className="ml-1">K</Kbd>
@@ -213,18 +367,8 @@ export const AppHeader = ({
             <ModeToggle />
           </nav>
 
-          {/* Mobile actions: icon-only compact row */}
+          {/* Mobile actions */}
           <nav className="flex md:hidden items-center gap-1 ml-auto">
-            <Button
-              size="sm"
-              variant="outline"
-              className="p-2"
-              title="Clock In"
-              aria-label="Clock In"
-            >
-              <Clock8 />
-            </Button>
-
             {(session?.user?.role === ADMINROLES.SUPERADMIN ||
               session?.user?.role === ADMINROLES.ADMIN) && (
               <Button
@@ -238,6 +382,19 @@ export const AppHeader = ({
                 <CheckSquare />
               </Button>
             )}
+            <Button
+              size="sm"
+              variant={isClockedIn ? "destructive" : "default"}
+              className="p-2"
+              title={isClockedIn ? "Clock Out" : "Clock In"}
+              aria-label={isClockedIn ? "Clock Out" : "Clock In"}
+              onClick={() =>
+                handleAction(isClockedIn ? "clock-out" : "clock-in")
+              }
+              disabled={clockLoading}
+            >
+              <Clock8 />
+            </Button>
 
             <Button
               size="sm"
@@ -250,7 +407,6 @@ export const AppHeader = ({
               <SearchIcon />
             </Button>
 
-            {/* keep notifications and mode toggle on mobile */}
             <NotificationDropdown />
             <ModeToggle />
           </nav>
