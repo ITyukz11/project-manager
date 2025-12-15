@@ -8,9 +8,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { Button } from "@/components/ui/button";
-import { Ellipsis } from "lucide-react";
+import { Ellipsis, Lock, Pencil, ToggleLeft, Trash } from "lucide-react";
 
-export function UserActionMenu({ userId }: { userId: string | number }) {
+export function UserActionMenu({
+  userId,
+  isUserNetwork,
+}: {
+  userId: string | number;
+  isUserNetwork?: boolean;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -28,14 +34,28 @@ export function UserActionMenu({ userId }: { userId: string | number }) {
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="end" className="w-44">
-          <DropdownMenuItem
-            onSelect={(e) => {
-              // open the dialog when the item is selected
-              e.preventDefault();
-              setOpen(true);
-            }}
-          >
-            Change password
+          {!isUserNetwork && (
+            <>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  // open the dialog when the item is selected
+                  e.preventDefault();
+                  setOpen(true);
+                }}
+              >
+                <Lock /> Change password
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                <Pencil /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                <ToggleLeft /> Deactivate
+              </DropdownMenuItem>
+            </>
+          )}
+
+          <DropdownMenuItem disabled variant="destructive">
+            <Trash /> Delete
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
