@@ -53,7 +53,7 @@ type UpdatePayload = {
 export function ReadyCheckListener() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
-
+  const reportedRef = useRef(false);
   // dialog + ready-check state
   const [open, setOpen] = useState(false);
   const [readyId, setReadyId] = useState<string | null>(null);
@@ -75,6 +75,8 @@ export function ReadyCheckListener() {
 
   // refs to hold latest values inside timer callbacks
   const responsesRef = useRef<Record<string, boolean>>({});
+  const contextRef = useRef<string | undefined>(undefined);
+  const startedAtRef = useRef<string | undefined>(undefined);
 
   // audio ref for usePusher
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -108,6 +110,7 @@ export function ReadyCheckListener() {
   // start a new ready-check: initialize state + start timer
   const handleStart = useCallback((payload: StartPayload) => {
     setReadyId(payload.id);
+    startedAtRef.current = payload.createdAt;
 
     const list = payload.participants.slice();
     // ensure initiator present
@@ -209,6 +212,7 @@ export function ReadyCheckListener() {
   );
 
   // timer effect: run when dialog opens for a readyId and not already ended
+  // timer effect: run when dialog opens for a readyId and not already ended
   useEffect(() => {
     // clear previous timer just in case
     if (timerRef.current) {
@@ -218,8 +222,10 @@ export function ReadyCheckListener() {
 
     if (!open || !readyId || ended) return;
 
+    // reset state & reported flag
     setSecondsLeft(TIMER_SECONDS);
     setEnded(false);
+    reportedRef.current = false;
 
     timerRef.current = window.setInterval(() => {
       setSecondsLeft((s) => {
@@ -244,6 +250,56 @@ export function ReadyCheckListener() {
               duration: 10_000,
               description: formatDate(new Date(), "h:mm:aa"),
             });
+          }
+
+          // call the server to record the ready-check (prevent duplicates)
+          if (!reportedRef.current && readyId) {
+            reportedRef.current = true;
+
+            const payload = {
+              id: readyId,
+              initiatorId: session?.user?.id, // will be validated server-side
+              participants: participants.map((p) => p.id),
+              responses: latestResponses,
+              context:
+                typeof contextRef !== "undefined"
+                  ? contextRef?.current
+                  : undefined,
+              startedAt:
+                typeof startedAtRef !== "undefined"
+                  ? startedAtRef?.current
+                  : undefined,
+            };
+
+            (async () => {
+              try {
+                const res = await fetch("/api/ready-check/end", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(payload),
+                });
+
+                const body = await res.json().catch(() => ({}));
+
+                if (!res.ok) {
+                  console.error("ready-check end failed:", body);
+                  console.error(
+                    body?.error ||
+                      body?.message ||
+                      "Failed to record ready-check."
+                  );
+                  return;
+                }
+
+                // Optionally use returned data (body.readyCheck) to update local state or mutate caches
+                toast.success("Ready-check recorded.");
+              } catch (err: any) {
+                console.error("ready-check end network error:", err);
+                toast.error(
+                  err?.message || "Network error while recording ready-check."
+                );
+              }
+            })();
           }
 
           return 0;

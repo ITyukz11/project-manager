@@ -30,6 +30,9 @@ model User {
   role             Role
   messengerLink    String?
   active           Boolean         @default(true)
+  isClockedIn      Boolean         @default(false) 
+  attendances      Attendance[]    // history
+
   remarks          String?        // additional remarks or notes
   groupChats       GroupChat[]
 
@@ -63,7 +66,77 @@ model User {
   superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins
   casinoGroups     CasinoGroup[] // Many-to-many relationship with CasinoGroup
 
+  // Ready-check relations
+  initiatedReadyChecks  ReadyCheck[]               @relation("ReadyCheckInitiator")
+  readyCheckParticipants ReadyCheckParticipant[]
+
   notifications  Notifications[]
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+  
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  time       DateTime @default(now())
+  particular String   // Clock-in or Clock-out
+  active     Boolean  @default(true) // true between clock-in and clock-out
+  context    String?                  // optional: "casinoGroup:<id>" or "shift"
+
+  // IP address of the device that performed the clock-in / clock-out.
+  ipAddress  String?  
+
+  // Device or short device description (best-effort from User-Agent)
+  device     String?  
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, active])
+  @@index([ipAddress])
+}
+
+model ReadyCheck {
+  id                String                   @id @default(uuid())
+  initiator         User                     @relation("ReadyCheckInitiator", fields: [initiatorId], references: [id])
+  initiatorId       String
+  context           String?                  // optional metadata (e.g. "casinoGroup:<id>")
+  startedAt         DateTime                 @default(now())
+  endedAt           DateTime?
+  totalParticipants Int                      @default(0) // snapshot of number invited
+  totalClockedIn    Int                      @default(0) // snapshot of how many were clocked in at start
+  participants      ReadyCheckParticipant[]  // participant rows (responses + snapshots)
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  @@index([initiatorId])
+  @@index([startedAt])
+}
+
+model ReadyCheckParticipant {
+  id             String     @id @default(uuid())
+  readyCheck     ReadyCheck @relation(fields: [readyCheckId], references: [id])
+  readyCheckId   String
+  user           User       @relation(fields: [userId], references: [id])
+  userId         String
+
+  // Snapshot whether the user was clocked in at the moment the ready-check started
+  wasClockedIn   Boolean    @default(false)
+
+  // Whether the user clicked "ready" for this ready-check
+  responded      Boolean    @default(false)
+  respondedAt    DateTime?
+
+  // Optional denormalized snapshots for reporting
+  username       String?
+  role           Role?
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([readyCheckId, userId])
+  @@index([userId])
+  @@index([responded])
 }

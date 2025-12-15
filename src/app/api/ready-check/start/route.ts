@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import prisma from "@/lib/prisma"; // adjust to your prisma import
+import prisma from "@/lib/prisma"; // adjust to your prisma import if different
 import { ADMINROLES } from "@/lib/types/role";
 import { createReadyCheck } from "../store";
 import { getCurrentUser } from "@/lib/auth";
 import { pusher } from "@/lib/pusher";
 
+/**
+ * Start a ready-check.
+ * - Only SUPERADMIN / ADMIN can start.
+ * - Participants are users whose role is one of ADMINROLES, active = true, and isClockedIn = true.
+ * - Initiator is ensured to be present in participants.
+ * - Broadcasts ready-check-start via pusher and stores the record in createReadyCheck().
+ */
 export async function POST(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -18,26 +25,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch participants - adjust logic to your presence method
+    // Build roles array from ADMINROLES constant (runtime)
+    const adminRoles = Object.values(ADMINROLES);
+
+    // Fetch participants: only users with role in adminRoles, active=true and isClockedIn=true
     const fetched = await prisma.user.findMany({
-      where: { active: true },
-      select: { id: true, name: true, username: true, role: true },
+      where: {
+        role: { in: adminRoles },
+        active: true,
+        isClockedIn: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        role: true,
+        isClockedIn: true,
+      },
     });
 
+    // Map into participant payload and include clockedIn flag
     const participants = fetched.map((p) => ({
       id: p.id,
       name: p.name,
       username: p.username,
       role: p.role,
+      clockedIn: Boolean(p.isClockedIn),
     }));
 
-    // ensure initiator present
+    // ensure initiator present (prepend if missing)
     if (!participants.some((p) => p.id === currentUser.id)) {
       participants.unshift({
         id: currentUser.id,
         name: currentUser.name ?? undefined,
         username: currentUser.username ?? undefined,
         role: currentUser.role ?? undefined,
+        clockedIn: Boolean(currentUser.isClockedIn),
       });
     }
 
@@ -57,6 +80,7 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
+    // persist in your ready-check store
     createReadyCheck(rec);
 
     console.log(
@@ -73,14 +97,14 @@ export async function POST(req: NextRequest) {
       console.log(`[ReadyCheck] pusher.trigger succeeded for ${id}`);
     } catch (pusherErr) {
       console.error("[ReadyCheck] pusher.trigger error:", pusherErr);
-      // still return id so client has it, but log error
+      // still return id so client has it, but surface the pusher error
       return NextResponse.json(
         { error: "Pusher trigger failed", details: String(pusherErr) },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ id: rec.id });
+    return NextResponse.json({ id: rec.id }, { status: 201 });
   } catch (err: any) {
     console.error("[ReadyCheck] start error:", err);
     return NextResponse.json(
