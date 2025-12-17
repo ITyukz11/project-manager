@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Eye, CheckCircle, XCircle } from "lucide-react";
+import { MoreHorizontal, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,11 +15,15 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
+import { useParams } from "next/navigation";
 
 interface TransactionRequestActionMenuProps {
   transactionId: string;
@@ -28,11 +32,26 @@ interface TransactionRequestActionMenuProps {
 export function TransactionRequestActionMenu({
   transactionId,
 }: TransactionRequestActionMenuProps) {
-  const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [actionType, setActionType] = useState<"APPROVED" | "REJECTED" | null>(
+    null
+  );
+  const [remarks, setRemarks] = useState("");
+  const params = useParams();
+  const casinoGroup = params.casinogroup;
 
-  const handleStatusUpdate = async (status: "COMPLETED" | "REJECTED") => {
+  const { mutate } = useTransactionRequest(casinoGroup?.toLocaleString() || "");
+
+  const openConfirmDialog = (status: "APPROVED" | "REJECTED") => {
+    setActionType(status);
+    setRemarks("");
+    setIsDialogOpen(true);
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!actionType) return;
+
     setIsUpdating(true);
 
     try {
@@ -43,7 +62,10 @@ export function TransactionRequestActionMenu({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ status }),
+          body: JSON.stringify({
+            status: actionType,
+            remarks: remarks.trim() || "",
+          }),
         }
       );
 
@@ -53,14 +75,22 @@ export function TransactionRequestActionMenu({
         throw new Error(data.error || "Failed to update status");
       }
 
-      toast.success(`Transaction ${status.toLowerCase()} successfully`);
-      router.refresh();
+      toast.success(`Transaction ${actionType.toLowerCase()} successfully`);
+      mutate();
       setIsDialogOpen(false);
+      setRemarks("");
+      setActionType(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to update transaction");
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleCancel = () => {
+    setIsDialogOpen(false);
+    setRemarks("");
+    setActionType(null);
   };
 
   return (
@@ -75,17 +105,13 @@ export function TransactionRequestActionMenu({
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setIsDialogOpen(true)}>
-            <Eye className="mr-2 h-4 w-4" />
-            View Details
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleStatusUpdate("COMPLETED")}>
+          <DropdownMenuItem onClick={() => openConfirmDialog("APPROVED")}>
             <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
-            Mark as Completed
+            Approve
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleStatusUpdate("REJECTED")}>
+          <DropdownMenuItem onClick={() => openConfirmDialog("REJECTED")}>
             <XCircle className="mr-2 h-4 w-4 text-red-600" />
-            Mark as Rejected
+            Reject
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -93,15 +119,65 @@ export function TransactionRequestActionMenu({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Transaction Details</DialogTitle>
+            <DialogTitle className="flex flex-row">
+              {actionType === "APPROVED" ? (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                  Approve Transaction
+                </>
+              ) : (
+                <>
+                  <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                  Reject Transaction
+                </>
+              )}
+            </DialogTitle>
             <DialogDescription>
-              View full transaction information
+              {actionType === "APPROVED"
+                ? "You are about to approve this transaction"
+                : "You are about to reject this transaction"}
             </DialogDescription>
           </DialogHeader>
-          {/* Add transaction details view here */}
-          <p className="text-sm text-muted-foreground">
-            Transaction ID: {transactionId}
-          </p>
+
+          <div className="">
+            <div className="space-y-2">
+              <Label htmlFor="remarks">
+                Remarks{" "}
+                <span className="text-muted-foreground text-xs">
+                  (Optional)
+                </span>
+              </Label>
+              <Textarea
+                id="remarks"
+                placeholder="Add any remarks or notes..."
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                rows={4}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isUpdating}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant={actionType === "APPROVED" ? "default" : "destructive"}
+              onClick={handleStatusUpdate}
+              disabled={isUpdating}
+            >
+              {isUpdating
+                ? "Processing..."
+                : actionType === "APPROVED"
+                ? "Approve"
+                : "Reject"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

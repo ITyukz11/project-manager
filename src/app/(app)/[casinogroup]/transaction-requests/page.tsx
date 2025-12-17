@@ -1,6 +1,5 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -59,15 +58,6 @@ export default function Page() {
 
         {/* Table */}
         {isLoading ? (
-          <div className="w-full flex flex-col gap-2 items-center">
-            <Skeleton className="w-full h-10" />
-            <Skeleton className="w-full h-40" />
-          </div>
-        ) : error ? (
-          <div className="p-4 bg-red-50 text-red-700 rounded-md border border-red-200">
-            <Label>Error: {error.message}</Label>
-          </div>
-        ) : !transactionRequests ? (
           <div className="w-full flex flex-col gap-2 items-center">
             <Skeleton className="w-full h-10" />
             <Skeleton className="w-full h-40" />

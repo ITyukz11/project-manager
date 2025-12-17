@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExternalLink } from "lucide-react";
 import { CasinoGroup, TransactionRequest, User } from "@prisma/client";
 import { TransactionRequestActionMenu } from "./TransactionRequestAction";
+import { formatAmountWithDecimals } from "@/components/formatAmount";
 
 export const transactionRequestColumns: ColumnDef<
   TransactionRequest & { processedBy: User; casinoGroup: CasinoGroup }
@@ -50,8 +51,8 @@ export const transactionRequestColumns: ColumnDef<
     cell: ({ row }) => {
       const amount = row.getValue("amount") as number;
       return (
-        <span className="font-semibold text-sm">
-          ₱{amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+        <span className="font-semibold text-sm font-mono">
+          ₱ {formatAmountWithDecimals(amount)}
         </span>
       );
     },
@@ -130,7 +131,7 @@ export const transactionRequestColumns: ColumnDef<
             className={`w-fit ${
               status === "PENDING"
                 ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                : status === "COMPLETED"
+                : status === "APPROVED"
                 ? "bg-green-600 hover:bg-green-700 text-white"
                 : "bg-red-500 hover:bg-red-600 text-white"
             }`}
@@ -149,7 +150,7 @@ export const transactionRequestColumns: ColumnDef<
   {
     accessorKey: "createdAt",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Created At" />
+      <DataTableColumnHeader column={column} title="Date/Time" />
     ),
     cell: ({ row }) => {
       const createdAt = new Date(row.getValue("createdAt"));
@@ -164,9 +165,23 @@ export const transactionRequestColumns: ColumnDef<
       });
       return (
         <div className="flex flex-col">
-          <span className="text-sm">{formattedDate}</span>
-          <span className="text-xs text-muted-foreground">{formattedTime}</span>
+          <span className="text-sm">{formattedTime}</span>
+          <span className="text-xs text-muted-foreground">{formattedDate}</span>
         </div>
+      );
+    },
+  },
+  {
+    accessorKey: "remarks",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Remarks" />
+    ),
+    cell: ({ row }) => {
+      const remarks = row.original.remarks as string | null;
+      return (
+        <span className="text-sm">
+          {remarks || <span className="text-muted-foreground">-</span>}
+        </span>
       );
     },
   },

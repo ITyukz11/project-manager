@@ -6,7 +6,7 @@ import { put } from "@vercel/blob";
 
 const STATUS_SORT = {
   PENDING: 1,
-  COMPLETED: 2,
+  APPROVED: 2,
   REJECTED: 3,
 };
 

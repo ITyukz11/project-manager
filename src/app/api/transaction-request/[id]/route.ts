@@ -16,12 +16,12 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { status } = body;
+    const { status, remarks } = body;
 
     // Validation
-    if (!status || !["PENDING", "COMPLETED", "REJECTED"].includes(status)) {
+    if (!status || !["PENDING", "APPROVED", "REJECTED"].includes(status)) {
       return NextResponse.json(
-        { error: "Invalid status. Must be PENDING, COMPLETED, or REJECTED." },
+        { error: "Invalid status. Must be PENDING, APPROVED, or REJECTED." },
         { status: 400 }
       );
     }
@@ -45,6 +45,7 @@ export async function PATCH(
         status,
         processedById: currentUser.id,
         processedAt: new Date(),
+        remarks,
       },
       include: {
         processedBy: {

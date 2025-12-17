@@ -8,6 +8,7 @@ model TransactionRequest {
   status        String   @default("PENDING") // PENDING, COMPLETED, REJECTED
 
   receiptUrl    String? // For proof of payment
+  remarks       String? // For rejection reason or additional notes
   
   // Track who processed/updated this transaction (admin/staff)
   processedById String? 

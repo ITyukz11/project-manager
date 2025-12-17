@@ -32,6 +32,7 @@ import { useCountConcernPending } from "@/lib/hooks/swr/concern/useCountPending"
 import { useCountRemittancePending } from "@/lib/hooks/swr/remittance/useCountRemittancePending";
 import { useCountTaskPending } from "@/lib/hooks/swr/task/useCountTaskPending";
 import { Badge } from "@/components/ui/badge";
+import { useCountTransactionPending } from "@/lib/hooks/swr/transaction-request/useCountTransactionPending";
 
 interface MenuLink {
   href: string;
@@ -54,6 +55,7 @@ export default function NavCasinoGroup({
 }) {
   const pathname = usePathname();
   console.log("pathname:", pathname);
+  const [pendingTransaction, setPendingTransaction] = React.useState<number>(0);
   const [pendingCashouts, setPendingCashouts] = React.useState<number>(0);
   const [pendingConcerns, setPendingConcerns] = React.useState<number>(0);
   const [pendingRemittances, setPendingRemittances] = React.useState<number>(0);
@@ -64,12 +66,20 @@ export default function NavCasinoGroup({
     useCountRemittancePending(casinoGroup.name);
   const { pendingConcernCount, pendingConcernCountIsLoading } =
     useCountConcernPending(casinoGroup.name);
+  const { pendingTransactionCount, pendingTransactionCountIsLoading } =
+    useCountTransactionPending(casinoGroup.name);
 
   const { pendingTaskCount, pendingTaskCountIsLoading } = useCountTaskPending(
     casinoGroup.name
   );
   // Update local state when SWR loads initial value
   React.useEffect(() => {
+    if (
+      !pendingTransactionCountIsLoading &&
+      typeof pendingTransactionCount === "number"
+    ) {
+      setPendingTransaction(pendingTransactionCount);
+    }
     if (
       !pendingCashoutCountIsLoading &&
       typeof pendingCashoutCount === "number"
@@ -92,6 +102,7 @@ export default function NavCasinoGroup({
       setPendingTasks(pendingTaskCount);
     }
   }, [
+    pendingTransactionCount,
     pendingCashoutCount,
     pendingCashoutCountIsLoading,
     pendingConcernCount,
@@ -149,6 +160,8 @@ export default function NavCasinoGroup({
       text: "Transactions",
       icon: ArrowLeftRight,
       disable: false,
+      pendingCount: pendingTransaction,
+      loading: pendingTransactionCountIsLoading,
     },
     {
       href: `/${casinoGroup.name.toLowerCase()}/accounts`,
@@ -197,9 +210,19 @@ export default function NavCasinoGroup({
 
   const totalPending = React.useMemo(() => {
     return (
-      pendingCashouts + pendingRemittances + pendingConcerns + pendingTasks
+      pendingTransaction +
+      pendingCashouts +
+      pendingRemittances +
+      pendingConcerns +
+      pendingTasks
     );
-  }, [pendingCashouts, pendingRemittances, pendingConcerns, pendingTasks]);
+  }, [
+    pendingTransaction,
+    pendingCashouts,
+    pendingRemittances,
+    pendingConcerns,
+    pendingTasks,
+  ]);
   // Pick an icon for your casino group, or use a default (optional)
   const SectionIcon = ClipboardList; // or any
 

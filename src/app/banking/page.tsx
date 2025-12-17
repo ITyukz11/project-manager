@@ -53,7 +53,7 @@ export default function BankingPage() {
   }, [searchParams]);
 
   const paymentMethods = [
-    { id: "QRPH", name: "QRPH", icon: "/qrph.jpg" },
+    { id: "QRPH", name: "QRPH", icon: "/allbanks.png" },
     { id: "GoTyme", name: "GoTyme", icon: "/gotyme.png" },
   ];
 
