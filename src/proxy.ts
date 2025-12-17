@@ -20,6 +20,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow banking route without authentication
+  if (pathname.startsWith("/banking")) {
+    return NextResponse.next();
+  }
+
   // Check user token for protected routes
   const token = await getToken({
     req: request,

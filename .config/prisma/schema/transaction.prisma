@@ -1,0 +1,27 @@
+model TransactionRequest {
+  id            String   @id @default(cuid())
+  type          String   // 'CASHIN' or 'CASHOUT'
+  username      String   // Anonymous player username (not a User in system)
+  amount        Float
+  bankDetails   String?  // Required for CASHOUT
+  paymentMethod String?  // GCash, Maya, GoTyme
+  status        String   @default("PENDING") // PENDING, COMPLETED, REJECTED
+
+  receiptUrl    String? // For proof of payment
+  
+  // Track who processed/updated this transaction (admin/staff)
+  processedById String? 
+  processedBy   User?    @relation(fields: [processedById], references: [id], onDelete: SetNull)
+  processedAt   DateTime? 
+  
+  casinoGroupId String
+  casinoGroup   CasinoGroup @relation(fields:  [casinoGroupId], references: [id], onDelete:  Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([casinoGroupId])
+  @@index([status])
+  @@index([type])
+  @@index([processedById])
+}

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import {
+  ArrowLeftRight,
   BanknoteArrowUp,
   CheckSquare,
   ChevronRight,
@@ -143,7 +144,12 @@ export default function NavCasinoGroup({
 
   // Build dynamic nav links for the group, as in your pattern
   const links: MenuLink[] = [
-    // // Build per your template! Example:
+    {
+      href: `/${casinoGroup.name.toLowerCase()}/transaction-requests`,
+      text: "Transactions",
+      icon: ArrowLeftRight,
+      disable: false,
+    },
     {
       href: `/${casinoGroup.name.toLowerCase()}/accounts`,
       text: "Accounts",

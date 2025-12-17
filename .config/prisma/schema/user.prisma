@@ -33,6 +33,8 @@ model User {
   isClockedIn      Boolean         @default(false) 
   attendances      Attendance[]    // history
 
+  transactionRequests TransactionRequest[]
+
   remarks          String?        // additional remarks or notes
   groupChats       GroupChat[]
 

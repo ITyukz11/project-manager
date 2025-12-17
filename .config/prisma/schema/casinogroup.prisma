@@ -5,6 +5,7 @@ model CasinoGroup {
   superAdminId  String        // NEW: link to SuperAdmin
   superAdmin    SuperAdmin    @relation(fields: [superAdminId], references: [id])
   users         User[]        // NEW: users in this casino group
+  transactionRequests TransactionRequest[] // NEW: transaction requests for this casino group
   cashouts      Cashout[]     // NEW: cashouts for this casino group
   remittances   Remittance[]  // NEW: remittances for this casino group
   concerns      Concern[]     // NEW: concerns for this casino group
