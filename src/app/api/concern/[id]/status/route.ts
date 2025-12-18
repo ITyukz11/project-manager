@@ -16,7 +16,10 @@ export async function PATCH(
     (session.user.role !== ADMINROLES.ADMIN &&
       session.user.role !== ADMINROLES.SUPERADMIN)
   ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Unauthorized only ADMINS can update status" },
+      { status: 403 }
+    );
   }
 
   const { status } = await req.json();
