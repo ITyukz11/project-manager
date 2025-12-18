@@ -95,7 +95,7 @@ export default function BankingPage() {
   // QR code mapping based on payment method
   const qrCodeMap: Record<string, string> = {
     QRPH: "/Sec-QRPH-qr.png",
-    GoTyme: "/gotyme-qr.png",
+    GoTyme: "/gotyme-qr1.png",
   };
 
   const fetchTransactionHistory = async () => {
