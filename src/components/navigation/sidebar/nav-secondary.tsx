@@ -9,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import Link from "next/link";
 
 /**
  * A safe icon type for lucide icons:
@@ -64,11 +65,11 @@ export function NavSecondary(
             ) : (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild disabled>
-                  <a href={item.url} className="flex items-center gap-2">
+                  <Link href={item.url} className="flex items-center gap-2">
                     {/* size via className, aria-hidden since the text is present */}
                     <item.icon className="w-4 h-4" aria-hidden />
                     <span>{item.title}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )
