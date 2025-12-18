@@ -7,9 +7,13 @@ model TransactionRequest {
   paymentMethod String?  // GCash, Maya, GoTyme
   status        String   @default("PENDING") // PENDING, COMPLETED, REJECTED
 
-  receiptUrl    String? // For proof of payment
   remarks       String? // For rejection reason or additional notes
   
+  receiptUrl      String?
+  receiptHash     String?       // 🆕 For duplicate detection
+  ipAddress       String?       // 🆕 For audit trail
+  userAgent       String?       // 🆕 For audit trail
+
   // Track who processed/updated this transaction (admin/staff)
   processedById String? 
   processedBy   User?    @relation(fields: [processedById], references: [id], onDelete: SetNull)

@@ -61,8 +61,8 @@ export default function BankingPage() {
 
   // QR code mapping based on payment method
   const qrCodeMap: Record<string, string> = {
-    QRPH: "/security-bank-QR.png",
-    GoTyme: "/GoTyme-QR.png",
+    QRPH: "/Sec-QRPH-qr.png",
+    GoTyme: "/gotyme-qr.png",
   };
 
   const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,7 +140,7 @@ export default function BankingPage() {
       formData.append("username", username.trim());
       formData.append("amount", amount);
       formData.append("paymentMethod", selectedPayment || "");
-      formData.append("casinoGroupName", casino); // ✅ Fixed: was 'casino'
+      formData.append("casinoGroupName", casino);
 
       if (activeTab === "cashout") {
         formData.append("bankDetails", bankDetails.trim());
@@ -152,6 +152,10 @@ export default function BankingPage() {
 
       const response = await fetch("/api/transaction-request", {
         method: "POST",
+        headers: {
+          // ✅ ADD API KEY HERE
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_BANKING_API_KEY}`,
+        },
         body: formData,
       });
 
@@ -184,31 +188,22 @@ export default function BankingPage() {
   // Show error if required parameters are missing
   if (!username || !casino) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6">
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <p className="font-semibold mb-2">
-                  Missing Required Parameters
-                </p>
-                <p className="text-sm">
-                  Please access this page with username and casino parameters.
-                </p>
-                <p className="text-sm mt-2 font-mono bg-muted p-2 rounded">
-                  /banking?username=yourname&casino=qbet88.vip
-                </p>
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 w-xl justify-self-center">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <p className="font-semibold mb-2">Missing Required Parameters</p>
+            <p className="text-sm">
+              Please access this page with username and casino parameters.
+            </p>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#F1F1F1] dark:bg-primary/10">
       <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
@@ -225,7 +220,7 @@ export default function BankingPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3 bg-primary/10">
             <TabsTrigger
               value="cashin"
               className="data-[state=active]:bg-background data-[state=active]:text-foreground"
@@ -247,7 +242,7 @@ export default function BankingPage() {
           </TabsList>
 
           {/* CASH IN TAB */}
-          <TabsContent value="cashin" className="mt-4 sm:mt-6">
+          <TabsContent value="cashin">
             <Card>
               <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
                 {/* Step 1: Payment Method Selection */}
@@ -268,7 +263,7 @@ export default function BankingPage() {
                           setSelectedPayment(method.id as PaymentMethod)
                         }
                       >
-                        <CardContent className="p-0 flex flex-col items-center justify-center ">
+                        <CardContent className="sm:p-0 flex flex-col items-center justify-center ">
                           <Image
                             src={method.icon}
                             alt={method.name}
@@ -323,7 +318,7 @@ export default function BankingPage() {
           </TabsContent>
 
           {/* CASH OUT TAB */}
-          <TabsContent value="cashout" className="mt-4 sm:mt-6">
+          <TabsContent value="cashout">
             <Card>
               <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
                 {/* Step 1: Payment Method Selection */}
@@ -428,7 +423,7 @@ export default function BankingPage() {
           </TabsContent>
 
           {/* HISTORY TAB */}
-          <TabsContent value="history" className="mt-4 sm:mt-6">
+          <TabsContent value="history">
             <Card>
               <CardContent className="pt-8 pb-8 sm:pt-12 sm:pb-12">
                 <div className="text-center">
@@ -616,7 +611,7 @@ export default function BankingPage() {
                   ) : (
                     <>
                       {activeTab === "cashin"
-                        ? "Submit Payment Proof"
+                        ? "Upload Receipt"
                         : "Submit Cash Out Request"}
                     </>
                   )}
