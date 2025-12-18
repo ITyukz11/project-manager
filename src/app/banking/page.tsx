@@ -181,6 +181,13 @@ export default function BankingPage() {
       return;
     }
 
+    // Validate minimum amount
+    const minAmount = 100;
+    if (parseFloat(amount) < minAmount) {
+      toast.error(`Minimum amount is ${minAmount}`);
+      return;
+    }
+
     if (activeTab === "cashout" && !bankDetails.trim()) {
       toast.error("Please enter bank details for cash out");
       return;
@@ -191,6 +198,13 @@ export default function BankingPage() {
   };
 
   const handleFinalSubmit = async () => {
+    // Validate minimum amount
+    const minAmount = 100;
+    if (parseFloat(amount) < minAmount) {
+      toast.error(`Minimum amount is ${minAmount}`);
+      return;
+    }
+
     if (activeTab === "cashin" && !receiptFile) {
       toast.error("Please upload payment receipt");
       return;
