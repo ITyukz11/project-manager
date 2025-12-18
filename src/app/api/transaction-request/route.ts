@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { pusher } from "@/lib/pusher";
 import { put } from "@vercel/blob";
 import crypto from "crypto";
+import { ADMINROLES } from "@/lib/types/role";
 
 const STATUS_SORT = {
   PENDING: 1,
@@ -565,23 +566,53 @@ export async function POST(req: Request) {
       },
     });
 
+    // Get all tagged users for this notification
     // ============================================
     // TRIGGER REAL-TIME NOTIFICATION
     // ============================================
-    if (process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.PUSHER_SECRET) {
-      try {
-        await pusher.trigger("transaction-request", "new-transaction", {
-          id: transaction.id,
-          type: transaction.type,
-          username: transaction.username,
-          amount: transaction.amount,
-          casinoGroup: casinoGroup.name,
-          timestamp: transaction.createdAt,
+    const notifiedUsersId = await prisma.user
+      .findMany({
+        where: {
+          role: {
+            in: [
+              ADMINROLES.SUPERADMIN,
+              ADMINROLES.ADMIN,
+              ADMINROLES.ACCOUNTING,
+              ADMINROLES.LOADER,
+              ADMINROLES.TL,
+            ],
+          },
+        },
+        select: { id: true },
+      })
+      .then((users) => users.map((user) => user.id));
+
+    // For each user, create the notification and send via Pusher
+    await Promise.all(
+      notifiedUsersId.map(async (userId) => {
+        const notification = await prisma.notifications.create({
+          data: {
+            userId,
+            message: `${sanitizedUsername} requested a ${type}: "amounting ${parsedAmount}" in ${casinoGroupName}.`,
+            link: `/${casinoGroupName.toLowerCase()}/transaction-requests/${
+              transaction.id
+            }`,
+            isRead: false,
+            type: "transaction-request",
+            actor: sanitizedUsername,
+            subject: parsedAmount.toLocaleString(),
+            casinoGroup: casinoGroupName,
+          },
         });
-      } catch (pusherErr) {
-        console.error("Pusher error:", pusherErr);
-      }
-    }
+
+        // You can use a specific event name for this type
+        await pusher.trigger(
+          `user-notify-${userId}`,
+          "notifications-event", // Event name by notification type
+          notification
+        );
+      })
+    );
 
     console.log(
       `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
