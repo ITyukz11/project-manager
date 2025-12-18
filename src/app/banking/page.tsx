@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Upload, X, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +26,29 @@ import {
 } from "@/components/ui/dialog";
 import Image from "next/image";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { formatDate } from "date-fns";
+import { ReceiptButton } from "./receipt-button";
 
 type PaymentMethod = "QRPH" | null;
+
+// Transaction type
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  paymentMethod: string | null;
+  bankDetails: string | null;
+  receiptUrl: string | null;
+  casinoGroup: string;
+  processedBy: {
+    name: string;
+    username: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function BankingPage() {
   const searchParams = useSearchParams();
@@ -37,6 +65,11 @@ export default function BankingPage() {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // History tab states
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // Get username and casino group from URL parameters
   useEffect(() => {
@@ -63,6 +96,37 @@ export default function BankingPage() {
   const qrCodeMap: Record<string, string> = {
     QRPH: "/Sec-QRPH-qr.png",
     GoTyme: "/gotyme-qr.png",
+  };
+
+  const fetchTransactionHistory = async () => {
+    setIsLoadingHistory(true);
+    setHistoryError(null);
+
+    try {
+      const response = await fetch(
+        `/api/transaction-request/username/${username}?casinoGroup=${casino}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_BANKING_API_KEY}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch transaction history");
+      }
+
+      setTransactions(data.transactions || []);
+    } catch (error: any) {
+      console.error("Error fetching history:", error);
+      setHistoryError(error.message || "Failed to load transaction history");
+      toast.error("Failed to load transaction history");
+    } finally {
+      setIsLoadingHistory(false);
+    }
   };
 
   const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,6 +246,20 @@ export default function BankingPage() {
       toast.error(error.message || "Failed to submit transaction");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to get status badge color
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return "default";
+      case "APPROVED":
+        return "success";
+      case "REJECTED":
+        return "destructive";
+      default:
+        return "secondary";
     }
   };
 
@@ -422,15 +500,172 @@ export default function BankingPage() {
             </Card>
           </TabsContent>
 
-          {/* HISTORY TAB */}
+          {/* HISTORY TAB - UPDATED */}
           <TabsContent value="history">
             <Card>
-              <CardContent className="pt-8 pb-8 sm:pt-12 sm:pb-12">
-                <div className="text-center">
-                  <p className="text-muted-foreground text-sm sm:text-base">
-                    Transaction history will be displayed here
-                  </p>
+              <CardContent>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Transaction History</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchTransactionHistory}
+                    disabled={isLoadingHistory}
+                  >
+                    {isLoadingHistory ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                      </>
+                    )}
+                  </Button>
                 </div>
+
+                {/* Loading State */}
+                {isLoadingHistory && transactions.length === 0 && (
+                  <div className="text-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">
+                      Loading transactions...
+                    </p>
+                  </div>
+                )}
+
+                {/* Error State */}
+                {historyError && !isLoadingHistory && (
+                  <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{historyError}</AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Empty State */}
+                {!isLoadingHistory &&
+                  !historyError &&
+                  transactions.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground text-sm sm:text-base">
+                        No transactions found
+                      </p>
+                      <p className="text-muted-foreground text-xs mt-2">
+                        Your transaction history will appear here
+                      </p>
+                    </div>
+                  )}
+
+                {/* Transaction List */}
+                {!isLoadingHistory && transactions.length > 0 && (
+                  <div className="space-y-3">
+                    {transactions.map((transaction) => (
+                      <Card key={transaction.id} className="overflow-hidden">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  transaction.type === "CASHIN"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {transaction.type}
+                              </Badge>
+                              <Badge
+                                variant={
+                                  getStatusBadgeVariant(
+                                    transaction.status
+                                  ) as any
+                                }
+                              >
+                                {transaction.status}
+                              </Badge>
+                            </div>
+                            <p className="text-lg font-bold text-foreground">
+                              ₱{transaction.amount.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">ID:</span>
+                              <span className="font-mono text-xs">
+                                {transaction.id.substring(0, 12)}...
+                              </span>
+                            </div>
+
+                            {transaction.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Payment Method:
+                                </span>
+                                <span>{transaction.paymentMethod}</span>
+                              </div>
+                            )}
+
+                            {transaction.bankDetails && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Bank Details:
+                                </span>
+                                <span className="text-right text-xs max-w-[200px] truncate">
+                                  {transaction.bankDetails}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* ✨ UPDATED: Use ReceiptButton component */}
+                            {transaction.receiptUrl && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">
+                                  Receipt:
+                                </span>
+                                <ReceiptButton
+                                  receiptUrl={transaction.receiptUrl}
+                                  transactionId={transaction.id}
+                                  variant="link"
+                                />
+                              </div>
+                            )}
+
+                            {transaction.processedBy && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Processed By:
+                                </span>
+                                <span className="text-xs">
+                                  {transaction.processedBy.name}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="flex justify-between pt-2 border-t">
+                              <span className="text-muted-foreground">
+                                Created:
+                              </span>
+                              <span className="text-xs">
+                                {formatDate(
+                                  new Date(transaction.createdAt),
+                                  "MMM dd, yyyy HH:mm"
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {transactions.length >= 50 && (
+                      <p className="text-center text-xs text-muted-foreground pt-4">
+                        Showing last 50 transactions
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
