@@ -247,6 +247,15 @@ export const NotificationDropdown = () => {
                               </span>
                             </>
                           )}
+                          {notification.type === "transaction-request" && (
+                            <>
+                              <span> requested</span>
+                              <span className="font-bold">
+                                {" "}
+                                {" " + notification.subject + " "}
+                              </span>
+                            </>
+                          )}
                           {/* If a casino group exists, add it */}
                           {notification.casinoGroup && (
                             <>

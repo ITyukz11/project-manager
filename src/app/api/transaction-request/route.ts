@@ -600,7 +600,7 @@ export async function POST(req: Request) {
             isRead: false,
             type: "transaction-request",
             actor: sanitizedUsername,
-            subject: parsedAmount.toLocaleString(),
+            subject: parsedAmount.toLocaleString() + " " + type,
             casinoGroup: casinoGroupName,
           },
         });
