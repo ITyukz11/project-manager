@@ -133,7 +133,7 @@ export const NotificationDropdown = () => {
           <Button size={"sm"} variant={"outline"} className="relative">
             <Bell className="w-4 h-4" />
             {notifications.length > 0 && (
-              <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <div className="z-50 absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                 {notifications.length}
               </div>
             )}

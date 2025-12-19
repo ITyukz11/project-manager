@@ -3,14 +3,19 @@
 import { User } from "@prisma/client";
 import useSWR from "swr";
 
+// Type definition matching your columns
+export type UserWithCasinoGroups = User & {
+  casinoGroups?: { id: string; name: string }[];
+};
+
 // Helper for fetch
-const fetchUsers = async (url: string) => {
+const fetchUsers = async (url: string): Promise<UserWithCasinoGroups[]> => {
   try {
     const response = await fetch(url, { method: "GET" });
     if (!response.ok) {
-      throw new Error("Failed to fetch");
+      throw new Error("Failed to fetch users");
     }
-    const data: User[] = await response.json();
+    const data: UserWithCasinoGroups[] = await response.json();
     return data;
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -22,19 +27,23 @@ const fetchUsers = async (url: string) => {
 export const useUsers = (casinoGroup?: string) => {
   // Build URL based on parameter
   const apiUrl = casinoGroup
-    ? `/api/user?casinoGroup=${casinoGroup}`
+    ? `/api/user?casinoGroup=${encodeURIComponent(casinoGroup)}`
     : `/api/user`;
 
-  const { data, error, mutate } = useSWR<User[]>(apiUrl, fetchUsers, {
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false,
-    refreshInterval: 0,
-    dedupingInterval: 60 * 1000,
-  });
+  const { data, error, isLoading, mutate } = useSWR<UserWithCasinoGroups[]>(
+    apiUrl,
+    fetchUsers,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      refreshInterval: 0,
+      dedupingInterval: 60 * 1000,
+    }
+  );
 
   return {
     usersData: data,
-    usersLoading: !error && !data,
+    usersLoading: isLoading,
     usersError: error,
     refetchUsers: mutate,
   };

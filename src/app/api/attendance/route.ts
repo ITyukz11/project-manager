@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import Pusher from "pusher";
-import { pusher } from "@/lib/pusher";
+import { pusher, emitOnlineUsersUpdate } from "@/lib/pusher";
 
 /**
  * POST /api/attendance
@@ -15,14 +14,12 @@ import { pusher } from "@/lib/pusher";
  *      and set user.isClockedIn = true (transaction)
  * - clock-out:
  *    - find most recent active attendance (userId, active = true)
- *    - if found: update that attendance.active = false (to mark session ended)
+ *    - if found:  update that attendance.active = false (to mark session ended)
  *      then create a separate Attendance record (particular = "clock-out", active = false, ...).
  *    - if not found: still create a clock-out Attendance record (no active to update)
  *    - set user.isClockedIn = false (transaction)
  *
  * Both actions return the created attendance record (and updated user state via select).
- *
- * NOTE: adjust Pusher usage if you don't use Pusher; pusher triggers are optional and guarded by env vars.
  */
 
 function extractClientInfo(req: NextRequest) {
@@ -101,15 +98,23 @@ export async function POST(request: NextRequest) {
         const user = await tx.user.update({
           where: { id: currentUser.id },
           data: { isClockedIn: true },
-          select: { id: true, isClockedIn: true },
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            email: true,
+            role: true,
+            isClockedIn: true,
+          },
         });
 
         return { attendance, user };
       });
 
-      // optional: broadcast via pusher so admin clients can update UI
+      // Broadcast via pusher so admin clients can update UI
       if (pusher) {
         try {
+          // Original attendance event
           await pusher.trigger("attendance", "user-clocked-in", {
             userId: currentUser.id,
             clockedIn: true,
@@ -118,6 +123,9 @@ export async function POST(request: NextRequest) {
             device,
             context,
           });
+
+          // NEW: Trigger online users update
+          await emitOnlineUsersUpdate();
         } catch (err) {
           console.warn("Pusher trigger failed (user-clocked-in):", err);
         }
@@ -163,7 +171,14 @@ export async function POST(request: NextRequest) {
         const user = await tx.user.update({
           where: { id: currentUser.id },
           data: { isClockedIn: false },
-          select: { id: true, isClockedIn: true },
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            email: true,
+            role: true,
+            isClockedIn: true,
+          },
         });
 
         return { updatedActive, attendanceOut, user };
@@ -171,6 +186,7 @@ export async function POST(request: NextRequest) {
 
       if (pusher) {
         try {
+          // Original attendance event
           await pusher.trigger("attendance", "user-clocked-out", {
             userId: currentUser.id,
             clockedIn: false,
@@ -179,6 +195,9 @@ export async function POST(request: NextRequest) {
             device,
             context,
           });
+
+          // NEW: Trigger online users update
+          await emitOnlineUsersUpdate();
         } catch (err) {
           console.warn("Pusher trigger failed (user-clocked-out):", err);
         }

@@ -14,6 +14,7 @@ export enum NotificationChannel {
   Role = "role",
   Position = "position",
   AttachmentProgress = "attachment-progress",
+  OnlineUsers = "online-users", // NEW
 }
 
 export const pusherChannel = {
@@ -24,6 +25,7 @@ export const pusherChannel = {
   position: (position: string) => `${NotificationChannel.Position}-${position}`,
   attachmentProgress: (key: string) =>
     `${NotificationChannel.AttachmentProgress}-${key}`,
+  onlineUsers: () => NotificationChannel.OnlineUsers, // NEW
 };
 
 export async function emitUploadProgress(
@@ -40,4 +42,38 @@ export async function emitUploadProgress(
       progress,
     }
   );
+}
+
+// NEW:  Emit user clocked in event
+export async function emitUserClockedIn(user: {
+  id: string;
+  name: string;
+  username: string;
+  email: string | null;
+  role: string;
+  time: string | null;
+  ipAddress: string | null;
+  device: string | null;
+  isClockedIn: boolean;
+}) {
+  await pusher.trigger(pusherChannel.onlineUsers(), "user-clocked-in", {
+    user,
+  });
+  console.log("Pusher: User clocked in event triggered", user.id);
+}
+
+// NEW: Emit user clocked out event
+export async function emitUserClockedOut(userId: string) {
+  await pusher.trigger(pusherChannel.onlineUsers(), "user-clocked-out", {
+    userId,
+  });
+  console.log("Pusher: User clocked out event triggered", userId);
+}
+
+// NEW: Emit online users status change
+export async function emitOnlineUsersUpdate() {
+  await pusher.trigger(pusherChannel.onlineUsers(), "online-users-updated", {
+    timestamp: new Date().toISOString(),
+  });
+  console.log("Pusher: Online users updated event triggered");
 }

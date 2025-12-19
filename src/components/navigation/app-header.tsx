@@ -22,6 +22,7 @@ import {
   Clock3,
   Clock8,
   Search as SearchIcon,
+  MoreVertical,
 } from "lucide-react";
 import { NotificationDropdown } from "../notification-dropdown";
 import { toast } from "sonner";
@@ -31,6 +32,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { ADMINROLES } from "@/lib/types/role";
 import { Skeleton } from "../ui/skeleton";
@@ -109,6 +112,7 @@ export const AppHeader = ({
     setClockLoading(true);
     if (!session?.user?.id) {
       setIsClockedIn(false);
+      setClockLoading(false);
       return;
     }
 
@@ -117,14 +121,13 @@ export const AppHeader = ({
         const res = await fetch("/api/attendance/status");
         if (!mounted) return;
         if (!res.ok) {
-          // keep default false
+          setClockLoading(false);
           return;
         }
         const body = await res.json();
         setIsClockedIn(Boolean(body?.isClockedIn));
         setClockLoading(false);
       } catch {
-        // ignore network errors — keep false
         setClockLoading(false);
       }
     })();
@@ -134,8 +137,7 @@ export const AppHeader = ({
     };
   }, [session?.user?.id]);
 
-  // Listen for attendance events via pusher so status updates in real-time across tabs/clients.
-  // Only update if the event refers to the current user.
+  // Listen for attendance events via pusher
   usePusher<{ userId: string; clockedIn: boolean }>({
     channels: ["attendance"],
     eventName: "user-clocked-in",
@@ -157,23 +159,6 @@ export const AppHeader = ({
       }
     },
   });
-
-  async function startReadyCheck() {
-    try {
-      const res = await fetch("/api/ready-check/start", {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(
-          body?.error || body?.message || "Failed to start ready check"
-        );
-      }
-      await res.json();
-    } catch (err: any) {
-      toast.error(err?.message || "Error starting ready check");
-    }
-  }
 
   // handlers
   async function handleAction(action: "clock-in" | "clock-out") {
@@ -253,15 +238,22 @@ export const AppHeader = ({
     labels[crumbs[crumbs.length - 1].href] ??
     crumbs[crumbs.length - 1].labelDefault;
 
+  const isAdmin =
+    session?.user?.role === ADMINROLES.SUPERADMIN ||
+    session?.user?.role === ADMINROLES.ADMIN;
+
   return (
     <header
-      className={clsx("sticky top-0 z-50 border-b bg-card border-border/80")}
+      className={clsx(
+        "sticky top-0 z-50 border-b bg-card border-border/80 overflow-hidden"
+      )}
     >
-      <nav className="px-2 sm:pr-8 flex h-14 w-full items-center gap-2">
-        <SidebarTrigger className="p-0" />
-        <Separator orientation="vertical" />
+      <nav className="px-2 sm:px-4 lg:pr-8 flex h-14 w-full items-center gap-2">
+        <SidebarTrigger className="p-0 shrink-0" />
+        <Separator orientation="vertical" className="h-6" />
 
-        <div className="hidden md:block">
+        {/* Desktop Breadcrumbs */}
+        <div className="hidden xl:block min-w-0 flex-1">
           <Breadcrumb className="text-sm text-muted-foreground">
             <BreadcrumbList>
               {crumbs.map((c, i) => {
@@ -291,144 +283,207 @@ export const AppHeader = ({
           </Breadcrumb>
         </div>
 
-        <div className="md:hidden flex items-center">
-          <span className="text-sm font-medium text-foreground truncate max-w-xs">
+        {/* Mobile/Tablet Page Title */}
+        <div className="xl:hidden flex items-center min-w-0 flex-1">
+          <span className="text-sm font-medium text-foreground truncate">
             {lastLabel}
           </span>
         </div>
 
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none" />
-
-          <nav className="hidden md:flex items-center gap-2 ml-auto">
-            {/* Clock status + dropdown button */}
-            {clockLoading ? (
-              <Skeleton className="h-8 w-24 rounded-md" />
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    className={clsx(
-                      "flex items-center gap-2",
-                      isClockedIn
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-red-600 hover:bg-red-700 text-white"
-                    )}
-                    aria-label="Attendance options"
-                  >
-                    <span className="text-sm font-medium flex items-center gap-1">
-                      <Clock />
-                      {isClockedIn ? "Clocked In" : "Clocked Out"}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent
-                  side="bottom"
-                  align="end"
-                  className="min-w-[180px]"
+        {/* Desktop Actions */}
+        <div className="hidden lg:flex items-center gap-2 ml-auto shrink-0">
+          {/* Clock status + dropdown button */}
+          {!session?.user || clockLoading ? (
+            <Skeleton className="h-9 w-28 rounded-md" />
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className={clsx(
+                    "flex items-center gap-2",
+                    isClockedIn
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-red-600 hover:bg-red-700 text-white"
+                  )}
+                  aria-label="Attendance options"
                 >
-                  <div className="p-2">
-                    <div className="text-xs text-muted-foreground mb-2">
-                      Attendance
-                    </div>
+                  <Clock className="h-4 w-4" />
+                  <span className="text-sm font-medium">
+                    {isClockedIn
+                      ? "Clocked In"
+                      : "You are currently Clocked Out"}
+                  </span>
+                  {/* Pulsing dot indicator */}
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span
+                      className={clsx(
+                        "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                        isClockedIn ? "bg-green-300" : "bg-red-300"
+                      )}
+                    ></span>
+                    <span
+                      className={clsx(
+                        "relative inline-flex rounded-full h-2 w-2",
+                        isClockedIn ? "bg-green-100" : "bg-red-100"
+                      )}
+                    ></span>
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
 
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleAction("clock-in")}
-                        disabled={isClockedIn || actionLoading !== "idle"}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                        aria-disabled={isClockedIn || actionLoading !== "idle"}
-                      >
-                        <Clock8 /> Clock In
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        onClick={() => handleAction("clock-out")}
-                        disabled={!isClockedIn || actionLoading !== "idle"}
-                        className="w-full bg-red-600 hover:bg-red-700"
-                        aria-disabled={!isClockedIn || actionLoading !== "idle"}
-                      >
-                        <Clock3 /> Clock Out
-                      </Button>
-                    </div>
+              <DropdownMenuContent
+                side="bottom"
+                align="end"
+                className="min-w-[180px]"
+              >
+                <div className="p-2">
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Attendance
                   </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
 
-            {(session?.user?.role === ADMINROLES.SUPERADMIN ||
-              session?.user?.role === ADMINROLES.ADMIN) && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setReadyCheckOpen(true)}
-              >
-                Ready Check <CheckSquare className="ml-2" />
-              </Button>
-            )}
-            <Button size={"sm"} variant={"outline"} onClick={openSearch}>
-              Search <Kbd className="ml-1">Ctrl</Kbd>
-              <Kbd className="ml-1">K</Kbd>
-            </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleAction("clock-in")}
+                      disabled={isClockedIn || actionLoading !== "idle"}
+                      className="w-full bg-green-600 hover:bg-green-700 justify-start"
+                      aria-disabled={isClockedIn || actionLoading !== "idle"}
+                    >
+                      <Clock8 className="h-4 w-4 mr-2" /> Clock In
+                    </Button>
 
-            <NotificationDropdown />
+                    <Button
+                      size="sm"
+                      onClick={() => handleAction("clock-out")}
+                      disabled={!isClockedIn || actionLoading !== "idle"}
+                      className="w-full bg-red-600 hover:bg-red-700 justify-start"
+                      aria-disabled={!isClockedIn || actionLoading !== "idle"}
+                    >
+                      <Clock3 className="h-4 w-4 mr-2" /> Clock Out
+                    </Button>
+                  </div>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
-            <ModeToggle />
-          </nav>
-
-          {/* Mobile actions */}
-          <nav className="flex md:hidden items-center gap-1 ml-auto">
-            {(session?.user?.role === ADMINROLES.SUPERADMIN ||
-              session?.user?.role === ADMINROLES.ADMIN) && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="p-2"
-                title="Ready Check"
-                aria-label="Ready Check"
-                onClick={() => setReadyCheckOpen(true)}
-              >
-                <CheckSquare />
-              </Button>
-            )}
+          {isAdmin && (
             <Button
-              size="sm"
-              variant={isClockedIn ? "destructive" : "default"}
-              className="p-2"
-              title={isClockedIn ? "Clock Out" : "Clock In"}
-              aria-label={isClockedIn ? "Clock Out" : "Clock In"}
-              onClick={() =>
-                handleAction(isClockedIn ? "clock-out" : "clock-in")
-              }
-              disabled={clockLoading}
-            >
-              <Clock8 />
-            </Button>
-
-            <Button
-              size="sm"
               variant="outline"
-              className="p-2"
-              title="Search"
-              aria-label="Search"
-              onClick={openSearch}
+              size="sm"
+              onClick={() => setReadyCheckOpen(true)}
+              className="gap-2"
             >
-              <SearchIcon />
+              Ready Check <CheckSquare className="h-4 w-4" />
             </Button>
+          )}
 
-            <NotificationDropdown />
-            <ModeToggle />
-            <ReadyCheckTimerDialog
-              open={readyCheckOpen}
-              onOpenChange={setReadyCheckOpen}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={openSearch}
+            className="gap-2"
+          >
+            Search
+            <Kbd className="hidden xl:inline-flex ml-1">Ctrl</Kbd>
+            <Kbd className="hidden xl:inline-flex ml-1">K</Kbd>
+          </Button>
+
+          <NotificationDropdown />
+          <ModeToggle />
+        </div>
+
+        {/* Mobile/Tablet Actions - Compact */}
+        <div className="flex lg:hidden items-center gap-1 ml-auto shrink-0">
+          {/* Clock Status Indicator (mobile) */}
+          {!clockLoading && (
+            <div
+              className={clsx(
+                "h-2 w-2 rounded-full shrink-0",
+                isClockedIn ? "bg-green-500" : "bg-red-500"
+              )}
+              title={isClockedIn ? "Clocked In" : "Clocked Out"}
             />
-          </nav>
+          )}
+
+          {/* More Menu for Mobile */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                aria-label="More options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" className="w-48">
+              {/* Clock In/Out */}
+              <div className="p-2">
+                <div className="text-xs text-muted-foreground mb-2">
+                  Attendance
+                </div>
+                <div className="flex flex-col gap-1">
+                  <DropdownMenuItem
+                    onClick={() => handleAction("clock-in")}
+                    disabled={
+                      isClockedIn || actionLoading !== "idle" || clockLoading
+                    }
+                    className="cursor-pointer"
+                  >
+                    <Clock8 className="h-4 w-4 mr-2" />
+                    Clock In
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => handleAction("clock-out")}
+                    disabled={
+                      !isClockedIn || actionLoading !== "idle" || clockLoading
+                    }
+                    className="cursor-pointer"
+                  >
+                    <Clock3 className="h-4 w-4 mr-2" />
+                    Clock Out
+                  </DropdownMenuItem>
+                </div>
+              </div>
+
+              <DropdownMenuSeparator />
+
+              {/* Search */}
+              <DropdownMenuItem onClick={openSearch} className="cursor-pointer">
+                <SearchIcon className="h-4 w-4 mr-2" />
+                Search
+              </DropdownMenuItem>
+
+              {/* Ready Check (Admin only) */}
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setReadyCheckOpen(true)}
+                    className="cursor-pointer"
+                  >
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Ready Check
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <NotificationDropdown />
+          <ModeToggle />
         </div>
       </nav>
+
+      <ReadyCheckTimerDialog
+        open={readyCheckOpen}
+        onOpenChange={setReadyCheckOpen}
+      />
     </header>
   );
 };
