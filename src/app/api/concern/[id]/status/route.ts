@@ -11,15 +11,9 @@ export async function PATCH(
 ) {
   const id = (await params).id;
   const session = await getServerSession(authOptions);
-  if (
-    !session?.user ||
-    (session.user.role !== ADMINROLES.ADMIN &&
-      session.user.role !== ADMINROLES.SUPERADMIN)
-  ) {
-    return NextResponse.json(
-      { error: "Unauthorized only ADMINS can update status" },
-      { status: 403 }
-    );
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { status } = await req.json();
@@ -28,14 +22,39 @@ export async function PATCH(
   }
 
   try {
-    // 1. Update the concern status (get casinoGroup for channel)
-    const concern = await prisma.concern.update({
+    // 1. Fetch the concern to check the creator
+    const concern = await prisma.concern.findUnique({
+      where: { id },
+      include: { casinoGroup: true },
+    });
+
+    if (!concern) {
+      return NextResponse.json({ error: "Concern not found" }, { status: 404 });
+    }
+
+    // 2. Check authorization:  creator, admin, or superadmin
+    const isCreator = concern.userId === session.user.id;
+    const isAdmin = session.user.role === ADMINROLES.ADMIN;
+    const isSuperAdmin = session.user.role === ADMINROLES.SUPERADMIN;
+
+    if (!isCreator && !isAdmin && !isSuperAdmin) {
+      return NextResponse.json(
+        {
+          error:
+            "Unauthorized.  Only the creator, admins, or superadmins can update status",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. Update the concern status
+    const updatedConcern = await prisma.concern.update({
       where: { id },
       data: { status },
       include: { casinoGroup: true },
     });
 
-    // 2. Log this status change in ConcernLogs
+    // 4. Log this status change in ConcernLogs
     await prisma.concernLogs.create({
       data: {
         action: status,
@@ -44,22 +63,22 @@ export async function PATCH(
       },
     });
 
-    // 3. Get updated pending count for this casinoGroup
+    // 5. Get updated pending count for this casinoGroup
     const pendingCount = await prisma.concern.count({
       where: {
         status: "PENDING",
-        casinoGroupId: concern.casinoGroupId,
+        casinoGroupId: updatedConcern.casinoGroupId,
       },
     });
 
-    // 4. Emit Pusher event for the clients
+    // 6. Emit Pusher event for the clients
     await pusher.trigger(
-      `concern-${concern.casinoGroup.name.toLowerCase()}`,
+      `concern-${updatedConcern.casinoGroup.name.toLowerCase()}`,
       "concern-pending-count",
       { count: pendingCount }
     );
 
-    return NextResponse.json({ success: true, concern });
+    return NextResponse.json({ success: true, concern: updatedConcern });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "An error occurred" },

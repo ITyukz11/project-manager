@@ -11,12 +11,9 @@ export async function PATCH(
 ) {
   const id = (await params).id;
   const session = await getServerSession(authOptions);
-  if (
-    !session?.user ||
-    (session.user.role !== ADMINROLES.ADMIN &&
-      session.user.role !== ADMINROLES.SUPERADMIN)
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { status } = await req.json();
@@ -25,14 +22,39 @@ export async function PATCH(
   }
 
   try {
-    // 1. Update the concern status (get casinoGroup for channel)
-    const task = await prisma.task.update({
+    // 1. Fetch the task to check the creator
+    const task = await prisma.task.findUnique({
+      where: { id },
+      include: { casinoGroup: true },
+    });
+
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    // 2. Check authorization: creator, admin, or superadmin
+    const isCreator = task.userId === session.user.id;
+    const isAdmin = session.user.role === ADMINROLES.ADMIN;
+    const isSuperAdmin = session.user.role === ADMINROLES.SUPERADMIN;
+
+    if (!isCreator && !isAdmin && !isSuperAdmin) {
+      return NextResponse.json(
+        {
+          error:
+            "Unauthorized.  Only the creator, admins, or superadmins can update status",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 3. Update the task status
+    const updatedTask = await prisma.task.update({
       where: { id },
       data: { status },
       include: { casinoGroup: true },
     });
 
-    // 2. Log this status change in ConcernLogs
+    // 4. Log this status change in TaskLogs
     await prisma.taskLogs.create({
       data: {
         action: status,
@@ -41,22 +63,22 @@ export async function PATCH(
       },
     });
 
-    // 3. Get updated pending count for this casinoGroup
+    // 5. Get updated pending count for this casinoGroup
     const pendingCount = await prisma.task.count({
       where: {
         status: "PENDING",
-        casinoGroupId: task.casinoGroupId,
+        casinoGroupId: updatedTask.casinoGroupId,
       },
     });
 
-    // 4. Emit Pusher event for the clients
+    // 6. Emit Pusher event for the clients
     await pusher.trigger(
-      `task-${task.casinoGroup.name.toLowerCase()}`,
+      `task-${updatedTask.casinoGroup.name.toLowerCase()}`,
       "task-pending-count",
       { count: pendingCount }
     );
 
-    return NextResponse.json({ success: true, task });
+    return NextResponse.json({ success: true, task: updatedTask });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "An error occurred" },
