@@ -44,7 +44,9 @@ export const attendanceColumns: ColumnDef<AttendanceWithUser>[] = [
           ) : (
             <span className="font-medium truncate">{display}</span>
           )}
-          <span className="text-xs text-muted-foreground">@{role || "—"}</span>
+          <span className="text-xs text-muted-foreground italic">
+            {role || "—"}
+          </span>
         </div>
       );
     },
