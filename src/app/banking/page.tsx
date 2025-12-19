@@ -355,7 +355,7 @@ export default function BankingPage() {
                           setSelectedPayment(method.id as PaymentMethod)
                         }
                       >
-                        <CardContent className="sm:p-0 flex flex-col items-center justify-center ">
+                        <CardContent className="p-0 flex flex-col items-center justify-center ">
                           <Image
                             src={method.icon}
                             alt={method.name}

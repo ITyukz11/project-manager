@@ -1,24 +1,34 @@
-"use client"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useEffect, useState } from "react"
-import { Spinner } from "@/components/ui/spinner"
-import { NewForgotPasswordDialog } from "./new-pass-forgot"
+"use client";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useEffect, useState } from "react";
+import { Spinner } from "@/components/ui/spinner";
+import { NewForgotPasswordDialog } from "./new-pass-forgot";
 
 interface ForgotPasswordDialogProps {
-  open: boolean
-  setClose: () => void
+  open: boolean;
+  setClose: () => void;
 }
 
-export function ForgotPasswordDialog({ open, setClose }: ForgotPasswordDialogProps) {
-  const [email, setEmail] = useState<string>("")
+export function ForgotPasswordDialog({
+  open,
+  setClose,
+}: ForgotPasswordDialogProps) {
+  const [email, setEmail] = useState<string>("");
 
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [confirmedEmail, setConfirmedEmail] = useState<boolean>(false)
+  const [confirmedEmail, setConfirmedEmail] = useState<boolean>(false);
 
   // const handleSubmit = async (e: React.FormEvent) => {
   //     e.preventDefault();
@@ -46,46 +56,46 @@ export function ForgotPasswordDialog({ open, setClose }: ForgotPasswordDialogPro
   // };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
     try {
       const res = await fetch("/api/user/forgot-password", {
         method: "POST",
-        body: JSON.stringify({ email })
-      })
+        body: JSON.stringify({ email }),
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Something went wrong")
-        return
+        setError(data.error || "Something went wrong");
+        return;
       }
 
-      setConfirmedEmail(true)
+      setConfirmedEmail(true);
     } catch (err: unknown) {
-      setError("Failed to send reset code. Try again.")
+      setError("Failed to send reset code. Try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     if (error) {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [error])
+  }, [error]);
 
   const avoidDefaultDomBehavior = (e: Event) => {
-    e.preventDefault()
-  }
+    e.preventDefault();
+  };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === "Escape" || event.keyCode === 27) {
-      event.stopPropagation()
+      event.stopPropagation();
     }
-  }
+  };
 
   return (
     <>
@@ -97,9 +107,12 @@ export function ForgotPasswordDialog({ open, setClose }: ForgotPasswordDialogPro
           onKeyDown={handleKeyDown}
         >
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Forgot Your Password?</DialogTitle>
+            <DialogTitle className="text-lg font-semibold">
+              Forgot Your Password?
+            </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
-              To reset your password, please enter the email associated with your account.
+              To reset your password, please enter the email associated with
+              your account.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit}>
@@ -108,7 +121,13 @@ export function ForgotPasswordDialog({ open, setClose }: ForgotPasswordDialogPro
                 <Label htmlFor="email" className="text-right">
                   Email
                 </Label>
-                <Input id="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-3" disabled={loading} />
+                <Input
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="col-span-3"
+                  disabled={loading}
+                />
               </div>
             </div>
             <DialogFooter className="flex justify-between flex-row items-center">
@@ -127,5 +146,5 @@ export function ForgotPasswordDialog({ open, setClose }: ForgotPasswordDialogPro
         setCloseForgotPassDialog={() => setClose()}
       />
     </>
-  )
+  );
 }
