@@ -9,7 +9,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,7 +53,8 @@ export default function Page() {
   const { remittance, isLoading, error, mutate } = useRemittanceById(
     id as string
   );
-  const [comment, setComment] = useState("");
+  const [value, setValue] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { usersData } = useUsers(casinogroup?.toLocaleString());
   const { data: session } = useSession();
@@ -101,258 +102,287 @@ export default function Page() {
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  async function handleCommentSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!comment.trim() && attachments.length === 0) return;
-    setSubmitting(true);
+  const handleCommentSend = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!inputValue.trim() && attachments.length === 0) return;
+      setSubmitting(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("message", comment);
-      attachments.forEach((file) => formData.append("attachment", file));
+      try {
+        const formData = new FormData();
+        formData.append("message", inputValue);
+        attachments.forEach((file) => formData.append("attachment", file));
 
-      const res = await fetch(`/api/remittance/${id}/thread`, {
-        method: "POST",
-        body: formData,
-      });
+        const res = await fetch(`/api/remittance/${id}/thread`, {
+          method: "POST",
+          body: formData,
+        });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to post comment");
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to post comment");
+        }
+
+        setInputValue("");
+        setValue([]);
+        setAttachments([]);
+        mutate();
+        toast.success("Comment posted!");
+      } catch (e: any) {
+        toast.error(e.message);
+      } finally {
+        setSubmitting(false);
       }
+    },
+    [inputValue, attachments, id, mutate]
+  );
 
-      setComment("");
-      setAttachments([]);
-      mutate();
-      toast.success("Comment posted!");
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setSubmitting(false);
-    }
+  // Custom filter that matches commands starting with the search term
+  function onFilter(options: string[], term: string) {
+    return options.filter((option) =>
+      option.toLowerCase().startsWith(term.toLowerCase())
+    );
   }
 
   const canUpdateStatus = session?.user.id === remittance?.userId;
 
+  console.log("asd inputValue:", inputValue);
+  console.log("asd value:", value);
   // Comments Section Component (reusable)
-  const CommentsSection = () => (
-    <div className="flex flex-col h-full">
-      <div className="mb-3 md:mb-4 text-lg md:text-xl font-semibold text-foreground flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 md:hidden" />
-        Comments
-      </div>
-      <ScrollArea className="flex-1 min-h-[200px] max-h-[400px] md:max-h-[calc(100vh-300px)] pr-2">
-        {!isLoading &&
-          remittance &&
-          remittance.remittanceThreads.length === 0 && (
-            <div className="flex flex-col h-full text-muted-foreground text-sm">
-              <span className="italic">
-                No comments yet.
-                <br />
-              </span>
+  const CommentsSection = useCallback(
+    () => (
+      <div className="flex flex-col h-full">
+        <div className="mb-3 md:mb-4 text-lg md:text-xl font-semibold text-foreground flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 md:hidden" />
+          Comments
+        </div>
+        <ScrollArea className="flex-1 min-h-[200px] max-h-[400px] md:max-h-[calc(100vh-300px)] pr-2">
+          {!isLoading &&
+            remittance &&
+            remittance.remittanceThreads.length === 0 && (
+              <div className="flex flex-col h-full text-muted-foreground text-sm">
+                <span className="italic">
+                  No comments yet.
+                  <br />
+                </span>
+              </div>
+            )}
+
+          {!isLoading &&
+            remittance &&
+            remittance.remittanceThreads.length > 0 && (
+              <ul className="flex flex-col gap-3">
+                {remittance.remittanceThreads.map((thread) => {
+                  const author = thread.author?.name || "—";
+                  const role = thread.author?.role;
+                  const isUser = session?.user?.id === thread.author?.id;
+                  const dateTime = formatDate(
+                    thread.createdAt,
+                    "MM/dd/yy 'at' hh: mm a"
+                  );
+
+                  return (
+                    <li
+                      key={thread.id}
+                      className="flex flex-col items-start overflow-visible px-1 w-full"
+                    >
+                      <div
+                        className={`flex items-end mb-1 w-full ${
+                          isUser ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        {!isUser && (
+                          <UserCircle className="text-gray-400 mr-2 w-5 h-5 shrink-0" />
+                        )}
+                        <div
+                          className={`rounded-xl px-3 md:px-4 py-2 text-sm md:text-base max-w-[85%] md:max-w-[75%] ${
+                            isUser
+                              ? "bg-black text-white"
+                              : "bg-gray-100 text-gray-900 dark:bg-neutral-900 dark:text-white"
+                          }`}
+                        >
+                          {thread.message}
+                          {/* Attachments:  display image previews, other files as download links */}
+                          {Array.isArray(thread.attachments) &&
+                            thread.attachments.length > 0 && (
+                              <div className="mt-2 flex flex-row flex-wrap gap-2">
+                                {thread.attachments.map((att) =>
+                                  att.mimetype?.startsWith("image/") ? (
+                                    <button
+                                      type="button"
+                                      key={att.id}
+                                      className="cursor-pointer block border rounded max-w-20 max-h-20 md:max-w-24 md:max-h-24 overflow-hidden focus:ring"
+                                      onClick={() => {
+                                        setPreviewImg(att.url);
+                                        setPreviewFilename(att.filename);
+                                      }}
+                                      style={{
+                                        padding: 0,
+                                        background: "none",
+                                        border: "none",
+                                      }}
+                                    >
+                                      <img
+                                        src={att.url}
+                                        alt={att.filename}
+                                        className="object-cover w-full h-full"
+                                        style={{
+                                          maxWidth: "5rem",
+                                          maxHeight: "5rem",
+                                        }}
+                                      />
+                                    </button>
+                                  ) : (
+                                    <a
+                                      href={att.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      key={att.id}
+                                      className="flex items-center gap-1 text-xs underline text-blue-500 dark:text-blue-400"
+                                    >
+                                      <Paperclip size={16} />{" "}
+                                      {att.filename ?? att.url}
+                                    </a>
+                                  )
+                                )}
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                      <div
+                        className={`w-full flex items-center ${
+                          isUser ? "justify-end pr-2" : "justify-start pl-7"
+                        }`}
+                      >
+                        <span className="text-xs text-muted-foreground dark:text-gray-400">
+                          {role} &middot; {author} &middot; {dateTime}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+        </ScrollArea>
+
+        {/* Comment form */}
+        <form
+          className="w-full mt-2"
+          onSubmit={handleCommentSend}
+          autoComplete="off"
+        >
+          {/* Image preview/removal - top row */}
+          {attachments.length > 0 && (
+            <div className="flex flex-row flex-wrap gap-2 items-center mb-2">
+              {attachments.map((att, idx) => (
+                <div
+                  key={idx}
+                  className="relative w-12 h-12 md:w-14 md:h-14 border rounded overflow-hidden"
+                >
+                  <img
+                    src={URL.createObjectURL(att)}
+                    alt={att.name}
+                    className="object-cover w-full h-full"
+                  />
+                  <button
+                    type="button"
+                    className="absolute top-0 right-0 bg-white bg-opacity-75 text-red-600 rounded p-0.5"
+                    style={{ lineHeight: 0 }}
+                    onClick={() => handleRemoveAttachment(idx)}
+                    tabIndex={-1}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
-        {!isLoading &&
-          remittance &&
-          remittance.remittanceThreads.length > 0 && (
-            <ul className="flex flex-col gap-3">
-              {remittance.remittanceThreads.map((thread) => {
-                const author = thread.author?.name || "—";
-                const role = thread.author?.role;
-                const isUser = session?.user?.id === thread.author?.id;
-                const dateTime = formatDate(
-                  thread.createdAt,
-                  "MM/dd/yy 'at' hh: mm a"
-                );
-
-                return (
-                  <li
-                    key={thread.id}
-                    className="flex flex-col items-start overflow-visible px-1 w-full"
-                  >
-                    <div
-                      className={`flex items-end mb-1 w-full ${
-                        isUser ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      {!isUser && (
-                        <UserCircle className="text-gray-400 mr-2 w-5 h-5 shrink-0" />
-                      )}
-                      <div
-                        className={`rounded-xl px-3 md:px-4 py-2 text-sm md:text-base max-w-[85%] md:max-w-[75%] ${
-                          isUser
-                            ? "bg-black text-white"
-                            : "bg-gray-100 text-gray-900 dark:bg-neutral-900 dark:text-white"
-                        }`}
-                      >
-                        {thread.message}
-                        {/* Attachments:  display image previews, other files as download links */}
-                        {Array.isArray(thread.attachments) &&
-                          thread.attachments.length > 0 && (
-                            <div className="mt-2 flex flex-row flex-wrap gap-2">
-                              {thread.attachments.map((att) =>
-                                att.mimetype?.startsWith("image/") ? (
-                                  <button
-                                    type="button"
-                                    key={att.id}
-                                    className="cursor-pointer block border rounded max-w-20 max-h-20 md:max-w-24 md:max-h-24 overflow-hidden focus:ring"
-                                    onClick={() => {
-                                      setPreviewImg(att.url);
-                                      setPreviewFilename(att.filename);
-                                    }}
-                                    style={{
-                                      padding: 0,
-                                      background: "none",
-                                      border: "none",
-                                    }}
-                                  >
-                                    <img
-                                      src={att.url}
-                                      alt={att.filename}
-                                      className="object-cover w-full h-full"
-                                      style={{
-                                        maxWidth: "5rem",
-                                        maxHeight: "5rem",
-                                      }}
-                                    />
-                                  </button>
-                                ) : (
-                                  <a
-                                    href={att.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    key={att.id}
-                                    className="flex items-center gap-1 text-xs underline text-blue-500 dark:text-blue-400"
-                                  >
-                                    <Paperclip size={16} />{" "}
-                                    {att.filename ?? att.url}
-                                  </a>
-                                )
-                              )}
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                    <div
-                      className={`w-full flex items-center ${
-                        isUser ? "justify-end pr-2" : "justify-start pl-7"
-                      }`}
-                    >
-                      <span className="text-xs text-muted-foreground dark:text-gray-400">
-                        {role} &middot; {author} &middot; {dateTime}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-      </ScrollArea>
-
-      {/* Comment form */}
-      <form
-        className="w-full mt-2"
-        onSubmit={handleCommentSend}
-        autoComplete="off"
-      >
-        {/* Image preview/removal - top row */}
-        {attachments.length > 0 && (
-          <div className="flex flex-row flex-wrap gap-2 items-center mb-2">
-            {attachments.map((att, idx) => (
-              <div
-                key={idx}
-                className="relative w-12 h-12 md:w-14 md:h-14 border rounded overflow-hidden"
+          {/* Mention + textarea, with paste & drop support */}
+          <div className="flex gap-2 w-full">
+            <Mention
+              trigger="@"
+              className="w-full"
+              value={value}
+              onValueChange={setValue}
+              inputValue={inputValue}
+              onInputValueChange={setInputValue}
+              onFilter={onFilter}
+            >
+              <MentionInput
+                asChild
+                placeholder="Type @ to mention a user…"
+                disabled={submitting}
+                className="h-16 md:h-20 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                onPaste={handlePasteDrop}
+                onDrop={handlePasteDrop}
               >
-                <img
-                  src={URL.createObjectURL(att)}
-                  alt={att.name}
-                  className="object-cover w-full h-full"
+                <Textarea
+                  className="resize-none min-h-12 text-sm md:text-base font-sans bg-card text-foreground dark:bg-neutral-900 dark:text-white border border-muted focus:border-blue-500 dark:focus:border-blue-400"
+                  rows={3}
                 />
-                <button
-                  type="button"
-                  className="absolute top-0 right-0 bg-white bg-opacity-75 text-red-600 rounded p-0.5"
-                  style={{ lineHeight: 0 }}
-                  onClick={() => handleRemoveAttachment(idx)}
-                  tabIndex={-1}
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Mention + textarea, with paste & drop support */}
-        <div className="flex gap-2 w-full">
-          <Mention
-            trigger="@"
-            className="w-full"
-            inputValue={comment}
-            onInputValueChange={setComment}
-          >
-            <MentionInput
-              asChild
-              placeholder="Type @ to mention a user…"
-              disabled={submitting}
-              className="h-16 md:h-20 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
-              onPaste={handlePasteDrop}
-              onDrop={handlePasteDrop}
-            >
-              <Textarea
-                className="resize-none min-h-12 text-sm md:text-base font-sans bg-card text-foreground dark:bg-neutral-900 dark:text-white border border-muted focus:border-blue-500 dark:focus:border-blue-400"
-                rows={3}
+              </MentionInput>
+              <MentionContent>
+                {usersData?.map((user) => (
+                  <MentionItem
+                    key={user.id}
+                    value={user.username}
+                    className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900"
+                  >
+                    <span className="font-medium text-sm text-foreground dark:text-blue-200">
+                      {user.username}
+                    </span>
+                    <Label className="text-xs italic text-muted-foreground dark:text-blue-300">
+                      {user.role}
+                    </Label>
+                  </MentionItem>
+                ))}
+              </MentionContent>
+            </Mention>
+            <div className="flex flex-col gap-1.5 md:gap-2 shrink-0">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                ref={fileInputRef}
+                onChange={handleFileChange}
               />
-            </MentionInput>
-            <MentionContent>
-              {usersData?.map((user) => (
-                <MentionItem
-                  key={user.id}
-                  value={user.username}
-                  className="flex items-center gap-2 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900"
-                >
-                  <span className="font-medium text-sm text-foreground dark:text-blue-200">
-                    {user.username}
-                  </span>
-                  <Label className="text-xs italic text-muted-foreground dark:text-blue-300">
-                    {user.role}
-                  </Label>
-                </MentionItem>
-              ))}
-            </MentionContent>
-          </Mention>
-          <div className="flex flex-col gap-1.5 md:gap-2 shrink-0">
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={submitting}
-              className="h-8 w-8 p-0 md:h-10 md:w-10"
-            >
-              <Upload className="h-4 w-4" />
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={
-                submitting || (!comment.trim() && attachments.length === 0)
-              }
-              className="h-8 w-8 p-0 md:h-10 md:w-10 mt-auto"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={submitting}
+                className="h-8 w-8 p-0 md:h-10 md:w-10"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  submitting || (!inputValue.trim() && attachments.length === 0)
+                }
+                className="h-8 w-8 p-0 md:h-10 md:w-10 mt-auto"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </form>
-    </div>
+        </form>
+      </div>
+    ),
+    [
+      isLoading,
+      remittance,
+      handleCommentSend,
+      attachments,
+      value,
+      inputValue,
+      submitting,
+      usersData,
+      session?.user?.id,
+    ]
   );
 
   // Details Section Component
@@ -523,7 +553,7 @@ export default function Page() {
           </TabsContent>
           <TabsContent value="comments" className="mt-0">
             <div className="px-2 h-[calc(100vh-280px)] flex flex-col">
-              <CommentsSection />
+              {CommentsSection()}
             </div>
           </TabsContent>
         </Tabs>
@@ -552,7 +582,7 @@ export default function Page() {
             minSize={35}
             className="px-6 pb-2 flex flex-col"
           >
-            <CommentsSection />
+            {CommentsSection()}
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

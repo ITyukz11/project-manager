@@ -51,7 +51,8 @@ export default function Page() {
   const { id } = useParams();
   const router = useRouter();
   const { concern, isLoading, error, mutate } = useConcernById(id as string);
-  const [comment, setComment] = useState("");
+  const [value, setValue] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { usersData } = useUsers();
   const { data: session } = useSession();
@@ -101,12 +102,12 @@ export default function Page() {
 
   async function handleCommentSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!comment.trim() && attachments.length === 0) return;
+    if (!inputValue.trim() && attachments.length === 0) return;
     setSubmitting(true);
 
     try {
       const formData = new FormData();
-      formData.append("message", comment);
+      formData.append("message", inputValue);
       attachments.forEach((file) => formData.append("attachment", file));
 
       const res = await fetch(`/api/concern/${id}/thread`, {
@@ -119,7 +120,8 @@ export default function Page() {
         throw new Error(data.error || "Failed to post comment");
       }
 
-      setComment("");
+      setInputValue("");
+      setValue([]);
       setAttachments([]);
       mutate();
       toast.success("Comment posted!");
@@ -134,6 +136,13 @@ export default function Page() {
     session?.user.id === concern?.userId ||
     (session?.user?.id &&
       concern?.tagUsers.some((user) => user.id === session.user.id));
+
+  // Custom filter that matches commands starting with the search term
+  function onFilter(options: string[], term: string) {
+    return options.filter((option) =>
+      option.toLowerCase().startsWith(term.toLowerCase())
+    );
+  }
 
   // Comments Section Component (reusable)
   const CommentsSection = () => (
@@ -285,8 +294,11 @@ export default function Page() {
           <Mention
             trigger="@"
             className="w-full"
-            inputValue={comment}
-            onInputValueChange={setComment}
+            value={value}
+            onValueChange={setValue}
+            inputValue={inputValue}
+            onInputValueChange={setInputValue}
+            onFilter={onFilter}
           >
             <MentionInput
               asChild
@@ -340,9 +352,9 @@ export default function Page() {
               type="submit"
               size="sm"
               disabled={
-                submitting || (!comment.trim() && attachments.length === 0)
+                submitting || (!inputValue.trim() && attachments.length === 0)
               }
-              className="h-8 w-8 p-0 md:h-10 md: w-10 mt-auto"
+              className="h-8 w-8 p-0 md:h-10 md:w-10 mt-auto"
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -541,7 +553,7 @@ export default function Page() {
           </TabsContent>
           <TabsContent value="comments" className="mt-0">
             <div className="px-2 h-[calc(100vh-280px)] flex flex-col">
-              <CommentsSection />
+              {CommentsSection()}
             </div>
           </TabsContent>
         </Tabs>
@@ -570,7 +582,7 @@ export default function Page() {
             minSize={35}
             className="px-6 pb-2 flex flex-col"
           >
-            <CommentsSection />
+            {CommentsSection()}
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

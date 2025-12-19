@@ -55,7 +55,8 @@ export default function Page() {
 
   const router = useRouter();
   const { cashout, isLoading, error, mutate } = useCashoutById(id as string);
-  const [comment, setComment] = useState("");
+  const [value, setValue] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { usersData } = useUsers(casinogroup?.toLocaleString());
   const { data: session } = useSession();
@@ -106,12 +107,12 @@ export default function Page() {
 
   async function handleCommentSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!comment.trim() && attachments.length === 0) return;
+    if (!inputValue.trim() && attachments.length === 0) return;
     setSubmitting(true);
 
     try {
       const formData = new FormData();
-      formData.append("message", comment);
+      formData.append("message", inputValue);
       attachments.forEach((file) => formData.append("attachment", file));
 
       const res = await fetch(`/api/cashout/${id}/thread`, {
@@ -124,7 +125,8 @@ export default function Page() {
         throw new Error(data.error || "Failed to post comment");
       }
 
-      setComment("");
+      setInputValue("");
+      setValue([]);
       setAttachments([]);
       mutate();
       toast.success("Comment posted!");
@@ -139,6 +141,13 @@ export default function Page() {
     session?.user?.role === ADMINROLES.ADMIN ||
     session?.user?.role === ADMINROLES.SUPERADMIN ||
     session?.user?.role === ADMINROLES.ACCOUNTING;
+
+  // Custom filter that matches commands starting with the search term
+  function onFilter(options: string[], term: string) {
+    return options.filter((option) =>
+      option.toLowerCase().startsWith(term.toLowerCase())
+    );
+  }
 
   // Comments Section Component (reusable)
   const CommentsSection = () => (
@@ -286,8 +295,11 @@ export default function Page() {
           <Mention
             trigger="@"
             className="w-full"
-            inputValue={comment}
-            onInputValueChange={setComment}
+            value={value}
+            onValueChange={setValue}
+            inputValue={inputValue}
+            onInputValueChange={setInputValue}
+            onFilter={onFilter}
           >
             <MentionInput
               asChild
@@ -341,7 +353,8 @@ export default function Page() {
               type="submit"
               size="sm"
               disabled={
-                submitting || (!comment.trim() && attachments.length === 0)
+                submitting ||
+                (inputValue.trim() === "" && attachments.length === 0)
               }
               className="h-8 w-8 p-0 md:h-10 md:w-10 mt-auto"
             >
@@ -527,7 +540,7 @@ export default function Page() {
           </TabsContent>
           <TabsContent value="comments" className="mt-0">
             <div className="px-2 h-[calc(100vh-280px)] flex flex-col">
-              <CommentsSection />
+              {CommentsSection()}
             </div>
           </TabsContent>
         </Tabs>
@@ -556,7 +569,7 @@ export default function Page() {
             minSize={35}
             className="px-6 pb-2 flex flex-col"
           >
-            <CommentsSection />
+            {CommentsSection()}
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
