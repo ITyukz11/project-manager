@@ -404,6 +404,7 @@ export default function BankingPage() {
             <TabsTrigger
               value="history"
               className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+              onClick={fetchTransactionHistory}
             >
               History
             </TabsTrigger>
@@ -721,7 +722,7 @@ export default function BankingPage() {
                   <div className="space-y-3">
                     {transactions.map((transaction) => (
                       <Card key={transaction.id} className="overflow-hidden">
-                        <CardContent className="p-4">
+                        <CardContent>
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
                               <Badge
