@@ -8,6 +8,7 @@ import {
   UserCircle,
   X,
   MessageSquare,
+  ExternalLink,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -588,11 +589,24 @@ export default function Page() {
             </DialogTitle>
           </DialogHeader>
           {previewImg && (
-            <img
-              src={previewImg}
-              alt={previewFilename || "preview"}
-              className="mx-auto block max-h-[60vh] md:max-h-[75vh] w-auto object-contain rounded shadow"
-            />
+            <>
+              <img
+                src={previewImg}
+                alt={previewFilename || "preview"}
+                className="mx-auto block max-h-[60vh] md:max-h-[75vh] w-auto object-contain rounded shadow"
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(previewImg, "_blank")}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open in New Tab
+                </Button>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
