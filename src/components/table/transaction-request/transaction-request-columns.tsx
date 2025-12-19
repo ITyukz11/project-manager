@@ -111,7 +111,7 @@ export const transactionRequestColumns: ColumnDef<
       }
 
       return (
-        <div className="max-w-[200px] text-xs truncate" title={bankDetails}>
+        <div className="text-xs" title={bankDetails}>
           {bankDetails}
         </div>
       );
