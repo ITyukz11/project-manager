@@ -104,6 +104,11 @@ export async function GET(req: Request) {
     const users = await prisma.user.findMany({
       where: whereClause,
       orderBy: { createdAt: "desc" },
+      include: {
+        casinoGroups: {
+          select: { name: true },
+        },
+      },
     });
 
     return NextResponse.json(users, { status: 200 });

@@ -7,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { UserActionMenu } from "./UserActionMenu";
 
-export const userColumns: ColumnDef<User>[] = [
+export type UserWithCasinoGroups = User & {
+  casinoGroups?: { id: string; name: string }[];
+};
+
+export const userColumns: ColumnDef<UserWithCasinoGroups>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -42,23 +46,73 @@ export const userColumns: ColumnDef<User>[] = [
       );
     },
   },
+
+  {
+    id: "casinoGroups",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Casino Groups" />
+    ),
+    accessorFn: (row) =>
+      row.casinoGroups?.map((cg) => cg.name).join(", ") || "—",
+    cell: ({ row }) => {
+      const casinoGroups = row.original.casinoGroups;
+
+      if (!casinoGroups || casinoGroups.length === 0) {
+        return (
+          <span className="text-xs text-muted-foreground italic">
+            No groups assigned
+          </span>
+        );
+      }
+
+      return (
+        <div className="flex flex-wrap gap-1">
+          {casinoGroups.map((group, index) => (
+            <Badge
+              key={index}
+              variant="outline"
+              className="text-xs font-normal"
+            >
+              {group.name}
+            </Badge>
+          ))}
+        </div>
+      );
+    },
+    filterFn: (row, id, value) => {
+      const casinoGroups = row.original.casinoGroups;
+      if (!casinoGroups || casinoGroups.length === 0) return false;
+
+      const groupNames = casinoGroups.map((cg) => cg.name.toLowerCase());
+      return groupNames.some((name) => name.includes(value.toLowerCase()));
+    },
+  },
+
   {
     accessorKey: "messengerLink",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Messenger Link" />
     ),
     cell: ({ row }) => {
+      const link = row.getValue("messengerLink") as string | null;
+
+      if (!link) {
+        return <span className="text-xs text-muted-foreground">—</span>;
+      }
+
       return (
         <Link
-          href={row.getValue("messengerLink") ?? "#"}
-          className="text-blue-500 dark:text-blue-400"
+          href={link}
+          className="text-blue-500 dark:text-blue-400 hover:underline text-xs truncate max-w-[200px] block"
           target="_blank"
+          rel="noopener noreferrer"
         >
-          {row.getValue("messengerLink")}
+          {link}
         </Link>
       );
     },
   },
+
   {
     accessorKey: "active",
     header: ({ column }) => (
@@ -87,6 +141,7 @@ export const userColumns: ColumnDef<User>[] = [
       );
     },
   },
+
   {
     accessorKey: "createdAt",
     header: ({ column }) => (
@@ -102,6 +157,7 @@ export const userColumns: ColumnDef<User>[] = [
       return <span>{formattedDate}</span>;
     },
   },
+
   {
     id: "action",
     header: ({ column }) => (
