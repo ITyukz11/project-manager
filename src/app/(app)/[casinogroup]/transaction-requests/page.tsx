@@ -13,66 +13,84 @@ import { useSession } from "next-auth/react";
 import { useParams } from "next/navigation";
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { transactionRequestColumns } from "@/components/table/transaction-request/transaction-request-columns";
+import { useState } from "react";
+import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
 
 export default function Page() {
   const { data: session } = useSession();
   const params = useParams();
   const casinoGroup = params.casinogroup;
 
+  const [viewRow, setViewRow] = useState(false);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+
   console.log("casinoGroup: ", casinoGroup);
   const { transactionRequests, isLoading, error } = useTransactionRequest(
     casinoGroup?.toLocaleString() || ""
   );
-  const hiddenColumns = ["messengerLink"];
-  // Advanced Filter Sheet UI
+  const hiddenColumns = ["bankDetails", "action"];
 
-  console.log("Current User Session: ", session);
+  console.log("Current User Session:  ", session);
+
   return (
-    <Card>
-      <CardContent>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">
-            {casinoGroup?.toLocaleString().toUpperCase()} Transaction Request
-          </h1>
+    <>
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">
+              {casinoGroup?.toLocaleString().toUpperCase()} Transaction Request
+            </h1>
 
-          <div className="flex flex-row gap-2 items-center">
-            {error && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <TriangleAlert className="text-red-500" />
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  sideOffset={6}
-                  className="max-w-xs"
-                >
-                  <div className="text-sm text-red-400 dark:text-red-700">
-                    {error?.message ||
-                      "Error loading accounts. Please try again later."}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            <div className="flex flex-row gap-2 items-center">
+              {error && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TriangleAlert className="text-red-500" />
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    sideOffset={6}
+                    className="max-w-xs"
+                  >
+                    <div className="text-sm text-red-400 dark:text-red-700">
+                      {error?.message ||
+                        "Error loading accounts. Please try again later."}
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Table */}
-        {isLoading ? (
-          <div className="w-full flex flex-col gap-2 items-center">
-            <Skeleton className="w-full h-10" />
-            <Skeleton className="w-full h-40" />
-          </div>
-        ) : (
-          <DataTable
-            data={transactionRequests}
-            columns={transactionRequestColumns}
-            allowSelectRow={false}
-            hiddenColumns={hiddenColumns}
-            cursorRowSelect={false}
-            allowExportData={true}
-          />
-        )}
-      </CardContent>
-    </Card>
+          {/* Table */}
+          {isLoading ? (
+            <div className="w-full flex flex-col gap-2 items-center">
+              <Skeleton className="w-full h-10" />
+              <Skeleton className="w-full h-40" />
+            </div>
+          ) : (
+            <DataTable
+              data={transactionRequests}
+              columns={transactionRequestColumns}
+              hiddenColumns={hiddenColumns}
+              cursorRowSelect={true}
+              allowExportData={true}
+              onViewRowId={(id) => {
+                setTransactionId(id);
+                setViewRow(true);
+              }}
+              setAllowViewRow={() => setViewRow(true)}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Transaction Details Dialog */}
+      <TransactionDetailsDialog
+        open={viewRow}
+        onOpenChange={setViewRow}
+        transactionId={transactionId}
+      />
+    </>
   );
 }

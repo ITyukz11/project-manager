@@ -2,10 +2,30 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  XCircle,
+} from "lucide-react";
 import { CasinoGroup, TransactionRequest, User } from "@prisma/client";
 import { TransactionRequestActionMenu } from "./TransactionRequestAction";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
+
+const getStatusIcon = (status?: string) => {
+  switch (status) {
+    case "APPROVED":
+    case "COMPLETED":
+      return <CheckCircle2 className="h-4 w-4" />;
+    case "REJECTED":
+      return <XCircle className="h-4 w-4" />;
+    case "PENDING":
+      return <Clock className="h-4 w-4" />;
+    default:
+      return <AlertCircle className="h-4 w-4" />;
+  }
+};
 
 export const transactionRequestColumns: ColumnDef<
   TransactionRequest & { processedBy: User; casinoGroup: CasinoGroup }
@@ -111,7 +131,7 @@ export const transactionRequestColumns: ColumnDef<
       }
 
       return (
-        <div className="text-xs" title={bankDetails}>
+        <div className="max-w-[200px] text-xs truncate" title={bankDetails}>
           {bankDetails}
         </div>
       );
@@ -136,6 +156,7 @@ export const transactionRequestColumns: ColumnDef<
                 : "bg-red-500 hover:bg-red-600 text-white"
             }`}
           >
+            {getStatusIcon(status)}
             {status}
           </Badge>
           {row.original.processedBy && (
@@ -179,9 +200,9 @@ export const transactionRequestColumns: ColumnDef<
     cell: ({ row }) => {
       const remarks = row.original.remarks as string | null;
       return (
-        <span className="text-sm">
+        <div className="max-w-[200px] truncate text-sm">
           {remarks || <span className="text-muted-foreground">-</span>}
-        </span>
+        </div>
       );
     },
   },
