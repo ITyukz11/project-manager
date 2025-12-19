@@ -42,7 +42,7 @@ export function ReadyCheckViewDialog({ viewRowId, open, onOpenChange }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl w-[min(95vw,900px)]">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] w-[min(95vw,900px)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Ready Check Details</DialogTitle>
           <DialogDescription>
