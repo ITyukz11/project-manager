@@ -47,6 +47,7 @@ import {
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ADMINROLES } from "@/lib/types/role";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -133,10 +134,12 @@ export default function Page() {
     }
   }
 
-  const canUpdateStatus =
+  const isAllowed =
     session?.user.id === task?.userId ||
     (session?.user?.id &&
-      task?.tagUsers.some((user) => user.id === session.user.id));
+      task?.tagUsers.some((user) => user.id === session.user.id)) ||
+    session?.user?.role === ADMINROLES.ADMIN ||
+    session?.user?.role === ADMINROLES.SUPERADMIN;
 
   // Custom filter that matches commands starting with the search term
   function onFilter(options: string[], term: string) {
@@ -498,7 +501,7 @@ export default function Page() {
 
           {/* Admin Actions */}
           <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
-            {canUpdateStatus && (
+            {isAllowed && (
               <UpdateStatusDialog taskId={id} currentStatus={task?.status} />
             )}
             <Button

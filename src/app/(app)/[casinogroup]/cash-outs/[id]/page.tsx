@@ -138,7 +138,7 @@ export default function Page() {
     }
   }
 
-  const isAdmin =
+  const isAllowed =
     session?.user?.role === ADMINROLES.ADMIN ||
     session?.user?.role === ADMINROLES.SUPERADMIN ||
     session?.user?.role === ADMINROLES.ACCOUNTING;
@@ -485,7 +485,7 @@ export default function Page() {
 
           {/* Admin Actions */}
           <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
-            {isAdmin && (
+            {isAllowed && (
               <UpdateStatusDialog
                 cashoutId={id}
                 currentStatus={cashout?.status}

@@ -47,6 +47,7 @@ import {
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ADMINROLES } from "@/lib/types/role";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -145,10 +146,11 @@ export default function Page() {
     );
   }
 
-  const canUpdateStatus = session?.user.id === remittance?.userId;
+  const isAllowed =
+    session?.user.id === remittance?.userId ||
+    session?.user?.role === ADMINROLES.ADMIN ||
+    session?.user?.role === ADMINROLES.SUPERADMIN;
 
-  console.log("asd inputValue:", inputValue);
-  console.log("asd value:", value);
   // Comments Section Component (reusable)
   const CommentsSection = useCallback(
     () => (
@@ -496,7 +498,7 @@ export default function Page() {
 
           {/* Admin Actions */}
           <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
-            {canUpdateStatus && (
+            {isAllowed && (
               <UpdateStatusDialog
                 remittanceId={id}
                 currentStatus={remittance?.status}
