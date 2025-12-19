@@ -14,7 +14,8 @@ export async function PATCH(
   if (
     !session?.user ||
     (session.user.role !== ADMINROLES.ADMIN &&
-      session.user.role !== ADMINROLES.SUPERADMIN)
+      session.user.role !== ADMINROLES.SUPERADMIN &&
+      session.user.role !== ADMINROLES.ACCOUNTING)
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
