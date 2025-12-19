@@ -26,9 +26,18 @@ export async function POST(
     const message = formData.get("message");
     const attachmentFiles = formData.getAll("attachment") as File[];
 
-    if (!message || typeof message !== "string" || !message.trim()) {
+    // Filter valid attachment files
+    const validAttachments = attachmentFiles.filter(
+      (file) => file && typeof file === "object" && file.size > 0
+    );
+
+    // ✅ Require either a message OR at least one attachment
+    const hasMessage = message && typeof message === "string" && message.trim();
+    const hasAttachments = validAttachments.length > 0;
+
+    if (!hasMessage && !hasAttachments) {
       return NextResponse.json(
-        { error: "Message is required" },
+        { error: "Message or attachment is required" },
         { status: 400 }
       );
     }
@@ -38,19 +47,18 @@ export async function POST(
       return NextResponse.json({ error: "Concern not found" }, { status: 404 });
     }
 
-    // Create thread/comment
+    // Create thread/comment with optional message
     const thread = await prisma.concernThread.create({
       data: {
-        message: message.trim(),
+        message: hasMessage ? (message as string).trim() : "", // ✅ Allow empty message
         concernId: id,
         authorId: currentUser.id,
       },
     });
 
     // 🚀 Upload all files in parallel!
-    const uploadPromises = attachmentFiles
-      .filter((file) => file && typeof file === "object" && file.size > 0)
-      .map(async (file) => {
+    if (hasAttachments) {
+      const uploadPromises = validAttachments.map(async (file) => {
         const blob = await put(file.name, file, {
           access: "public",
           addRandomSuffix: true,
@@ -61,9 +69,8 @@ export async function POST(
           mimetype: file.type || "",
         };
       });
-    const attachmentData = await Promise.all(uploadPromises);
+      const attachmentData = await Promise.all(uploadPromises);
 
-    if (attachmentData.length > 0) {
       await prisma.concernAttachment.createMany({
         data: attachmentData.map((att) => ({
           url: att.url,

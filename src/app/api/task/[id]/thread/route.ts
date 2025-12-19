@@ -23,9 +23,13 @@ export async function POST(
     const message = formData.get("message");
     const attachmentFiles = formData.getAll("attachment") as File[];
 
-    if (!message || typeof message !== "string" || !message.trim()) {
+    if (
+      !message ||
+      typeof message !== "string" ||
+      (!message.trim() && attachmentFiles.length === 0)
+    ) {
       return NextResponse.json(
-        { error: "Message is required" },
+        { error: "Message or attachment is required" },
         { status: 400 }
       );
     }
