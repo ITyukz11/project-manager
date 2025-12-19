@@ -4,6 +4,11 @@ model TransactionRequest {
   username      String   // Anonymous player username (not a User in system)
   amount        Float
   bankDetails   String?  // Required for CASHOUT
+
+  bankName     String?  // For CASHOUT
+  accountName  String?  // For CASHOUT
+  accountNumber String? // For CASHOUT
+  
   paymentMethod String?  // GCash, Maya, GoTyme
   status        String   @default("PENDING") // PENDING, COMPLETED, REJECTED
 

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -29,6 +28,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "date-fns";
 import { ReceiptButton } from "./receipt-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type PaymentMethod = "QRPH" | null;
 
@@ -50,6 +56,44 @@ interface Transaction {
   updatedAt: string;
 }
 
+// Move constants outside component to prevent recreation
+const BANK_LIST = [
+  // E-Wallets & Digital Banks
+  "GCash",
+  "Maya (PayMaya)",
+  "GoTyme Bank",
+  "Seabank",
+  "Tonik Bank",
+  "UNO Digital Bank",
+  // Traditional Banks
+  "BDO (Banco de Oro)",
+  "BPI (Bank of the Philippine Islands)",
+  "Metrobank",
+  "Landbank",
+  "PNB (Philippine National Bank)",
+  "UnionBank",
+  "Security Bank",
+  "RCBC (Rizal Commercial Banking Corporation)",
+  "Chinabank",
+  "EastWest Bank",
+  "UCPB (United Coconut Planters Bank)",
+  "PSBank",
+  "Maybank",
+  "CTBC Bank",
+];
+
+const PAYMENT_METHODS = [
+  { id: "QRPH", name: "QRPH", icon: "/all-banks1.png" },
+  { id: "GoTyme", name: "GoTyme", icon: "/gotyme.png" },
+];
+
+const QUICK_AMOUNTS = [100, 150, 200, 300, 500, 1000];
+
+const QR_CODE_MAP: Record<string, string> = {
+  QRPH: "/Sec-QRPH-qr.png",
+  GoTyme: "/gotyme-qr1.png",
+};
+
 export default function BankingPage() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("cashin");
@@ -57,7 +101,6 @@ export default function BankingPage() {
   const [amount, setAmount] = useState("");
   const [username, setUsername] = useState("");
   const [casino, setCasinoGroup] = useState("");
-  const [bankDetails, setBankDetails] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dialog states
@@ -66,10 +109,17 @@ export default function BankingPage() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
+  // Updated:  Individual bank detail fields
+  const [selectedBank, setSelectedBank] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+
   // History tab states
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const [customBank, setCustomBank] = useState("");
 
   // Get username and casino group from URL parameters
   useEffect(() => {
@@ -85,20 +135,7 @@ export default function BankingPage() {
     }
   }, [searchParams]);
 
-  const paymentMethods = [
-    { id: "QRPH", name: "QRPH", icon: "/allbanks.png" },
-    { id: "GoTyme", name: "GoTyme", icon: "/gotyme.png" },
-  ];
-
-  const quickAmounts = [100, 150, 200, 300, 500, 1000];
-
-  // QR code mapping based on payment method
-  const qrCodeMap: Record<string, string> = {
-    QRPH: "/Sec-QRPH-qr.png",
-    GoTyme: "/gotyme-qr1.png",
-  };
-
-  const fetchTransactionHistory = async () => {
+  const fetchTransactionHistory = useCallback(async () => {
     setIsLoadingHistory(true);
     setHistoryError(null);
 
@@ -127,40 +164,40 @@ export default function BankingPage() {
     } finally {
       setIsLoadingHistory(false);
     }
-  };
+  }, [username, casino]);
 
-  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please upload an image file");
-        return;
+  const handleReceiptChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        if (!file.type.startsWith("image/")) {
+          toast.error("Please upload an image file");
+          return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("File size must be less than 5MB");
+          return;
+        }
+
+        setReceiptFile(file);
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReceiptPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
       }
+    },
+    []
+  );
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
-
-      setReceiptFile(file);
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setReceiptPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeReceipt = () => {
+  const removeReceipt = useCallback(() => {
     setReceiptFile(null);
     setReceiptPreview(null);
-  };
-
-  const handleProceedToQR = () => {
+  }, []);
+  console.log("test");
+  const handleProceedToQR = useCallback(() => {
     if (!username.trim()) {
       toast.error("Username is required");
       return;
@@ -181,24 +218,45 @@ export default function BankingPage() {
       return;
     }
 
-    // Validate minimum amount
     const minAmount = 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
       return;
     }
 
-    if (activeTab === "cashout" && !bankDetails.trim()) {
-      toast.error("Please enter bank details for cash out");
-      return;
+    if (activeTab === "cashout") {
+      if (!selectedBank) {
+        toast.error("Please select a bank");
+        return;
+      }
+      if (selectedBank === "Other" && !customBank.trim()) {
+        toast.error("Please enter your bank name");
+        return;
+      }
+      if (!accountName.trim()) {
+        toast.error("Please enter account name");
+        return;
+      }
+      if (!accountNumber.trim()) {
+        toast.error("Please enter account number");
+        return;
+      }
     }
 
-    // Open QR dialog
     setShowQRDialog(true);
-  };
+  }, [
+    username,
+    casino,
+    selectedPayment,
+    amount,
+    activeTab,
+    selectedBank,
+    customBank,
+    accountName,
+    accountNumber,
+  ]);
 
-  const handleFinalSubmit = async () => {
-    // Validate minimum amount
+  const handleFinalSubmit = useCallback(async () => {
     const minAmount = 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
@@ -221,7 +279,10 @@ export default function BankingPage() {
       formData.append("casinoGroupName", casino);
 
       if (activeTab === "cashout") {
-        formData.append("bankDetails", bankDetails.trim());
+        const bankName =
+          selectedBank === "Other" ? customBank.trim() : selectedBank;
+        const bankDetailsFormatted = `Bank: ${bankName}\nAccount Name: ${accountName.trim()}\nAccount Number: ${accountNumber.trim()}`;
+        formData.append("bankDetails", bankDetailsFormatted);
       }
 
       if (receiptFile) {
@@ -231,7 +292,6 @@ export default function BankingPage() {
       const response = await fetch("/api/transaction-request", {
         method: "POST",
         headers: {
-          // ✅ ADD API KEY HERE
           Authorization: `Bearer ${process.env.NEXT_PUBLIC_BANKING_API_KEY}`,
         },
         body: formData,
@@ -243,15 +303,16 @@ export default function BankingPage() {
         throw new Error(data.error || "Failed to submit transaction");
       }
 
-      // Show success message
       setShowSuccessMessage(true);
 
-      // Reset form after 5 seconds
       setTimeout(() => {
         setShowQRDialog(false);
         setShowSuccessMessage(false);
         setAmount("");
-        setBankDetails("");
+        setSelectedBank("");
+        setCustomBank("");
+        setAccountName("");
+        setAccountNumber("");
         setSelectedPayment(null);
         setReceiptFile(null);
         setReceiptPreview(null);
@@ -261,10 +322,25 @@ export default function BankingPage() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [
+    amount,
+    activeTab,
+    receiptFile,
+    username,
+    selectedPayment,
+    casino,
+    selectedBank,
+    customBank,
+    accountName,
+    accountNumber,
+  ]);
 
-  // Helper function to get status badge color
-  const getStatusBadgeVariant = (status: string) => {
+  // Memoize the bank display name
+  const displayBankName = useMemo(() => {
+    return selectedBank === "Other" ? customBank : selectedBank;
+  }, [selectedBank, customBank]);
+
+  const getStatusBadgeVariant = useCallback((status: string) => {
     switch (status) {
       case "PENDING":
         return "default";
@@ -275,7 +351,7 @@ export default function BankingPage() {
       default:
         return "secondary";
     }
-  };
+  }, []);
 
   // Show error if required parameters are missing
   if (!username || !casino) {
@@ -342,8 +418,8 @@ export default function BankingPage() {
                   <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
                     Step 1. Select Payment Method
                   </Label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                    {paymentMethods.map((method) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                    {PAYMENT_METHODS.map((method) => (
                       <Card
                         key={method.id}
                         className={`cursor-pointer transition-all hover:shadow-lg ${
@@ -384,7 +460,7 @@ export default function BankingPage() {
                       className="text-base sm:text-lg h-12"
                     />
                     <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                      {quickAmounts.map((amt) => (
+                      {QUICK_AMOUNTS.map((amt) => (
                         <Button
                           key={amt}
                           variant="outline"
@@ -418,8 +494,8 @@ export default function BankingPage() {
                   <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
                     Step 1. Select Payment Method
                   </Label>
-                  <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                    {paymentMethods.map((method) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                    {PAYMENT_METHODS.map((method) => (
                       <Card
                         key={method.id}
                         className={`cursor-pointer transition-all hover:shadow-lg ${
@@ -471,7 +547,7 @@ export default function BankingPage() {
 
                     {/* Quick Amount Buttons */}
                     <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                      {quickAmounts.map((amt) => (
+                      {QUICK_AMOUNTS.map((amt) => (
                         <Button
                           key={amt}
                           variant="outline"
@@ -483,21 +559,89 @@ export default function BankingPage() {
                       ))}
                     </div>
 
-                    {/* Bank Details */}
+                    {/* Bank Selection Dropdown */}
                     <div>
                       <Label
-                        htmlFor="bank-details"
+                        htmlFor="bank-select"
                         className="text-sm mb-2 block"
                       >
-                        Bank Details
+                        Bank Name
                       </Label>
-                      <Textarea
-                        id="bank-details"
-                        placeholder="Enter bank name, account number, account name..."
-                        value={bankDetails}
-                        onChange={(e) => setBankDetails(e.target.value)}
-                        className="min-h-[100px] sm:min-h-[120px]"
-                        rows={4}
+                      <Select
+                        value={selectedBank}
+                        onValueChange={(value) => {
+                          setSelectedBank(value);
+                          // Clear custom bank if switching away from "Other"
+                          if (value !== "Other") {
+                            setCustomBank("");
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select your bank" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BANK_LIST.map((bank) => (
+                            <SelectItem key={bank} value={bank}>
+                              {bank}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Custom Bank Input - Shows only when "Other" is selected */}
+                    {selectedBank === "Other" && (
+                      <div>
+                        <Label
+                          htmlFor="custom-bank"
+                          className="text-sm mb-2 block"
+                        >
+                          Enter Bank Name
+                        </Label>
+                        <Input
+                          id="custom-bank"
+                          type="text"
+                          placeholder="Enter your bank name"
+                          value={customBank}
+                          onChange={(e) => setCustomBank(e.target.value)}
+                          className="h-12"
+                        />
+                      </div>
+                    )}
+
+                    {/* Account Name Input */}
+                    <div>
+                      <Label
+                        htmlFor="account-name"
+                        className="text-sm mb-2 block"
+                      >
+                        Account Name
+                      </Label>
+                      <Input
+                        id="account-name"
+                        type="text"
+                        placeholder="Enter account holder name"
+                        value={accountName}
+                        onChange={(e) => setAccountName(e.target.value)}
+                      />
+                    </div>
+
+                    {/* Account Number Input */}
+                    <div>
+                      <Label
+                        htmlFor="account-number"
+                        className="text-sm mb-2 block"
+                      >
+                        Account Number
+                      </Label>
+                      <Input
+                        id="account-number"
+                        type="text"
+                        placeholder="Enter account number"
+                        value={accountNumber}
+                        onChange={(e) => setAccountNumber(e.target.value)}
                       />
                     </div>
                   </div>
@@ -646,17 +790,6 @@ export default function BankingPage() {
                               </div>
                             )}
 
-                            {transaction.processedBy && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Processed By:
-                                </span>
-                                <span className="text-xs">
-                                  {transaction.processedBy.name}
-                                </span>
-                              </div>
-                            )}
-
                             <div className="flex justify-between pt-2 border-t">
                               <span className="text-muted-foreground">
                                 Created:
@@ -730,10 +863,10 @@ export default function BankingPage() {
                     </div>
                     <div className="relative w-64 h-64 bg-muted rounded-lg flex items-center justify-center border-2 border-border">
                       <Image
-                        src={qrCodeMap[selectedPayment]}
+                        src={QR_CODE_MAP[selectedPayment]}
                         alt={`${selectedPayment} QR Code`}
                         fill
-                        className="object-contain p-4"
+                        className="object-contain p-4 rounded-lg"
                       />
                     </div>
                     <div className="bg-primary/10 px-4 py-2 rounded-md">
@@ -832,12 +965,33 @@ export default function BankingPage() {
                           </span>
                         </div>
                         <div className="pt-2 border-t">
-                          <p className="text-xs font-semibold text-muted-foreground mb-1">
+                          <p className="text-xs font-semibold text-muted-foreground mb-2">
                             Bank Account Details:
                           </p>
-                          <p className="text-xs text-foreground whitespace-pre-wrap bg-background p-2 rounded">
-                            {bankDetails}
-                          </p>
+                          <div className="text-xs text-foreground bg-background p-3 rounded space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Bank:
+                              </span>
+                              <span className="font-medium">
+                                {displayBankName}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Account Name:
+                              </span>
+                              <span className="font-medium">{accountName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Account Number:{" "}
+                              </span>
+                              <span className="font-medium font-mono">
+                                {accountNumber}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
