@@ -61,7 +61,7 @@ export async function POST(
     const attachmentData = await Promise.all(uploadPromises);
 
     if (attachmentData.length > 0) {
-      await prisma.attachment.createMany({
+      await prisma.taskAttachment.createMany({
         data: attachmentData.map((att) => ({
           url: att.url,
           filename: att.filename,
