@@ -293,7 +293,7 @@ export const AppHeader = ({
         {/* Desktop Actions */}
         <div className="hidden lg:flex items-center gap-2 ml-auto shrink-0">
           {/* Clock status + dropdown button */}
-          {clockLoading ? (
+          {!session?.user || clockLoading ? (
             <Skeleton className="h-9 w-28 rounded-md" />
           ) : (
             <DropdownMenu>
@@ -312,7 +312,7 @@ export const AppHeader = ({
                   <span className="text-sm font-medium">
                     {isClockedIn
                       ? "Clocked In"
-                      : "Your are currently Clocked Out"}
+                      : "You are currently Clocked Out"}
                   </span>
                   {/* Pulsing dot indicator */}
                   <span className="relative flex h-2 w-2 shrink-0">
