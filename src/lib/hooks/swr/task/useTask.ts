@@ -13,8 +13,14 @@ export const useTask = (casinoGroup?: string) => {
   if (casinoGroup) {
     url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
   }
-  // Adjust API path as needed!
-  const { data, error, isLoading, mutate } = useSWR(url, fetcher);
+
+  // Add auto-refresh configuration
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
+    refreshInterval: 10000, // Auto-refresh every 10 seconds (10000ms)
+    revalidateOnFocus: true, // Revalidate when window regains focus
+    revalidateOnReconnect: true, // Revalidate when browser regains network connection
+    dedupingInterval: 2000, // Dedupe requests within 2 seconds
+  });
 
   // data will be an array of tasks
   return {

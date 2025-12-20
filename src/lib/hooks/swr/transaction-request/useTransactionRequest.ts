@@ -14,16 +14,22 @@ export const useTransactionRequest = (casinoGroup?: string) => {
   if (casinoGroup) {
     url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
   }
-  // Adjust API path as needed!
+
+  // Add auto-refresh configuration
   const { data, error, isLoading, mutate } = useSWR<
     (TransactionRequest & { processedBy: User; casinoGroup: CasinoGroup })[]
-  >(url, fetcher);
+  >(url, fetcher, {
+    refreshInterval: 10000, // Auto-refresh every 10 seconds (10000ms)
+    revalidateOnFocus: true, // Revalidate when window regains focus
+    revalidateOnReconnect: true, // Revalidate when browser regains network connection
+    dedupingInterval: 2000, // Dedupe requests within 2 seconds
+  });
 
-  // data will be an array of concerns
+  // data will be an array of transaction requests
   return {
     transactionRequests: data ?? [],
     error,
     isLoading,
-    mutate, // for refetching if you post a new concern etc
+    mutate, // for refetching if you post a new transaction request etc
   };
 };
