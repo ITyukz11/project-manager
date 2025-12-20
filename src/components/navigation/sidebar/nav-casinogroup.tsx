@@ -29,6 +29,8 @@ import { usePathname } from "next/navigation";
 import { usePusher } from "@/lib/hooks/use-pusher";
 import { Badge } from "@/components/ui/badge";
 import { usePendingCounts } from "@/lib/hooks/swr/casino-group/usePendingCounts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { cva } from "class-variance-authority";
 
 interface MenuLink {
   href: string;
@@ -215,41 +217,36 @@ export default function NavCasinoGroup({
   ]);
 
   // ✅ Helper function to get total badge color classes
-  const getTotalBadgeColorClass = React.useCallback(
-    (count: number) => {
-      if (count === 0) {
-        // Green for zero
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
-      } else if (pendingTransaction > 0) {
-        // Red if there are any pending transactions
-        return "bg-yellow-500 text-white dark:bg-yellow-600";
-      } else {
-        // Yellow for other pending items
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-800";
-      }
-    },
-    [pendingTransaction]
-  );
+  const getTotalBadgeColorClass = React.useCallback(() => {
+    if (totalPending === 0) {
+      // Green for zero
+      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
+    } else {
+      // Yellow for other pending items
+      return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-800";
+    }
+  }, [totalPending]);
 
   const SectionIcon = ClipboardList;
 
   return (
-    <Collapsible
-      className={cn("group/collapsible", className)}
-      defaultOpen={casinoGroupIndex === 0}
-    >
+    <Collapsible className={cn("group/collapsible", className)}>
       <CollapsibleTrigger asChild className="cursor-pointer select-none">
         <SidebarMenuButton>
           <SectionIcon /> {casinoGroup.name.toUpperCase()}
           {/* ✅ Total badge with dynamic color based on transaction status */}
-          <Badge
-            className={cn(
-              "ml-auto transition-all",
-              getTotalBadgeColorClass(totalPending)
-            )}
-          >
-            {totalPending}
-          </Badge>
+          {isLoading ? (
+            <Skeleton className="ml-auto w-6 h-6 rounded-full" />
+          ) : (
+            <Badge
+              className={cn(
+                "ml-auto transition-all",
+                getTotalBadgeColorClass()
+              )}
+            >
+              {totalPending}
+            </Badge>
+          )}
           <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
         </SidebarMenuButton>
       </CollapsibleTrigger>
