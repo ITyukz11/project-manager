@@ -27,12 +27,8 @@ import {
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { usePusher } from "@/lib/hooks/use-pusher";
-import { useCountCashoutPending } from "@/lib/hooks/swr/cashout/useCountPending";
-import { useCountConcernPending } from "@/lib/hooks/swr/concern/useCountPending";
-import { useCountRemittancePending } from "@/lib/hooks/swr/remittance/useCountRemittancePending";
-import { useCountTaskPending } from "@/lib/hooks/swr/task/useCountTaskPending";
 import { Badge } from "@/components/ui/badge";
-import { useCountTransactionPending } from "@/lib/hooks/swr/transaction-request/useCountTransactionPending";
+import { usePendingCounts } from "@/lib/hooks/swr/casino-group/usePendingCounts";
 
 interface MenuLink {
   href: string;
@@ -40,10 +36,8 @@ interface MenuLink {
   icon: React.ComponentType;
   disable: boolean;
   pendingCount?: number;
-  loading?: boolean;
 }
 
-// Pass the casinoGroup and pathname as props!
 export default function NavCasinoGroup({
   casinoGroup,
   casinoGroupIndex,
@@ -54,159 +48,155 @@ export default function NavCasinoGroup({
   className?: string;
 }) {
   const pathname = usePathname();
-  console.log("pathname:", pathname);
-  const [pendingTransaction, setPendingTransaction] = React.useState<number>(0);
-  const [pendingCashouts, setPendingCashouts] = React.useState<number>(0);
-  const [pendingConcerns, setPendingConcerns] = React.useState<number>(0);
-  const [pendingRemittances, setPendingRemittances] = React.useState<number>(0);
-  const [pendingTasks, setPendingTasks] = React.useState<number>(0);
-  const { pendingCashoutCount, pendingCashoutCountIsLoading } =
-    useCountCashoutPending(casinoGroup.name);
-  const { pendingRemittanceCount, pendingRemittanceCountIsLoading } =
-    useCountRemittancePending(casinoGroup.name);
-  const { pendingConcernCount, pendingConcernCountIsLoading } =
-    useCountConcernPending(casinoGroup.name);
-  const { pendingTransactionCount, pendingTransactionCountIsLoading } =
-    useCountTransactionPending(casinoGroup.name);
 
-  const { pendingTaskCount, pendingTaskCountIsLoading } = useCountTaskPending(
-    casinoGroup.name
+  // ✅ Single SWR call for all counts!
+  const { counts, isLoading } = usePendingCounts(casinoGroup.name);
+
+  // Local state for real-time updates
+  const [pendingTransaction, setPendingTransaction] = React.useState(0);
+  const [pendingCashouts, setPendingCashouts] = React.useState(0);
+  const [pendingConcerns, setPendingConcerns] = React.useState(0);
+  const [pendingRemittances, setPendingRemittances] = React.useState(0);
+  const [pendingTasks, setPendingTasks] = React.useState(0);
+
+  const casinoGroupLower = React.useMemo(
+    () => casinoGroup.name.toLowerCase(),
+    [casinoGroup.name]
   );
-  // Update local state when SWR loads initial value
+
+  // Sync SWR data to local state
   React.useEffect(() => {
-    if (
-      !pendingTransactionCountIsLoading &&
-      typeof pendingTransactionCount === "number"
-    ) {
-      setPendingTransaction(pendingTransactionCount);
+    if (!isLoading && counts) {
+      setPendingTransaction(counts.transaction);
+      setPendingCashouts(counts.cashout);
+      setPendingRemittances(counts.remittance);
+      setPendingConcerns(counts.concern);
+      setPendingTasks(counts.task);
     }
-    if (
-      !pendingCashoutCountIsLoading &&
-      typeof pendingCashoutCount === "number"
-    ) {
-      setPendingCashouts(pendingCashoutCount);
-    }
-    if (
-      !pendingRemittanceCountIsLoading &&
-      typeof pendingRemittanceCount === "number"
-    ) {
-      setPendingRemittances(pendingRemittanceCount);
-    }
-    if (
-      !pendingConcernCountIsLoading &&
-      typeof pendingConcernCount === "number"
-    ) {
-      setPendingConcerns(pendingConcernCount);
-    }
-    if (!pendingTaskCountIsLoading && typeof pendingTaskCount === "number") {
-      setPendingTasks(pendingTaskCount);
-    }
-  }, [
-    pendingTransactionCount,
-    pendingCashoutCount,
-    pendingCashoutCountIsLoading,
-    pendingConcernCount,
-    pendingConcernCountIsLoading,
-    pendingRemittanceCount,
-    pendingRemittanceCountIsLoading,
-    pendingTaskCount,
-    pendingTaskCountIsLoading,
-  ]);
+  }, [counts, isLoading]);
 
-  // Real-time updates from Pusher
-  usePusher({
-    channels: [`cashout-${casinoGroup.name.toLowerCase()}`],
-    eventName: "cashout-pending-count",
-    onEvent: (data: { count: number }) => {
-      console.log("Pusher event received:", data);
-      setPendingCashouts(data.count);
-    },
-  });
+  // Pusher event handlers
+  const handleCashoutUpdate = React.useCallback((data: { count: number }) => {
+    setPendingCashouts(data.count);
+  }, []);
 
-  // Real-time updates from Pusher
-  usePusher({
-    channels: [`remittance-${casinoGroup.name.toLowerCase()}`],
-    eventName: "remittance-pending-count",
-    onEvent: (data: { count: number }) => {
-      console.log("Pusher event received:", data);
+  const handleRemittanceUpdate = React.useCallback(
+    (data: { count: number }) => {
       setPendingRemittances(data.count);
     },
+    []
+  );
+
+  const handleConcernUpdate = React.useCallback((data: { count: number }) => {
+    setPendingConcerns(data.count);
+  }, []);
+
+  const handleTaskUpdate = React.useCallback((data: { count: number }) => {
+    setPendingTasks(data.count);
+  }, []);
+
+  // Memoized channel names
+  const cashoutChannel = React.useMemo(
+    () => [`cashout-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
+  const remittanceChannel = React.useMemo(
+    () => [`remittance-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
+  const concernChannel = React.useMemo(
+    () => [`concern-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
+  const taskChannel = React.useMemo(
+    () => [`task-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
+
+  // Pusher subscriptions
+  usePusher({
+    channels: cashoutChannel,
+    eventName: "cashout-pending-count",
+    onEvent: handleCashoutUpdate,
   });
 
-  // Real-time updates from Pusher
   usePusher({
-    channels: [`concern-${casinoGroup.name.toLowerCase()}`],
+    channels: remittanceChannel,
+    eventName: "remittance-pending-count",
+    onEvent: handleRemittanceUpdate,
+  });
+
+  usePusher({
+    channels: concernChannel,
     eventName: "concern-pending-count",
-    onEvent: (data: { count: number }) => {
-      console.log("Pusher event received:", data);
-      setPendingConcerns(data.count);
-    },
+    onEvent: handleConcernUpdate,
   });
 
-  // Real-time updates from Pusher
   usePusher({
-    channels: [`task-${casinoGroup.name.toLowerCase()}`],
+    channels: taskChannel,
     eventName: "task-pending-count",
-    onEvent: (data: { count: number }) => {
-      console.log("Pusher event received:", data);
-      setPendingTasks(data.count);
-    },
+    onEvent: handleTaskUpdate,
   });
 
-  // Build dynamic nav links for the group, as in your pattern
-  const links: MenuLink[] = [
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/transaction-requests`,
-      text: "Transactions",
-      icon: ArrowLeftRight,
-      disable: false,
-      pendingCount: pendingTransaction,
-      loading: pendingTransactionCountIsLoading,
-    },
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/accounts`,
-      text: "Accounts",
-      icon: Users,
-      disable: false,
-    },
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/network`,
-      text: "Network",
-      icon: Share2,
-      disable: false,
-    },
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/cash-outs`,
-      text: "Cash Outs",
-      icon: Wallet,
-      disable: false,
-      pendingCount: pendingCashouts,
-      loading: pendingCashoutCountIsLoading,
-    },
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/remittance`,
-      text: "Remittance",
-      icon: BanknoteArrowUp,
-      disable: false,
-      pendingCount: pendingRemittances,
-      loading: pendingRemittanceCountIsLoading,
-    },
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/concerns`,
-      text: "Concerns",
-      icon: MessageCircle,
-      disable: false,
-      pendingCount: pendingConcerns,
-      loading: pendingConcernCountIsLoading,
-    },
-    {
-      href: `/${casinoGroup.name.toLowerCase()}/tasks`,
-      text: "Tasks",
-      icon: CheckSquare,
-      disable: false,
-      pendingCount: pendingTasks,
-    },
-  ];
+  const links: MenuLink[] = React.useMemo(
+    () => [
+      {
+        href: `/${casinoGroupLower}/transaction-requests`,
+        text: "Transactions",
+        icon: ArrowLeftRight,
+        disable: false,
+        pendingCount: pendingTransaction,
+      },
+      {
+        href: `/${casinoGroupLower}/accounts`,
+        text: "Accounts",
+        icon: Users,
+        disable: false,
+      },
+      {
+        href: `/${casinoGroupLower}/network`,
+        text: "Network",
+        icon: Share2,
+        disable: false,
+      },
+      {
+        href: `/${casinoGroupLower}/cash-outs`,
+        text: "Cash Outs",
+        icon: Wallet,
+        disable: false,
+        pendingCount: pendingCashouts,
+      },
+      {
+        href: `/${casinoGroupLower}/remittance`,
+        text: "Remittance",
+        icon: BanknoteArrowUp,
+        disable: false,
+        pendingCount: pendingRemittances,
+      },
+      {
+        href: `/${casinoGroupLower}/concerns`,
+        text: "Concerns",
+        icon: MessageCircle,
+        disable: false,
+        pendingCount: pendingConcerns,
+      },
+      {
+        href: `/${casinoGroupLower}/tasks`,
+        text: "Tasks",
+        icon: CheckSquare,
+        disable: false,
+        pendingCount: pendingTasks,
+      },
+    ],
+    [
+      casinoGroupLower,
+      pendingTransaction,
+      pendingCashouts,
+      pendingRemittances,
+      pendingConcerns,
+      pendingTasks,
+    ]
+  );
 
   const totalPending = React.useMemo(() => {
     return (
@@ -223,18 +213,41 @@ export default function NavCasinoGroup({
     pendingConcerns,
     pendingTasks,
   ]);
-  // Pick an icon for your casino group, or use a default (optional)
-  const SectionIcon = ClipboardList; // or any
+
+  // ✅ Helper function to get total badge color classes
+  const getTotalBadgeColorClass = React.useCallback(
+    (count: number) => {
+      if (count === 0) {
+        // Green for zero
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
+      } else if (pendingTransaction > 0) {
+        // Red if there are any pending transactions
+        return "bg-yellow-500 text-white dark:bg-yellow-600";
+      } else {
+        // Yellow for other pending items
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-800";
+      }
+    },
+    [pendingTransaction]
+  );
+
+  const SectionIcon = ClipboardList;
 
   return (
     <Collapsible
       className={cn("group/collapsible", className)}
-      defaultOpen={casinoGroupIndex == 0}
+      defaultOpen={casinoGroupIndex === 0}
     >
       <CollapsibleTrigger asChild className="cursor-pointer select-none">
         <SidebarMenuButton>
           <SectionIcon /> {casinoGroup.name.toUpperCase()}
-          <Badge className="ml-auto transition-transform bg-yellow-500 dark:bg-yellow-600 dark:text-white">
+          {/* ✅ Total badge with dynamic color based on transaction status */}
+          <Badge
+            className={cn(
+              "ml-auto transition-all",
+              getTotalBadgeColorClass(totalPending)
+            )}
+          >
             {totalPending}
           </Badge>
           <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
@@ -271,6 +284,7 @@ export default function NavCasinoGroup({
                   </Link>
                 )}
               </SidebarMenuButton>
+              {/* ✅ Only show badge if count > 0, no background color */}
               {typeof link.pendingCount === "number" &&
                 link.pendingCount > 0 && (
                   <SidebarMenuBadge
