@@ -8,7 +8,8 @@ export default function TopLoader() {
   const pathname = usePathname();
   const controls = useAnimation();
   const isNavigating = useRef(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const widthRef = useRef(0);
 
   // Start loading animation when path changes
   useEffect(() => {
@@ -16,25 +17,43 @@ export default function TopLoader() {
 
     // Mark as navigating
     isNavigating.current = true;
+    widthRef.current = 0;
 
     // Reset loader instantly
     controls.set({ width: "0%", opacity: 1 });
 
-    let width = 0;
-
-    // Start gradual loading
-    intervalRef.current = setInterval(() => {
+    // Use requestAnimationFrame for smoother, more efficient animation
+    const animate = () => {
       if (!isNavigating.current) return;
-      width += Math.random() * 5;
-      if (width > 90) width = 90;
+
+      // Increment width gradually
+      widthRef.current += Math.random() * 3 + 1; // 1-4% per frame
+
+      // Cap at 90%
+      if (widthRef.current > 90) {
+        widthRef.current = 90;
+      }
+
       controls.start({
-        width: `${width}%`,
-        transition: { duration: 0.2, ease: "linear" },
+        width: `${widthRef.current}%`,
+        transition: { duration: 0.1, ease: "linear" },
       });
-    }, 200);
+
+      // Continue animation if still navigating and not at 90%
+      if (isNavigating.current && widthRef.current < 90) {
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    // Start the animation loop
+    animationFrameRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      // Clean up animation frame on unmount or pathname change
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
     };
   }, [pathname, controls]);
 
@@ -45,7 +64,11 @@ export default function TopLoader() {
     // Wait for DOM to mount
     const timeout = setTimeout(() => {
       if (isNavigating.current) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        // Cancel any ongoing animation
+        if (animationFrameRef.current !== null) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
 
         // Finish progress to 100%
         controls
