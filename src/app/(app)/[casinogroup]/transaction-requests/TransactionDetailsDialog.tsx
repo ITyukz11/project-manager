@@ -23,17 +23,22 @@ import {
   Clock,
   Receipt,
   CheckCircle,
+  Upload,
+  Loader2,
+  Trash2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTransactionDetails } from "@/lib/hooks/swr/transaction-request/details/useTransactionDetails";
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { useParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 interface TransactionDetailsDialogProps {
   open: boolean;
@@ -164,6 +169,15 @@ export function TransactionDetailsDialog({
   );
   const [remarks, setRemarks] = useState("");
 
+  // Receipt file states (single file for both upload and paste)
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptSource, setReceiptSource] = useState<"upload" | "paste" | null>(
+    null
+  );
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const params = useParams();
   const casinoGroup = params.casinogroup;
 
@@ -174,10 +188,13 @@ export function TransactionDetailsDialog({
     casinoGroup?.toString() || ""
   );
 
-  // Reset showReceipt when dialog opens and refetch data
+  // Reset states when dialog opens and refetch data
   useEffect(() => {
     if (open && transactionId) {
       setShowReceipt(false);
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setReceiptSource(null);
       mutate(); // Refetch latest data when dialog opens
     }
   }, [open, transactionId, mutate]);
@@ -185,26 +202,128 @@ export function TransactionDetailsDialog({
   const openConfirmDialog = (status: "APPROVED" | "REJECTED") => {
     setActionType(status);
     setRemarks("");
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptSource(null);
     setIsActionDialogOpen(true);
+  };
+
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      setReceiptFile(file);
+      setReceiptSource("upload");
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReceiptPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      toast.success("Receipt uploaded successfully");
+    }
+  };
+
+  const removeReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptSource(null);
+    toast.info("Receipt removed");
+  };
+
+  // Handle paste event in textarea
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+
+      // Check if the pasted item is an image
+      if (item.type.startsWith("image/")) {
+        e.preventDefault(); // Prevent default paste behavior
+
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("Image size must be less than 5MB");
+          return;
+        }
+
+        // Create a new file with a proper name
+        const timestamp = new Date().getTime();
+        const renamedFile = new File(
+          [file],
+          `pasted-receipt-${timestamp}.${file.type.split("/")[1]}`,
+          { type: file.type }
+        );
+
+        // Replace existing receipt
+        setReceiptFile(renamedFile);
+        setReceiptSource("paste");
+
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReceiptPreview(reader.result as string);
+        };
+        reader.readAsDataURL(renamedFile);
+
+        toast.success("Image pasted as receipt");
+        return; // Only handle the first image
+      }
+    }
   };
 
   const handleStatusUpdate = async () => {
     if (!actionType || !transactionId) return;
 
+    // Check if it's a cashout approval and receipt is required
+    if (
+      actionType === "APPROVED" &&
+      transaction?.type === "CASHOUT" &&
+      !transaction?.receiptUrl &&
+      !receiptFile
+    ) {
+      toast.error("Please upload the receipt before approving");
+      return;
+    }
+
     setIsUpdating(true);
 
     try {
+      const formData = new FormData();
+      formData.append("status", actionType);
+
+      if (remarks.trim()) {
+        formData.append("remarks", remarks.trim());
+      }
+
+      // Add receipt file if it exists
+      if (receiptFile) {
+        formData.append("receipt", receiptFile);
+      }
+
       const response = await fetch(
         `/api/transaction-request/${transactionId}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: actionType,
-            remarks: remarks.trim() || "",
-          }),
+          body: formData,
         }
       );
 
@@ -220,6 +339,9 @@ export function TransactionDetailsDialog({
       setIsActionDialogOpen(false);
       setRemarks("");
       setActionType(null);
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setReceiptSource(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to update transaction");
     } finally {
@@ -231,6 +353,9 @@ export function TransactionDetailsDialog({
     setIsActionDialogOpen(false);
     setRemarks("");
     setActionType(null);
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptSource(null);
   };
 
   const getStatusIcon = (status?: string) => {
@@ -266,6 +391,8 @@ export function TransactionDetailsDialog({
   };
 
   const isPending = transaction?.status === "PENDING";
+  const isCashout = transaction?.type === "CASHOUT";
+  const hasNoReceipt = !transaction?.receiptUrl;
 
   return (
     <>
@@ -292,7 +419,7 @@ export function TransactionDetailsDialog({
                     className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                     onClick={() => openConfirmDialog("APPROVED")}
                   >
-                    <CheckCircle className="mr-2 h-4 w-4" />
+                    <CheckCircle className="h-4 w-4" />
                     Approve
                   </Button>
                   <Button
@@ -301,7 +428,7 @@ export function TransactionDetailsDialog({
                     className="text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
                     onClick={() => openConfirmDialog("REJECTED")}
                   >
-                    <XCircle className="mr-2 h-4 w-4" />
+                    <XCircle className="h-4 w-4" />
                     Reject
                   </Button>
                 </div>
@@ -314,7 +441,7 @@ export function TransactionDetailsDialog({
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 {error ||
-                  "Error loading transaction details.  Please try again later."}
+                  "Error loading transaction details. Please try again later."}
               </AlertDescription>
             </Alert>
           )}
@@ -463,52 +590,65 @@ export function TransactionDetailsDialog({
                   </div>
                 </div>
 
-                {/* Receipt */}
-                {transaction?.receiptUrl && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-semibold">
-                        <Receipt className="h-4 w-4 text-muted-foreground" />
-                        Receipt
-                      </div>
-                      <div className="pl-6">
-                        {!showReceipt ? (
+                {/* Receipt Section */}
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Receipt className="h-4 w-4 text-muted-foreground" />
+                    Receipt
+                  </div>
+                  <div className="pl-6">
+                    {transaction?.receiptUrl ? (
+                      !showReceipt ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowReceipt(true)}
+                        >
+                          View Receipt
+                        </Button>
+                      ) : (
+                        <div className="relative w-full h-64 bg-muted rounded-lg border group">
+                          <img
+                            src={transaction?.receiptUrl}
+                            alt="Transaction Receipt"
+                            className="object-contain rounded-lg w-full h-full cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              if (transaction?.receiptUrl) {
+                                window.open(transaction.receiptUrl, "_blank");
+                              }
+                            }}
+                            title="Click to open in new tab"
+                          />
                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowReceipt(true)}
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => setShowReceipt(false)}
+                            title="Close receipt"
                           >
-                            View Receipt
+                            <XCircle className="h-4 w-4" />
                           </Button>
-                        ) : (
-                          <div className="relative w-full h-64 bg-muted rounded-lg border group">
-                            <img
-                              src={transaction?.receiptUrl}
-                              alt="Transaction Receipt"
-                              className="object-contain rounded-lg w-full h-full cursor-pointer hover:opacity-80 transition-opacity"
-                              onClick={() => {
-                                if (transaction?.receiptUrl) {
-                                  window.open(transaction.receiptUrl, "_blank");
-                                }
-                              }}
-                              title="Click to open in new tab"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => setShowReceipt(false)}
-                              title="Close receipt"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                        </div>
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p
+                          className={`text-sm ${
+                            isCashout
+                              ? "text-orange-600 dark:text-orange-400 font-medium"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {isCashout
+                            ? "⚠️ No receipt uploaded yet"
+                            : "No receipt available"}
+                        </p>
                       </div>
-                    </div>
-                  </>
-                )}
+                    )}
+                  </div>
+                </div>
+
                 {/* Remarks */}
                 {transaction?.remarks && (
                   <>
@@ -586,7 +726,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.createdAt || ""),
-                            "MMM dd, yyyy HH:mm:ss"
+                            "MMM dd, yyyy - h:mm: aa"
                           )}
                       </p>
                     </div>
@@ -598,7 +738,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.updatedAt || ""),
-                            "MMM dd, yyyy HH:mm:ss"
+                            "MMM dd, yyyy - h: mm:aa"
                           )}
                       </p>
                     </div>
@@ -647,7 +787,7 @@ export function TransactionDetailsDialog({
 
       {/* Approve/Reject Confirmation Dialog */}
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex flex-row items-center">
               {actionType === "APPROVED" ? (
@@ -669,22 +809,106 @@ export function TransactionDetailsDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {/* Warning for cashout without receipt */}
+          {actionType === "APPROVED" &&
+            transaction?.type === "CASHOUT" &&
+            !transaction?.receiptUrl &&
+            !receiptFile && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  Cannot approve: Receipt must be uploaded first for cashout
+                  transactions.
+                </AlertDescription>
+              </Alert>
+            )}
+
+          {/* Receipt Upload for Cashout */}
+          {transaction?.type === "CASHOUT" && !transaction?.receiptUrl && (
+            <div className="space-y-2">
+              <Label htmlFor="receipt">
+                Receipt <span className="text-destructive">*</span>
+              </Label>
+
+              {!receiptPreview ? (
+                <div className="space-y-2">
+                  <Input
+                    id="receipt"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleReceiptChange}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <ImageIcon className="h-3 w-3" />
+                    Upload receipt or paste image in remarks field (max 5MB)
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="relative w-full h-40 bg-muted rounded-lg border">
+                    <img
+                      src={receiptPreview}
+                      alt="Receipt Preview"
+                      className="object-contain rounded-lg w-full h-full"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground truncate">
+                        {receiptFile?.name}
+                      </p>
+                      {receiptSource && (
+                        <p className="text-xs text-muted-foreground">
+                          Source:{" "}
+                          {receiptSource === "upload"
+                            ? "📁 Upload"
+                            : "📋 Pasted"}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeReceipt}
+                      className="text-destructive hover:text-destructive ml-2"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="remarks">
               Remarks{" "}
               <span className="text-muted-foreground text-xs">(Optional)</span>
             </Label>
             <Textarea
+              ref={textareaRef}
               id="remarks"
               placeholder="Add any remarks or notes..."
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
+              onPaste={handlePaste}
               rows={4}
               className="resize-none"
             />
+            {transaction?.type === "CASHOUT" &&
+              !transaction?.receiptUrl &&
+              !receiptFile && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ImageIcon className="h-3 w-3" />
+                  <span>Tip: You can paste image here (Ctrl+V) as receipt</span>
+                </div>
+              )}
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+          <div className="flex flex-col-reverse sm:flex-row sm: justify-end gap-2">
             <Button
               variant="outline"
               onClick={handleCancel}
@@ -699,11 +923,16 @@ export function TransactionDetailsDialog({
               disabled={isUpdating}
               className="w-full sm:w-auto"
             >
-              {isUpdating
-                ? "Processing..."
-                : actionType === "APPROVED"
-                ? "Approve"
-                : "Reject"}
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : actionType === "APPROVED" ? (
+                "Approve"
+              ) : (
+                "Reject"
+              )}
             </Button>
           </div>
         </DialogContent>

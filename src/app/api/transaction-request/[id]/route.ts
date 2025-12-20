@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { pusher } from "@/lib/pusher";
+import { put } from "@vercel/blob";
 
 // PATCH handler to update transaction status
 export async function PATCH(
@@ -15,8 +16,12 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await req.json();
-    const { status, remarks } = body;
+
+    // Parse FormData instead of JSON
+    const formData = await req.formData();
+    const status = formData.get("status") as string;
+    const remarks = formData.get("remarks") as string | null;
+    const receiptFile = formData.get("receipt") as File | null;
 
     // Validation
     if (!status || !["PENDING", "APPROVED", "REJECTED"].includes(status)) {
@@ -38,6 +43,59 @@ export async function PATCH(
       );
     }
 
+    // Check if cashout approval requires receipt
+    if (
+      status === "APPROVED" &&
+      existingTransaction.type === "CASHOUT" &&
+      !existingTransaction.receiptUrl &&
+      !receiptFile
+    ) {
+      return NextResponse.json(
+        { error: "Receipt is required for cashout approval." },
+        { status: 400 }
+      );
+    }
+
+    // Handle receipt upload if provided
+    let receiptUrl = existingTransaction.receiptUrl;
+    if (receiptFile) {
+      try {
+        // Validate file type
+        if (!receiptFile.type.startsWith("image/")) {
+          return NextResponse.json(
+            { error: "Receipt must be an image file." },
+            { status: 400 }
+          );
+        }
+
+        // Validate file size (5MB)
+        if (receiptFile.size > 5 * 1024 * 1024) {
+          return NextResponse.json(
+            { error: "Receipt file size must be less than 5MB." },
+            { status: 400 }
+          );
+        }
+
+        // Upload to Vercel Blob
+        const blob = await put(
+          `receipts/${id}-${Date.now()}-${receiptFile.name}`,
+          receiptFile,
+          {
+            access: "public",
+            addRandomSuffix: true,
+          }
+        );
+
+        receiptUrl = blob.url;
+      } catch (uploadError: any) {
+        console.error("Receipt upload error:", uploadError);
+        return NextResponse.json(
+          { error: "Failed to upload receipt." },
+          { status: 500 }
+        );
+      }
+    }
+
     // Update transaction with admin who processed it
     const updatedTransaction = await prisma.transactionRequest.update({
       where: { id },
@@ -45,7 +103,8 @@ export async function PATCH(
         status,
         processedById: currentUser.id,
         processedAt: new Date(),
-        remarks,
+        remarks: remarks || undefined,
+        receiptUrl: receiptUrl || undefined,
       },
       include: {
         processedBy: {
