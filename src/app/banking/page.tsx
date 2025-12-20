@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 
 type PaymentMethod = "QRPH" | null;
 
@@ -94,7 +95,9 @@ const QR_CODE_MAP: Record<string, string> = {
 
 export default function BankingPage() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState("cashin");
+  const [activeTab, setActiveTab] = useState<
+    "cashin" | "cashout" | "history" | string
+  >("cashin");
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(null);
   const [amount, setAmount] = useState("");
   const [username, setUsername] = useState("");
@@ -119,6 +122,9 @@ export default function BankingPage() {
 
   const [customBank, setCustomBank] = useState("");
 
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const COOLDOWN_SECONDS = 10;
   // Get username and casino group from URL parameters
   useEffect(() => {
     const usernameParam = searchParams.get("username");
@@ -134,8 +140,19 @@ export default function BankingPage() {
   }, [searchParams]);
 
   const fetchTransactionHistory = useCallback(async () => {
+    const now = Date.now();
+    const timeSinceLastFetch = (now - lastFetchTime) / 1000; // Convert to seconds
+
+    // ✅ Check if still in cooldown
+    if (timeSinceLastFetch < COOLDOWN_SECONDS) {
+      const remaining = Math.ceil(COOLDOWN_SECONDS - timeSinceLastFetch);
+      setCooldownRemaining(remaining);
+      return;
+    }
+
     setIsLoadingHistory(true);
     setHistoryError(null);
+    setCooldownRemaining(0);
 
     try {
       const response = await fetch(
@@ -155,6 +172,7 @@ export default function BankingPage() {
       }
 
       setTransactions(data.transactions || []);
+      setLastFetchTime(Date.now()); // ✅ Update last fetch time on success
     } catch (error: any) {
       console.error("Error fetching history:", error);
       setHistoryError(error.message || "Failed to load transaction history");
@@ -162,7 +180,23 @@ export default function BankingPage() {
     } finally {
       setIsLoadingHistory(false);
     }
-  }, [username, casino]);
+  }, [username, casino, lastFetchTime]);
+
+  useEffect(() => {
+    if (activeTab === "history") {
+      fetchTransactionHistory();
+    }
+  }, [activeTab, fetchTransactionHistory]);
+
+  // ✅ Optional:  Countdown timer for UI feedback
+  useEffect(() => {
+    if (cooldownRemaining > 0) {
+      const timer = setTimeout(() => {
+        setCooldownRemaining((prev) => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldownRemaining]);
 
   const handleReceiptChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -314,6 +348,7 @@ export default function BankingPage() {
         setSelectedPayment(null);
         setReceiptFile(null);
         setReceiptPreview(null);
+        setActiveTab("history");
       }, 5000);
     } catch (error: any) {
       toast.error(error.message || "Failed to submit transaction");
@@ -341,7 +376,7 @@ export default function BankingPage() {
   const getStatusBadgeVariant = useCallback((status: string) => {
     switch (status) {
       case "PENDING":
-        return "default";
+        return "outline";
       case "APPROVED":
         return "success";
       case "REJECTED":
@@ -669,20 +704,24 @@ export default function BankingPage() {
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Transaction History</h3>
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={fetchTransactionHistory}
-                    disabled={isLoadingHistory}
+                    disabled={isLoadingHistory || cooldownRemaining > 0}
+                    variant="outline"
                   >
                     {isLoadingHistory ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="animate-spin h-4 w-4 " />
                         Loading...
+                      </>
+                    ) : cooldownRemaining > 0 ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 " />
+                        Wait {cooldownRemaining}s
                       </>
                     ) : (
                       <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Refresh
+                        <RefreshCw className="h-4 w-4 " />
+                        Refresh History
                       </>
                     )}
                   </Button>
@@ -728,23 +767,21 @@ export default function BankingPage() {
                         <CardContent>
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
-                              <Badge
-                                variant={
-                                  transaction.type === "CASHIN"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                              >
-                                {transaction.type}
-                              </Badge>
+                              <Badge>{transaction.type}</Badge>
                               <Badge
                                 variant={
                                   getStatusBadgeVariant(
                                     transaction.status
                                   ) as any
                                 }
+                                className="flex items-center gap-1.5"
                               >
-                                {transaction.status}
+                                {transaction.status === "PENDING" && (
+                                  <Spinner className="h-3 w-3" />
+                                )}
+                                {transaction.status === "PENDING"
+                                  ? "PROCESSING"
+                                  : transaction.status}
                               </Badge>
                             </div>
                             <p className="text-lg font-bold text-foreground">
@@ -825,12 +862,13 @@ export default function BankingPage() {
 
       {/* QR Code & Receipt Upload Dialog */}
       <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-        <DialogContent className="max-w-md overflow-y-auto max-h-[95vh]">
+        <DialogContent className="max-w-lg overflow-y-auto max-h-[95vh]">
           {!showSuccessMessage ? (
             <>
               <DialogHeader>
                 <DialogTitle>Complete Your Payment</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="flex flex-row gap-1">
+                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 " />
                   Please follow the instructions below to complete your
                   transaction
                 </DialogDescription>
@@ -840,15 +878,46 @@ export default function BankingPage() {
                 {/* Instructions Alert */}
                 {activeTab === "cashin" && (
                   <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                    <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <AlertDescription className="text-sm text-blue-900 dark:text-blue-100 ml-2">
-                      <ol className="list-decimal list-inside space-y-1">
-                        <li>Save or screenshot the QR code below</li>
-                        <li>
-                          Open your {selectedPayment} app and send ₱{amount}
+                    <AlertDescription className="text-sm text-blue-900 dark:text-blue-100">
+                      <ol className="list-none space-y-2">
+                        <li className="flex gap-2">
+                          <span className="font-semibold shrink-0">
+                            Step 1:
+                          </span>
+                          <span>Save or screenshot the QR code below</span>
                         </li>
-                        <li>Take a screenshot of your payment confirmation</li>
-                        <li>Upload the receipt screenshot below</li>
+                        <li className="flex gap-2">
+                          <span className="font-semibold shrink-0">
+                            Step 2:
+                          </span>
+                          <span>
+                            Upload QR to your GCash, Maya or Other Banks and
+                            send ₱{amount}
+                          </span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="font-semibold shrink-0">
+                            Step 3:
+                          </span>
+                          <span>
+                            Take a screenshot of your payment confirmation
+                          </span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="font-semibold shrink-0">
+                            Step 4:
+                          </span>
+                          <span>Upload the receipt screenshot below</span>
+                        </li>
+                        <li className="flex gap-2">
+                          <span className="font-semibold shrink-0">
+                            Step 5:
+                          </span>
+                          <span>
+                            Go back to your dashboard or transaction history to
+                            verify your payment. Good luck!
+                          </span>
+                        </li>
                       </ol>
                     </AlertDescription>
                   </Alert>
