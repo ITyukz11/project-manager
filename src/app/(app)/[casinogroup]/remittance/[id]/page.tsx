@@ -149,7 +149,8 @@ export default function Page() {
   const isAllowed =
     session?.user.id === remittance?.userId ||
     session?.user?.role === ADMINROLES.ADMIN ||
-    session?.user?.role === ADMINROLES.SUPERADMIN;
+    session?.user?.role === ADMINROLES.SUPERADMIN ||
+    session?.user?.role === ADMINROLES.ACCOUNTING;
 
   // Comments Section Component (reusable)
   const CommentsSection = useCallback(
