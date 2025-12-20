@@ -31,13 +31,14 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { useParams } from "next/navigation";
+import RequiredField from "@/components/common/required-field";
+import { PasteImageTextarea } from "@/lib/common/paste-image-textarea";
 
 // Zod schema for Cashout form
 const CashoutFormSchema = z.object({
   userName: z.string().min(1, "Username required"),
   amount: z.number().min(1, "Amount required and must be greater than zero"),
   details: z.string().min(1, "Details required"),
-  // Only validate in frontend, will handle proper upload in backend
   attachment: z.any().optional(),
 });
 
@@ -53,6 +54,8 @@ export function CashoutFormDialog({
   onSubmitted?: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
+  const [pastedImages, setPastedImages] = React.useState<File[]>([]);
+
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
   const { mutate } = useCashouts(casinoGroup);
@@ -68,7 +71,10 @@ export function CashoutFormDialog({
   });
 
   React.useEffect(() => {
-    if (open) form.reset();
+    if (open) {
+      form.reset();
+      setPastedImages([]);
+    }
   }, [open, form]);
 
   async function handleSubmit(values: CashoutFormValues) {
@@ -78,13 +84,19 @@ export function CashoutFormDialog({
       formData.append("amount", String(values.amount));
       formData.append("userName", values.userName);
       formData.append("details", values.details);
-      formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
+      formData.append("casinoGroup", casinoGroup);
 
+      // Add file input attachments
       if (values.attachment && Array.isArray(values.attachment)) {
         values.attachment.forEach((file) => {
-          formData.append("attachment", file); // All with the same key
+          formData.append("attachment", file);
         });
       }
+
+      // Add pasted images to attachments
+      pastedImages.forEach((file) => {
+        formData.append("attachment", file);
+      });
 
       const res = await fetch("/api/cashout", {
         method: "POST",
@@ -98,8 +110,8 @@ export function CashoutFormDialog({
       }
 
       toast.success("Cashout request submitted successfully!");
-      // Optionally, reset form or close dialog
       form.reset();
+      setPastedImages([]);
       onOpenChange(false);
       mutate();
       onSubmitted?.();
@@ -141,19 +153,34 @@ export function CashoutFormDialog({
                 fieldName="amount"
                 label="Amount"
                 required
-                placeholder="0.00"
+                placeholder="0. 00"
                 type="amount"
               />
             </div>
-            <GlobalFormField
-              form={form}
-              fieldName="details"
-              label="Details"
-              required
-              placeholder="Enter cashout details"
-              type="textarea"
-              row={10}
+
+            <FormField
+              control={form.control}
+              name="details"
+              render={({ field, fieldState }) => (
+                <FormItem className="sm:col-span-2">
+                  <PasteImageTextarea
+                    label="Details"
+                    required
+                    rows={10}
+                    disabled={form.formState.isSubmitting || loading}
+                    placeholder="Enter cashout details"
+                    error={fieldState.error?.message}
+                    pastedImages={pastedImages}
+                    onPastedImagesChange={setPastedImages}
+                    maxFileSize={5}
+                    showPreviews={true}
+                    previewGridCols={3}
+                    {...field}
+                  />
+                </FormItem>
+              )}
             />
+
             <FormField
               control={form.control}
               name="attachment"
@@ -170,11 +197,13 @@ export function CashoutFormDialog({
                       accept="image/*,application/pdf"
                       disabled={loading}
                       onChange={(e) => {
-                        // Store all selected files in field
                         field.onChange(Array.from(e.target.files ?? []));
                       }}
                     />
                   </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Upload files or paste images in the details field above
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

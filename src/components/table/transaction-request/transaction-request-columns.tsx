@@ -68,19 +68,16 @@ export const transactionRequestColumns: ColumnDef<
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Amount" />
     ),
-    cell: ({ row }) => {
-      const amount = row.getValue("amount") as number;
-      return (
-        <span className="font-semibold text-sm font-mono">
-          ₱ {formatAmountWithDecimals(amount)}
-        </span>
-      );
-    },
+    cell: ({ row }) => (
+      <span className=" text-green-700 dark:text-green-500 font-mono">
+        {formatAmountWithDecimals(row.original.amount)}
+      </span>
+    ),
   },
   {
     accessorKey: "paymentMethod",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Payment Method" />
+      <DataTableColumnHeader column={column} title="Method" />
     ),
     cell: ({ row }) => {
       const method = row.getValue("paymentMethod") as string | null;
