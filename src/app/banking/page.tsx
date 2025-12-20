@@ -60,23 +60,21 @@ interface Transaction {
 const BANK_LIST = [
   // E-Wallets & Digital Banks
   "GCash",
-  "Maya (PayMaya)",
+  "Maya",
   "GoTyme Bank",
   "Seabank",
-  "Tonik Bank",
-  "UNO Digital Bank",
   // Traditional Banks
-  "BDO (Banco de Oro)",
-  "BPI (Bank of the Philippine Islands)",
+  "BDO",
+  "BPI",
   "Metrobank",
   "Landbank",
-  "PNB (Philippine National Bank)",
+  "PNB",
   "UnionBank",
   "Security Bank",
-  "RCBC (Rizal Commercial Banking Corporation)",
+  "RCBC",
   "Chinabank",
   "EastWest Bank",
-  "UCPB (United Coconut Planters Bank)",
+  "UCPB",
   "PSBank",
   "Maybank",
   "CTBC Bank",
@@ -578,8 +576,11 @@ export default function BankingPage() {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select your bank" />
+                        <SelectTrigger className="w-full" size={"lg"}>
+                          <SelectValue
+                            placeholder="Select your bank"
+                            className="h-12"
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {BANK_LIST.map((bank) => (
@@ -626,6 +627,7 @@ export default function BankingPage() {
                         placeholder="Enter account holder name"
                         value={accountName}
                         onChange={(e) => setAccountName(e.target.value)}
+                        className="h-12"
                       />
                     </div>
 
@@ -643,6 +645,7 @@ export default function BankingPage() {
                         placeholder="Enter account number"
                         value={accountNumber}
                         onChange={(e) => setAccountNumber(e.target.value)}
+                        className="h-12"
                       />
                     </div>
                   </div>
