@@ -12,6 +12,7 @@ import {
 import { CasinoGroup, TransactionRequest, User } from "@prisma/client";
 import { TransactionRequestActionMenu } from "./TransactionRequestAction";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
+import { Spinner } from "@/components/ui/spinner";
 
 const getStatusIcon = (status?: string) => {
   switch (status) {
@@ -21,7 +22,7 @@ const getStatusIcon = (status?: string) => {
     case "REJECTED":
       return <XCircle className="h-4 w-4" />;
     case "PENDING":
-      return <Clock className="h-4 w-4" />;
+      return <Spinner />;
     default:
       return <AlertCircle className="h-4 w-4" />;
   }
