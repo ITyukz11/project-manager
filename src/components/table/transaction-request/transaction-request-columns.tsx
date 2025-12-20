@@ -160,7 +160,7 @@ export const transactionRequestColumns: ColumnDef<
             {status}
           </Badge>
           {row.original.processedBy && (
-            <span className="text-xs text-muted-foreground mt-1">
+            <span className="text-xs text-muted-foreground">
               by {row.original.processedBy.username}
             </span>
           )}
