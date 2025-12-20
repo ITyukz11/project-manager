@@ -27,6 +27,7 @@ import {
   Loader2,
   Trash2,
   Image as ImageIcon,
+  Lock,
 } from "lucide-react";
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -161,7 +162,7 @@ export function TransactionDetailsDialog({
   onOpenChange,
   transactionId,
 }: TransactionDetailsDialogProps) {
-  const [showReceipt, setShowReceipt] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(true);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [actionType, setActionType] = useState<"APPROVED" | "REJECTED" | null>(
@@ -191,7 +192,6 @@ export function TransactionDetailsDialog({
   // Reset states when dialog opens and refetch data
   useEffect(() => {
     if (open && transactionId) {
-      setShowReceipt(false);
       setReceiptFile(null);
       setReceiptPreview(null);
       setReceiptSource(null);
@@ -474,8 +474,8 @@ export function TransactionDetailsDialog({
                         {transaction?.status}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground font-mono break-all">
-                      ID: {transaction?.id}
+                    <p className="text-xs text-muted-foreground font-mono break-all flex items-center gap-1">
+                      ID: {transaction?.id} <Lock size={10} />
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
@@ -726,7 +726,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.createdAt || ""),
-                            "MMM dd, yyyy - h:mm: aa"
+                            "MMM dd, yyyy - h:mm:aa"
                           )}
                       </p>
                     </div>
@@ -738,7 +738,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.updatedAt || ""),
-                            "MMM dd, yyyy - h: mm:aa"
+                            "MMM dd, yyyy - h:mm:aa"
                           )}
                       </p>
                     </div>
@@ -814,11 +814,10 @@ export function TransactionDetailsDialog({
             transaction?.type === "CASHOUT" &&
             !transaction?.receiptUrl &&
             !receiptFile && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-sm">
-                  Cannot approve: Receipt must be uploaded first for cashout
-                  transactions.
+              <Alert className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <AlertDescription className="text-sm text-red-900 dark:text-red-100">
+                  Please upload receipt before approving this cashout
                 </AlertDescription>
               </Alert>
             )}
