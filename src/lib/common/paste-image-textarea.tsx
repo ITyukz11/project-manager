@@ -5,9 +5,10 @@ import * as React from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Image as ImageIcon, XCircle } from "lucide-react";
+import { Image as ImageIcon, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface PasteImageTextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -152,19 +153,21 @@ export function PasteImageTextarea({
                 key={index}
                 className="relative group h-24 bg-muted rounded-lg border overflow-hidden"
               >
-                <img
+                <Image
+                  width={300}
+                  height={300}
                   src={preview}
                   alt={`Pasted image ${index + 1}`}
-                  className="object-cover w-full h-full"
+                  objectFit="cover"
                 />
                 <Button
                   type="button"
                   variant="destructive"
                   size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute z-50 top-1 right-1 h-6 w-6 opacity-30 group-hover:opacity-100 transition-opacity"
                   onClick={() => removePastedImage(index)}
                 >
-                  <XCircle className="h-3 w-3" />
+                  <X className="h-3 w-3" />
                 </Button>
                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs px-2 py-1 truncate">
                   {pastedImages[index]?.name}

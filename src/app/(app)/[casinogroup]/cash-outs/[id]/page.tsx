@@ -8,7 +8,6 @@ import {
   UserCircle,
   X,
   MessageSquare,
-  ExternalLink,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -34,22 +33,14 @@ import { formatAmountWithDecimals } from "@/components/formatAmount";
 import { useSession } from "next-auth/react";
 import { UpdateStatusDialog } from "../(components)/UpdateStatusDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
-import {
-  avoidDefaultDomBehavior,
-  handleKeyDown,
-} from "@/lib/utils/dialogcontent.utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Image from "next/image";
+import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -219,14 +210,12 @@ export default function Page() {
                                     border: "none",
                                   }}
                                 >
-                                  <img
+                                  <Image
                                     src={att.url}
                                     alt={att.filename}
-                                    className="object-cover w-full h-full"
-                                    style={{
-                                      maxWidth: "5rem",
-                                      maxHeight: "5rem",
-                                    }}
+                                    width={100}
+                                    height={200}
+                                    objectFit="cover"
                                   />
                                 </button>
                               ) : (
@@ -272,14 +261,16 @@ export default function Page() {
                 key={idx}
                 className="relative w-12 h-12 md:w-14 md:h-14 border rounded overflow-hidden"
               >
-                <img
+                <Image
                   src={URL.createObjectURL(att)}
                   alt={att.name}
-                  className="object-cover w-full h-full"
+                  width={100}
+                  height={100}
+                  objectFit="cover"
                 />
                 <button
                   type="button"
-                  className="absolute top-0 right-0 bg-white bg-opacity-75 text-red-600 rounded p-0. 5"
+                  className="cursor-pointer absolute top-0 right-0 bg-white bg-opacity-75 text-red-600 rounded p-0.5"
                   style={{ lineHeight: 0 }}
                   onClick={() => handleRemoveAttachment(idx)}
                   tabIndex={-1}
@@ -576,40 +567,12 @@ export default function Page() {
       </div>
 
       {/* Image Preview Dialog */}
-      <Dialog open={!!previewImg} onOpenChange={() => setPreviewImg(null)}>
-        <DialogContent
-          className="max-w-[90vw] sm:max-w-lg md:max-w-xl"
-          onPointerDownOutside={avoidDefaultDomBehavior}
-          onInteractOutside={avoidDefaultDomBehavior}
-          onKeyDown={handleKeyDown}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-sm md:text-base truncate">
-              {previewFilename}
-            </DialogTitle>
-          </DialogHeader>
-          {previewImg && (
-            <>
-              <img
-                src={previewImg}
-                alt={previewFilename || "preview"}
-                className="mx-auto block max-h-[60vh] md:max-h-[75vh] w-auto object-contain rounded shadow"
-              />
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.open(previewImg, "_blank")}
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Open in New Tab
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ImagePreviewDialog
+        open={!!previewImg}
+        imageUrl={previewImg}
+        filename={previewFilename}
+        onClose={() => setPreviewImg(null)}
+      />
 
       <CashoutStatusHistorySheet
         open={showStatusSheet}

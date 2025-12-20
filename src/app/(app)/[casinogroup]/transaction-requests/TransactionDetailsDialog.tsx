@@ -23,7 +23,6 @@ import {
   Clock,
   Receipt,
   CheckCircle,
-  Upload,
   Loader2,
   Trash2,
   Image as ImageIcon,
@@ -40,6 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import Image from "next/image";
 
 interface TransactionDetailsDialogProps {
   open: boolean;
@@ -392,7 +392,6 @@ export function TransactionDetailsDialog({
 
   const isPending = transaction?.status === "PENDING";
   const isCashout = transaction?.type === "CASHOUT";
-  const hasNoReceipt = !transaction?.receiptUrl;
 
   return (
     <>
@@ -609,9 +608,11 @@ export function TransactionDetailsDialog({
                         </Button>
                       ) : (
                         <div className="relative w-full h-64 bg-muted rounded-lg border group">
-                          <img
+                          <Image
                             src={transaction?.receiptUrl}
                             alt="Transaction Receipt"
+                            width={200}
+                            height={400}
                             className="object-contain rounded-lg w-full h-full cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => {
                               if (transaction?.receiptUrl) {
@@ -846,10 +847,12 @@ export function TransactionDetailsDialog({
               ) : (
                 <div className="space-y-2">
                   <div className="relative w-full h-40 bg-muted rounded-lg border">
-                    <img
+                    <Image
                       src={receiptPreview}
                       alt="Receipt Preview"
-                      className="object-contain rounded-lg w-full h-full"
+                      width={100}
+                      height={100}
+                      objectFit="cover"
                     />
                   </div>
                   <div className="flex items-center justify-between">

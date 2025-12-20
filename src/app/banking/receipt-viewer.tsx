@@ -102,10 +102,12 @@ export function ReceiptViewer({
               transition: "transform 0.2s ease-in-out",
             }}
           >
-            <img
+            <Image
               src={receiptUrl}
               alt="Receipt"
-              className="max-w-full h-auto rounded-lg shadow-lg"
+              width={500}
+              height={500}
+              className="rounded-lg shadow-lg"
               onLoad={() => setIsImageLoading(false)}
               onError={() => {
                 setIsImageLoading(false);
