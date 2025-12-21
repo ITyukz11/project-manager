@@ -239,7 +239,7 @@ export async function POST(req: Request) {
         );
 
         await emitCashoutUpdated({
-          transactionId: result.id,
+          transactionId: cashout.id,
           casinoGroup: casinoGroupName,
           action: "CREATED",
         });
