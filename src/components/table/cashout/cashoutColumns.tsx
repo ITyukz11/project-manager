@@ -16,7 +16,7 @@ export type CashoutForTable = {
   userName: string;
   details: string;
   status: string;
-
+  transactionRequestId?: string;
   createdAt: Date;
   updatedAt: Date;
   createdByAdmin?: { id: string; name?: string };
@@ -33,11 +33,35 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     ),
     cell: ({ row }) => {
       const cashout = row.original;
+      const isGateway = !!cashout.transactionRequestId;
+
       // Show Admin's name if present, else NetworkUser name
       const entry = cashout.createdByAdmin?.name || cashout.user?.name || "—";
-      return <span className="font-medium">{entry}</span>;
+
+      return (
+        <span className="font-medium flex items-center gap-1">
+          {isGateway && (
+            <span className="relative inline-flex">
+              {/* Ping layer (only when PENDING) */}
+              {cashout.status === "COMPLETED" && (
+                <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse">
+                  GATEWAY
+                </span>
+              )}
+
+              {/* Main label */}
+              <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
+                GATEWAY
+              </span>
+            </span>
+          )}
+
+          <span>{entry}</span>
+        </span>
+      );
     },
   },
+
   {
     accessorKey: "userName",
     header: ({ column }) => (
