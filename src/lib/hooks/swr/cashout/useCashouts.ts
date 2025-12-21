@@ -1,32 +1,58 @@
 import useSWR from "swr";
+import { useState } from "react";
+import { pusherChannel } from "@/lib/pusher";
+import { usePusher } from "../../use-pusher";
+import { CashoutForTable } from "@/components/table/cashout/cashoutColumns";
 
-// Simple fetcher that converts response to JSON
+// Simple fetcher function
 const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch");
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch cashouts");
   return res.json();
 };
 
-// Returns: { data, error, isLoading }
 export const useCashouts = (casinoGroup?: string) => {
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
   let url = "/api/cashout";
   if (casinoGroup) {
     url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
   }
 
-  // Add auto-refresh configuration
-  const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
-    refreshInterval: 10000, // Auto-refresh every 10 seconds (10000ms)
-    revalidateOnFocus: true, // Revalidate when window regains focus
-    revalidateOnReconnect: true, // Revalidate when browser regains network connection
-    dedupingInterval: 2000, // Dedupe requests within 2 seconds
+  const { data, error, isLoading, mutate } = useSWR<CashoutForTable[]>(
+    url,
+    fetcher,
+    {
+      refreshInterval: 0, // disable polling, rely on Pusher
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      dedupingInterval: 3000,
+      shouldRetryOnError: true,
+    }
+  );
+
+  // 🔥 Real-time updates via Pusher
+  usePusher<{
+    cashoutId: string;
+    action: "CREATED" | "APPROVED" | "REJECTED";
+    timestamp: string;
+  }>({
+    channels: casinoGroup ? [pusherChannel.transactions(casinoGroup)] : [],
+    eventName: "cashout-updated",
+    onEvent: (payload) => {
+      console.log("📢 Cashout updated:", payload);
+      setLastUpdate(new Date(payload.timestamp));
+
+      // Revalidate SWR cache
+      mutate();
+    },
   });
 
-  // data will be an array of cashouts
   return {
     cashouts: data ?? [],
     error,
     isLoading,
-    mutate, // for refetching if you post a new cashout etc
+    lastUpdate,
+    refetch: mutate,
   };
 };

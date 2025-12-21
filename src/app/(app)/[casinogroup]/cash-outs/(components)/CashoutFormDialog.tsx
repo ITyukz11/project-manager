@@ -31,7 +31,6 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { useParams } from "next/navigation";
-import RequiredField from "@/components/common/required-field";
 import { PasteImageTextarea } from "@/lib/common/paste-image-textarea";
 
 // Zod schema for Cashout form
@@ -58,7 +57,7 @@ export function CashoutFormDialog({
 
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { mutate } = useCashouts(casinoGroup);
+  const { refetch } = useCashouts(casinoGroup);
 
   const form = useForm<CashoutFormValues>({
     resolver: zodResolver(CashoutFormSchema),
@@ -113,7 +112,7 @@ export function CashoutFormDialog({
       form.reset();
       setPastedImages([]);
       onOpenChange(false);
-      mutate();
+      refetch();
       onSubmitted?.();
     } catch (e: any) {
       toast.error(e.message || "Something went wrong!");

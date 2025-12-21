@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
 
 const STATUS_SORT = {
   PARTIAL: 1,
@@ -236,6 +237,12 @@ export async function POST(req: Request) {
             );
           })
         );
+
+        await emitCashoutUpdated({
+          transactionId: result.id,
+          casinoGroup: casinoGroupName,
+          action: "CREATED",
+        });
 
         return cashout;
       });

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
 
 export async function PATCH(
   req: Request,
@@ -59,6 +60,12 @@ export async function PATCH(
       "cashout-pending-count",
       { count: pendingCount }
     );
+
+    await emitCashoutUpdated({
+      transactionId: cashout.id,
+      casinoGroup: cashout.casinoGroup.name.toLowerCase(),
+      action: "UPDATED",
+    });
 
     return NextResponse.json({ success: true, cashout });
   } catch (e) {

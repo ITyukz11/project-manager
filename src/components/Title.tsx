@@ -32,7 +32,7 @@ export function Title({
 }: TitleProps) {
   return (
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 w-full">
         {/* Optional left icon */}
         {icon && (
           <div className="hidden sm:block p-2 bg-green-100 dark:bg-green-900/20 rounded-lg shrink-0">
@@ -40,23 +40,12 @@ export function Title({
           </div>
         )}
 
-        <div className="flex flex-col">
+        <div className="flex flex-col w-full">
           <div className="flex flex-row gap-2 items-center">
-            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex flex-row justify-between">
+            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex flex-row justify-between w-full">
               {title}
               {right && right}
             </CardTitle>
-
-            {/* Last updated / refresh animation */}
-            {lastUpdate && (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <RefreshCcw
-                  className={`h-4 w-4 transition-transform duration-500 ${
-                    isRefreshing ? "animate-spin" : ""
-                  }`}
-                />
-              </div>
-            )}
           </div>
 
           {subtitle && (
@@ -72,6 +61,14 @@ export function Title({
                   <span className="sm:block hidden text-xs font-medium text-green-700 dark:text-green-400">
                     Live
                   </span>
+                  {/* Last updated / refresh animation */}
+                  {isRefreshing && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <RefreshCcw
+                        className={`text-green-600 dark:text-green-400 h-3 w-3 transition-transform duration-500 animate-spin`}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
