@@ -25,7 +25,7 @@ export function ReceiptButton({
       <>
         <button
           onClick={() => setShowViewer(true)}
-          className={`text-primary hover:underline text-xs cursor-pointer ${
+          className={` hover:underline text-xs cursor-pointer text-blue-500 ${
             className || ""
           }`}
         >

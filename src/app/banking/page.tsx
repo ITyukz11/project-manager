@@ -35,7 +35,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Spinner } from "@/components/ui/spinner";
+import {
+  getStatusColorClass,
+  getStatusIcon,
+} from "@/components/getStatusColorClass";
 
 type PaymentMethod = "QRPH" | null;
 
@@ -55,6 +58,7 @@ interface Transaction {
   } | null;
   createdAt: string;
   updatedAt: string;
+  remarks: string | null;
 }
 
 // Move constants outside component to prevent recreation
@@ -372,19 +376,6 @@ export default function BankingPage() {
   const displayBankName = useMemo(() => {
     return selectedBank === "Other" ? customBank : selectedBank;
   }, [selectedBank, customBank]);
-
-  const getStatusBadgeVariant = useCallback((status: string) => {
-    switch (status) {
-      case "PENDING":
-        return "outline";
-      case "APPROVED":
-        return "success";
-      case "REJECTED":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  }, []);
 
   // Show error if required parameters are missing
   if (!username || !casino) {
@@ -769,19 +760,12 @@ export default function BankingPage() {
                             <div className="flex items-center gap-2">
                               <Badge>{transaction.type}</Badge>
                               <Badge
-                                variant={
-                                  getStatusBadgeVariant(
-                                    transaction.status
-                                  ) as any
-                                }
-                                className="flex items-center gap-1.5"
+                                className={`${getStatusColorClass(
+                                  transaction.status
+                                )}`}
                               >
-                                {transaction.status === "PENDING" && (
-                                  <Spinner className="h-3 w-3" />
-                                )}
-                                {transaction.status === "PENDING"
-                                  ? "PROCESSING"
-                                  : transaction.status}
+                                {getStatusIcon(transaction.status)}
+                                {transaction.status}
                               </Badge>
                             </div>
                             <p className="text-lg font-bold text-foreground">
@@ -842,6 +826,16 @@ export default function BankingPage() {
                                 )}
                               </span>
                             </div>
+                            {transaction.remarks && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Remarks:
+                                </span>
+                                <span className="text-right text-xs max-w-[200px] truncate italic">
+                                  {transaction.remarks}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
