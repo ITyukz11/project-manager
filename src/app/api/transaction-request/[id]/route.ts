@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { pusher } from "@/lib/pusher";
 import { put } from "@vercel/blob";
+import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
 
 // PATCH handler to update transaction status
 export async function PATCH(
@@ -24,9 +24,15 @@ export async function PATCH(
     const receiptFile = formData.get("receipt") as File | null;
 
     // Validation
-    if (!status || !["PENDING", "APPROVED", "REJECTED"].includes(status)) {
+    if (
+      !status ||
+      !["PENDING", "APPROVED", "REJECTED", "CLAIMED"].includes(status)
+    ) {
       return NextResponse.json(
-        { error: "Invalid status. Must be PENDING, APPROVED, or REJECTED." },
+        {
+          error:
+            "Invalid status. Must be PENDING, APPROVED, REJECTED, or CLAIMED.",
+        },
         { status: 400 }
       );
     }
@@ -34,6 +40,11 @@ export async function PATCH(
     // Check if transaction exists
     const existingTransaction = await prisma.transactionRequest.findUnique({
       where: { id },
+      include: {
+        casinoGroup: {
+          select: { name: true },
+        },
+      },
     });
 
     if (!existingTransaction) {
@@ -122,10 +133,10 @@ export async function PATCH(
     // Trigger Pusher notification
     if (process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.PUSHER_SECRET) {
       try {
-        await pusher.trigger("transaction-request", "status-updated", {
-          id: updatedTransaction.id,
-          status: updatedTransaction.status,
-          processedBy: currentUser.username,
+        await emitTransactionUpdated({
+          transactionId: existingTransaction.id,
+          casinoGroup: existingTransaction.casinoGroup.name.toLowerCase(),
+          action: "UPDATED",
         });
       } catch (pusherErr) {
         console.error("Pusher error:", pusherErr);

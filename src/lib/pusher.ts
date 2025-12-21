@@ -14,7 +14,9 @@ export enum NotificationChannel {
   Role = "role",
   Position = "position",
   AttachmentProgress = "attachment-progress",
-  OnlineUsers = "online-users", // NEW
+
+  OnlineUsers = "online-users",
+  Transactions = "transactions",
 }
 
 export const pusherChannel = {
@@ -25,7 +27,9 @@ export const pusherChannel = {
   position: (position: string) => `${NotificationChannel.Position}-${position}`,
   attachmentProgress: (key: string) =>
     `${NotificationChannel.AttachmentProgress}-${key}`,
-  onlineUsers: () => NotificationChannel.OnlineUsers, // NEW
+  onlineUsers: () => NotificationChannel.OnlineUsers,
+  transactions: (casinoGroup: string) =>
+    `${NotificationChannel.Transactions}-${casinoGroup}`,
 };
 
 export async function emitUploadProgress(

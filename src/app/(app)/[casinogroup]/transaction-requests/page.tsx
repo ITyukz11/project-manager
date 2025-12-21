@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,28 +12,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { TriangleAlert } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { useParams } from "next/navigation";
+
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { transactionRequestColumns } from "@/components/table/transaction-request/transaction-request-columns";
-import { useState } from "react";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
 
 export default function Page() {
-  const { data: session } = useSession();
   const params = useParams();
   const casinoGroup = params.casinogroup;
 
   const [viewRow, setViewRow] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
 
-  console.log("casinoGroup: ", casinoGroup);
-  const { transactionRequests, isLoading, error } = useTransactionRequest(
-    casinoGroup?.toLocaleString() || ""
-  );
-  const hiddenColumns = ["bankDetails", "action"];
+  // 🟢 REAL-TIME HOOK
+  const { transactionRequests, isLoading, error, lastUpdate } =
+    useTransactionRequest(casinoGroup?.toLocaleString() || "");
 
-  console.log("Current User Session:  ", session);
+  const hiddenColumns = ["bankDetails", "action"];
 
   return (
     <>
@@ -54,10 +52,17 @@ export default function Page() {
                   >
                     <div className="text-sm text-red-400 dark:text-red-700">
                       {error?.message ||
-                        "Error loading accounts. Please try again later."}
+                        "Error loading transactions. Please try again later."}
                     </div>
                   </TooltipContent>
                 </Tooltip>
+              )}
+
+              {/* Optional: show last updated timestamp */}
+              {lastUpdate && (
+                <div className="text-sm text-gray-400 ml-4">
+                  Last updated: {lastUpdate.toLocaleTimeString()}
+                </div>
               )}
             </div>
           </div>
@@ -73,8 +78,8 @@ export default function Page() {
               data={transactionRequests}
               columns={transactionRequestColumns}
               hiddenColumns={hiddenColumns}
-              cursorRowSelect={true}
-              allowExportData={true}
+              cursorRowSelect
+              allowExportData
               onViewRowId={(id) => {
                 setTransactionId(id);
                 setViewRow(true);

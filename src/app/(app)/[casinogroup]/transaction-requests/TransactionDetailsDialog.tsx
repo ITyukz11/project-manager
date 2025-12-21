@@ -185,7 +185,7 @@ export function TransactionDetailsDialog({
   const { transaction, isLoading, error, mutate } =
     useTransactionDetails(transactionId);
 
-  const { mutate: mutateList } = useTransactionRequest(
+  const { refetch: mutateList } = useTransactionRequest(
     casinoGroup?.toString() || ""
   );
 

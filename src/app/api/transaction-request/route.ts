@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { pusher } from "@/lib/pusher";
+import { pusher, pusherChannel } from "@/lib/pusher";
 import { put } from "@vercel/blob";
 import crypto from "crypto";
 import { ADMINROLES } from "@/lib/types/role";
+import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
 
 const STATUS_SORT = {
   PENDING: 1,
@@ -566,10 +567,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // Get all tagged users for this notification
-    // ============================================
-    // TRIGGER REAL-TIME NOTIFICATION
-    // ============================================
+    // // Get all tagged users for this notification
+    // // ============================================
+    // // TRIGGER REAL-TIME NOTIFICATION
+    // // ============================================
     const notifiedUsersId = await prisma.user
       .findMany({
         where: {
@@ -587,7 +588,7 @@ export async function POST(req: Request) {
       })
       .then((users) => users.map((user) => user.id));
 
-    // For each user, create the notification and send via Pusher
+    // // For each user, create the notification and send via Pusher
     await Promise.all(
       notifiedUsersId.map(async (userId) => {
         const notification = await prisma.notifications.create({
@@ -605,7 +606,7 @@ export async function POST(req: Request) {
           },
         });
 
-        // You can use a specific event name for this type
+        //You can use a specific event name for this type
         await pusher.trigger(
           `user-notify-${userId}`,
           "notifications-event", // Event name by notification type
@@ -613,6 +614,12 @@ export async function POST(req: Request) {
         );
       })
     );
+
+    await emitTransactionUpdated({
+      transactionId: transaction.id,
+      casinoGroup: casinoGroupName,
+      action: "CREATED",
+    });
 
     console.log(
       `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
