@@ -165,17 +165,10 @@ export function TransactionDetailsDialog({
   const [showReceipt, setShowReceipt] = useState(true);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [actionType, setActionType] = useState<"APPROVED" | "REJECTED" | null>(
+  const [actionType, setActionType] = useState<"CLAIMED" | "REJECTED" | null>(
     null
   );
   const [remarks, setRemarks] = useState("");
-
-  // Receipt file states (single file for both upload and paste)
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
-  const [receiptSource, setReceiptSource] = useState<"upload" | "paste" | null>(
-    null
-  );
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -192,156 +185,73 @@ export function TransactionDetailsDialog({
   // Reset states when dialog opens and refetch data
   useEffect(() => {
     if (open && transactionId) {
-      setReceiptFile(null);
-      setReceiptPreview(null);
-      setReceiptSource(null);
       mutate(); // Refetch latest data when dialog opens
     }
   }, [open, transactionId, mutate]);
 
-  const openConfirmDialog = (status: "APPROVED" | "REJECTED") => {
+  const openConfirmDialog = (status: "CLAIMED" | "REJECTED") => {
     setActionType(status);
     setRemarks("");
-    setReceiptFile(null);
-    setReceiptPreview(null);
-    setReceiptSource(null);
     setIsActionDialogOpen(true);
-  };
-
-  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please upload an image file");
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("File size must be less than 5MB");
-        return;
-      }
-
-      setReceiptFile(file);
-      setReceiptSource("upload");
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setReceiptPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      toast.success("Receipt uploaded successfully");
-    }
-  };
-
-  const removeReceipt = () => {
-    setReceiptFile(null);
-    setReceiptPreview(null);
-    setReceiptSource(null);
-    toast.info("Receipt removed");
-  };
-
-  // Handle paste event in textarea
-  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-
-      // Check if the pasted item is an image
-      if (item.type.startsWith("image/")) {
-        e.preventDefault(); // Prevent default paste behavior
-
-        const file = item.getAsFile();
-        if (!file) continue;
-
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-          toast.error("Image size must be less than 5MB");
-          return;
-        }
-
-        // Create a new file with a proper name
-        const timestamp = new Date().getTime();
-        const renamedFile = new File(
-          [file],
-          `pasted-receipt-${timestamp}.${file.type.split("/")[1]}`,
-          { type: file.type }
-        );
-
-        // Replace existing receipt
-        setReceiptFile(renamedFile);
-        setReceiptSource("paste");
-
-        // Create preview
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setReceiptPreview(reader.result as string);
-        };
-        reader.readAsDataURL(renamedFile);
-
-        toast.success("Image pasted as receipt");
-        return; // Only handle the first image
-      }
-    }
   };
 
   const handleStatusUpdate = async () => {
     if (!actionType || !transactionId) return;
 
-    // Check if it's a cashout approval and receipt is required
-    if (
-      actionType === "APPROVED" &&
-      transaction?.type === "CASHOUT" &&
-      !transaction?.receiptUrl &&
-      !receiptFile
-    ) {
-      toast.error("Please upload the receipt before approving");
-      return;
-    }
-
     setIsUpdating(true);
 
     try {
       const formData = new FormData();
-      formData.append("status", actionType);
+      formData.append("userName", transaction!.username);
+      formData.append("amount", transaction!.amount.toString());
 
+      formData.append("casinoGroup", transaction!.casinoGroup.name);
+      formData.append("status", "CLAIMED");
       if (remarks.trim()) {
-        formData.append("remarks", remarks.trim());
+        formData.append("details", `Transaction ${actionType.toLowerCase()}`);
       }
 
-      // Add receipt file if it exists
-      if (receiptFile) {
-        formData.append("receipt", receiptFile);
-      }
+      let response: Response | undefined;
+      let data: any;
 
-      const response = await fetch(
-        `/api/transaction-request/${transactionId}`,
-        {
+      if (actionType === "CLAIMED" && transaction?.type === "CASHOUT") {
+        response = await fetch(
+          `/api/transaction-request/${transactionId}/claim`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+        data = await response.json();
+
+        if (!response.ok) {
+          toast.error(data?.error || "Claimed failed!");
+          return;
+        }
+        toast.success("Claimed and requested a cashout successfully!");
+      } else if (actionType === "REJECTED") {
+        response = await fetch(`/api/transaction-request/${transactionId}`, {
           method: "PATCH",
           body: formData,
+        });
+        data = await response.json();
+
+        if (!response.ok) {
+          toast.error(data?.error || "Failed to reject transaction");
+          return;
         }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update status");
+        toast.success("Transaction rejected successfully!");
+      } else {
+        // handle other action types if needed
+        return;
       }
 
-      toast.success(`Transaction ${actionType.toLowerCase()} successfully`);
-      mutate(); // Refresh transaction details
-      mutateList(); // Refresh transaction list
+      // Only run if there is a successful update:
+      await mutate();
+      await mutateList();
       setIsActionDialogOpen(false);
       setRemarks("");
       setActionType(null);
-      setReceiptFile(null);
-      setReceiptPreview(null);
-      setReceiptSource(null);
     } catch (error: any) {
       toast.error(error.message || "Failed to update transaction");
     } finally {
@@ -353,14 +263,11 @@ export function TransactionDetailsDialog({
     setIsActionDialogOpen(false);
     setRemarks("");
     setActionType(null);
-    setReceiptFile(null);
-    setReceiptPreview(null);
-    setReceiptSource(null);
   };
 
   const getStatusIcon = (status?: string) => {
     switch (status) {
-      case "APPROVED":
+      case "CLAIMED":
       case "COMPLETED":
         return <CheckCircle2 className="h-4 w-4" />;
       case "REJECTED":
@@ -374,7 +281,7 @@ export function TransactionDetailsDialog({
 
   const getStatusBadgeVariant = (status?: string) => {
     switch (status) {
-      case "APPROVED":
+      case "CLAIMED":
       case "COMPLETED":
         return "success";
       case "REJECTED":
@@ -416,10 +323,10 @@ export function TransactionDetailsDialog({
                     size="sm"
                     variant="outline"
                     className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                    onClick={() => openConfirmDialog("APPROVED")}
+                    onClick={() => openConfirmDialog("CLAIMED")}
                   >
                     <CheckCircle className="h-4 w-4" />
-                    Approve
+                    Claim
                   </Button>
                   <Button
                     size="sm"
@@ -464,7 +371,7 @@ export function TransactionDetailsDialog({
                         className={`flex items-center gap-1 ${
                           transaction?.status === "PENDING"
                             ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                            : transaction?.status === "APPROVED"
+                            : transaction?.status === "CLAIMED"
                             ? "bg-green-600 hover:bg-green-700 text-white"
                             : ""
                         }`}
@@ -786,15 +693,15 @@ export function TransactionDetailsDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Approve/Reject Confirmation Dialog */}
+      {/* Claim/Reject Confirmation Dialog */}
       <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex flex-row items-center">
-              {actionType === "APPROVED" ? (
+              {actionType === "CLAIMED" ? (
                 <>
                   <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
-                  Approve Transaction
+                  Claim Chips
                 </>
               ) : (
                 <>
@@ -804,86 +711,20 @@ export function TransactionDetailsDialog({
               )}
             </DialogTitle>
             <DialogDescription>
-              {actionType === "APPROVED"
+              {actionType === "CLAIMED"
                 ? "You are about to approve this transaction"
                 : "You are about to reject this transaction"}
             </DialogDescription>
           </DialogHeader>
 
           {/* Warning for cashout without receipt */}
-          {actionType === "APPROVED" &&
-            transaction?.type === "CASHOUT" &&
-            !transaction?.receiptUrl &&
-            !receiptFile && (
-              <Alert className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
-                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <AlertDescription className="text-sm text-red-900 dark:text-red-100">
-                  Please upload receipt before approving this cashout
-                </AlertDescription>
-              </Alert>
-            )}
 
-          {/* Receipt Upload for Cashout */}
-          {transaction?.type === "CASHOUT" && !transaction?.receiptUrl && (
-            <div className="space-y-2">
-              <Label htmlFor="receipt">
-                Receipt <span className="text-destructive">*</span>
-              </Label>
-
-              {!receiptPreview ? (
-                <div className="space-y-2">
-                  <Input
-                    id="receipt"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleReceiptChange}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <ImageIcon className="h-3 w-3" />
-                    Upload receipt or paste image in remarks field (max 5MB)
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="relative w-full h-40 bg-muted rounded-lg border">
-                    <Image
-                      src={receiptPreview}
-                      alt="Receipt Preview"
-                      width={100}
-                      height={100}
-                      objectFit="cover"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-muted-foreground truncate">
-                        {receiptFile?.name}
-                      </p>
-                      {receiptSource && (
-                        <p className="text-xs text-muted-foreground">
-                          Source:{" "}
-                          {receiptSource === "upload"
-                            ? "📁 Upload"
-                            : "📋 Pasted"}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeReceipt}
-                      className="text-destructive hover:text-destructive ml-2"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <Alert className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertDescription className="text-sm text-red-900 dark:text-red-100">
+              Please double check before taking action
+            </AlertDescription>
+          </Alert>
 
           <div className="space-y-2">
             <Label htmlFor="remarks">
@@ -896,18 +737,9 @@ export function TransactionDetailsDialog({
               placeholder="Add any remarks or notes..."
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              onPaste={handlePaste}
               rows={4}
               className="resize-none"
             />
-            {transaction?.type === "CASHOUT" &&
-              !transaction?.receiptUrl &&
-              !receiptFile && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <ImageIcon className="h-3 w-3" />
-                  <span>Tip: You can paste image here (Ctrl+V) as receipt</span>
-                </div>
-              )}
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm: justify-end gap-2">
@@ -920,7 +752,7 @@ export function TransactionDetailsDialog({
               Cancel
             </Button>
             <Button
-              variant={actionType === "APPROVED" ? "default" : "destructive"}
+              variant={actionType === "CLAIMED" ? "default" : "destructive"}
               onClick={handleStatusUpdate}
               disabled={isUpdating}
               className="w-full sm:w-auto"
@@ -930,8 +762,8 @@ export function TransactionDetailsDialog({
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...
                 </>
-              ) : actionType === "APPROVED" ? (
-                "Approve"
+              ) : actionType === "CLAIMED" ? (
+                "Claim"
               ) : (
                 "Reject"
               )}
