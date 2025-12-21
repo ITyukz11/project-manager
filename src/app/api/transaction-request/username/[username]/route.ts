@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 // ============================================
 // HELPER:  Validate API Key
@@ -105,7 +106,7 @@ export async function GET(
     const casinoGroup = url.searchParams.get("casinoGroup");
 
     // Build where clause
-    const whereClause: any = {
+    const whereClause: Prisma.TransactionRequestWhereInput = {
       username: sanitizedUsername,
     };
 
@@ -121,10 +122,7 @@ export async function GET(
       where: whereClause,
       include: {
         casinoGroup: {
-          select: {
-            id: true,
-            name: true,
-          },
+          select: { id: true, name: true },
         },
         processedBy: {
           select: {
@@ -136,7 +134,7 @@ export async function GET(
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: Prisma.SortOrder.desc,
       },
       take: 50, // Limit to last 50 transactions
     });

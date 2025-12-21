@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
+import { Prisma } from "@prisma/client";
 
 export async function GET() {
   try {
@@ -38,7 +39,7 @@ export async function GET() {
             active: true,
           },
           orderBy: {
-            time: "desc",
+            time: Prisma.SortOrder.desc,
           },
           take: 1,
           select: {
@@ -50,7 +51,7 @@ export async function GET() {
         },
       },
       orderBy: {
-        name: "asc",
+        name: Prisma.SortOrder.asc,
       },
     });
 
