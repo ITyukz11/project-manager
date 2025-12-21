@@ -54,7 +54,15 @@ export async function PATCH(
       },
     });
 
-    // 4. Emit Pusher event for the clients
+    // 4. Update transaction status in TransactionRequest table if linked
+    if (cashout.transactionRequestId) {
+      await prisma.transactionRequest.update({
+        where: { id: cashout.transactionRequestId },
+        data: { status: "APPROVED" },
+      });
+    }
+
+    // 5. Emit Pusher event for the clients
     await pusher.trigger(
       `cashout-${cashout.casinoGroup.name.toLowerCase()}`,
       "cashout-pending-count",

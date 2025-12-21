@@ -5,6 +5,7 @@ import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated"
 import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { put } from "@vercel/blob";
 
 export async function POST(
   req: Request,
@@ -67,6 +68,35 @@ export async function POST(
       );
     }
 
+    // Upload attachments
+    const attachments: File[] = formData.getAll("attachment") as File[];
+    const attachmentData: {
+      url: string;
+      filename: string;
+      mimetype: string;
+    }[] = [];
+    for (const file of attachments) {
+      if (file && typeof file === "object" && file.size > 0) {
+        try {
+          const blob = await put(file.name, file, {
+            access: "public",
+            addRandomSuffix: true,
+          });
+          attachmentData.push({
+            url: blob.url,
+            filename: file.name,
+            mimetype: file.type || "",
+          });
+        } catch (err) {
+          console.error("Attachment upload error:", err);
+          return NextResponse.json(
+            { error: "Attachment upload failed." },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
     const existingTransaction = await prisma.transactionRequest.findUnique({
       where: { id },
       include: { casinoGroup: { select: { name: true } } },
@@ -89,6 +119,12 @@ export async function POST(
             details,
             casinoGroupId: casinoGroup.id,
             userId: currentUser.id,
+            transactionRequestId: existingTransaction.id,
+            attachments: {
+              createMany: {
+                data: attachmentData,
+              },
+            },
           },
         });
         await tx.transactionRequest.update({

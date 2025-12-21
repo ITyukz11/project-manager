@@ -24,9 +24,9 @@ import {
   Receipt,
   CheckCircle,
   Loader2,
-  Trash2,
-  Image as ImageIcon,
   Lock,
+  Trash2,
+  ImageIcon,
 } from "lucide-react";
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,8 +38,8 @@ import { useParams } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import { Input } from "@/components/ui/input";
 
 interface TransactionDetailsDialogProps {
   open: boolean;
@@ -172,6 +172,13 @@ export function TransactionDetailsDialog({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Receipt file states (single file for both upload and paste)
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptSource, setReceiptSource] = useState<"upload" | "paste" | null>(
+    null
+  );
+
   const params = useParams();
   const casinoGroup = params.casinogroup;
 
@@ -185,6 +192,9 @@ export function TransactionDetailsDialog({
   // Reset states when dialog opens and refetch data
   useEffect(() => {
     if (open && transactionId) {
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setReceiptSource(null);
       mutate(); // Refetch latest data when dialog opens
     }
   }, [open, transactionId, mutate]);
@@ -192,7 +202,92 @@ export function TransactionDetailsDialog({
   const openConfirmDialog = (status: "CLAIMED" | "REJECTED") => {
     setActionType(status);
     setRemarks("");
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptSource(null);
     setIsActionDialogOpen(true);
+  };
+
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
+      setReceiptFile(file);
+      setReceiptSource("upload");
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReceiptPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      toast.success("Receipt uploaded successfully");
+    }
+  };
+
+  const removeReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setReceiptSource(null);
+    toast.info("Receipt removed");
+  };
+
+  // Handle paste event in textarea
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+
+      // Check if the pasted item is an image
+      if (item.type.startsWith("image/")) {
+        e.preventDefault(); // Prevent default paste behavior
+
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("Image size must be less than 5MB");
+          return;
+        }
+
+        // Create a new file with a proper name
+        const timestamp = new Date().getTime();
+        const renamedFile = new File(
+          [file],
+          `pasted-receipt-${timestamp}.${file.type.split("/")[1]}`,
+          { type: file.type }
+        );
+
+        // Replace existing receipt
+        setReceiptFile(renamedFile);
+        setReceiptSource("paste");
+
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setReceiptPreview(reader.result as string);
+        };
+        reader.readAsDataURL(renamedFile);
+
+        toast.success("Image pasted as receipt");
+        return; // Only handle the first image
+      }
+    }
   };
 
   const handleStatusUpdate = async () => {
@@ -208,7 +303,10 @@ export function TransactionDetailsDialog({
       formData.append("casinoGroup", transaction!.casinoGroup.name);
       formData.append("status", "CLAIMED");
       if (remarks.trim()) {
-        formData.append("details", `Transaction ${actionType.toLowerCase()}`);
+        formData.append("details", remarks.trim());
+      }
+      if (receiptFile) {
+        formData.append("attachment", receiptFile);
       }
 
       let response: Response | undefined;
@@ -249,6 +347,9 @@ export function TransactionDetailsDialog({
       // Only run if there is a successful update:
       await mutate();
       await mutateList();
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setReceiptSource(null);
       setIsActionDialogOpen(false);
       setRemarks("");
       setActionType(null);
@@ -256,6 +357,9 @@ export function TransactionDetailsDialog({
       toast.error(error.message || "Failed to update transaction");
     } finally {
       setIsUpdating(false);
+      setReceiptFile(null);
+      setReceiptPreview(null);
+      setReceiptSource(null);
     }
   };
 
@@ -372,6 +476,8 @@ export function TransactionDetailsDialog({
                           transaction?.status === "PENDING"
                             ? "bg-yellow-600 hover:bg-yellow-700 text-white"
                             : transaction?.status === "CLAIMED"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : transaction?.status === "APPROVED"
                             ? "bg-green-600 hover:bg-green-700 text-white"
                             : ""
                         }`}
@@ -719,12 +825,68 @@ export function TransactionDetailsDialog({
 
           {/* Warning for cashout without receipt */}
 
-          <Alert className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+          <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
             <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <AlertDescription className="text-sm text-red-900 dark:text-red-100">
+
+            <AlertDescription className="text-sm text-blue-900 dark:text-blue-100">
               Please double check before taking action
             </AlertDescription>
           </Alert>
+          {/* Receipt Upload for Cashout */}
+          {transaction?.type === "CASHOUT" && !transaction?.receiptUrl && (
+            <div className="space-y-2">
+              <Label htmlFor="receipt">
+                Receipt <span className="text-destructive">*</span>
+              </Label>
+
+              {!receiptPreview ? (
+                <div className="space-y-2">
+                  <Input
+                    id="receipt"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleReceiptChange}
+                    className="cursor-pointer"
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="overflow-hidden w-fit relative bg-muted rounded-lg border">
+                    <Image
+                      src={receiptPreview}
+                      alt="Receipt Preview"
+                      width={100}
+                      height={100}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0 relative">
+                      <p className="text-xs text-muted-foreground truncate">
+                        {receiptFile?.name}
+                      </p>
+                      {receiptSource && (
+                        <p className="text-xs text-muted-foreground">
+                          Source:{" "}
+                          {receiptSource === "upload"
+                            ? "📁 Upload"
+                            : "📋 Pasted"}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeReceipt}
+                      className="text-destructive hover:text-destructive ml-2"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="remarks">
@@ -737,9 +899,20 @@ export function TransactionDetailsDialog({
               placeholder="Add any remarks or notes..."
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
+              onPaste={handlePaste}
               rows={4}
               className="resize-none"
             />
+            {transaction?.type === "CASHOUT" &&
+              !transaction?.receiptUrl &&
+              !receiptFile && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <ImageIcon className="h-3 w-3" />
+                  <span>
+                    Tip: You can paste image here (Ctrl+V) as receipt (max 5MB)
+                  </span>
+                </div>
+              )}
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row sm: justify-end gap-2">

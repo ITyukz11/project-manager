@@ -17,6 +17,8 @@ model Cashout {
   cashoutThreads  CashoutThread[]
   cashoutLogs     CashoutLogs[]
 
+  transactionRequestId String?
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 }
