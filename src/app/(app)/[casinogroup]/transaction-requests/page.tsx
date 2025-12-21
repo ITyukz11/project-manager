@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,11 +10,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert, RefreshCcw, Radio, ArrowLeftRight } from "lucide-react";
 
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { transactionRequestColumns } from "@/components/table/transaction-request/transaction-request-columns";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
+import { Title } from "@/components/Title";
 
 export default function Page() {
   const params = useParams();
@@ -24,9 +24,25 @@ export default function Page() {
   const [viewRow, setViewRow] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
 
-  // 🟢 REAL-TIME HOOK
   const { transactionRequests, isLoading, error, lastUpdate } =
     useTransactionRequest(casinoGroup?.toLocaleString() || "");
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Trigger temporary animation whenever lastUpdate changes
+  useEffect(() => {
+    if (!lastUpdate) return;
+
+    // ✅ Defer state update to avoid synchronous setState warning
+    const timer = setTimeout(() => {
+      setIsRefreshing(true);
+
+      const resetTimer = setTimeout(() => setIsRefreshing(false), 1500);
+      return () => clearTimeout(resetTimer);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [lastUpdate]);
 
   const hiddenColumns = ["bankDetails", "action"];
 
@@ -34,38 +50,19 @@ export default function Page() {
     <>
       <Card>
         <CardContent>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">
-              {casinoGroup?.toLocaleString().toUpperCase()} Transaction Request
-            </h1>
-
-            <div className="flex flex-row gap-2 items-center">
-              {error && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <TriangleAlert className="text-red-500" />
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="bottom"
-                    sideOffset={6}
-                    className="max-w-xs"
-                  >
-                    <div className="text-sm text-red-400 dark:text-red-700">
-                      {error?.message ||
-                        "Error loading transactions. Please try again later."}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-
-              {/* Optional: show last updated timestamp */}
-              {lastUpdate && (
-                <div className="text-sm text-gray-400 ml-4">
-                  Last updated: {lastUpdate.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
-          </div>
+          <Title
+            title={`${casinoGroup
+              ?.toLocaleString()
+              .toUpperCase()} Transaction Request`}
+            subtitle="Track manual payment requests from users real-time"
+            lastUpdate={lastUpdate}
+            isRefreshing={isRefreshing}
+            icon={
+              <ArrowLeftRight className="h-5 w-5 md:h-6 md:w-6 text-green-600 dark:text-green-400" />
+            }
+            live
+            error={error}
+          />
 
           {/* Table */}
           {isLoading ? (
