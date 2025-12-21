@@ -69,6 +69,7 @@ export async function GET(
       currentUser.role === ADMINROLES.ADMIN;
 
     const isInitiator = currentUser.id === readyCheck.initiatorId;
+    // @ts-expect-error - TS doesn't know participants has userId field
     const isParticipant = readyCheck.participants.some(
       (p) => p.userId === currentUser.id
     );
