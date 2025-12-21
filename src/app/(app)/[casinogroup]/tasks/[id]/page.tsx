@@ -7,7 +7,6 @@ import {
   UserCircle,
   X,
   MessageSquare,
-  ExternalLink,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -305,6 +304,8 @@ export default function Page() {
               className="h-16 md:h-20 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               onPaste={handlePasteDrop}
               onDrop={handlePasteDrop}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
             >
               <Textarea
                 className="resize-none min-h-12 text-sm md:text-base font-sans bg-card text-foreground dark:bg-neutral-900 dark:text-white border border-muted focus:border-blue-500 dark:focus:border-blue-400"
