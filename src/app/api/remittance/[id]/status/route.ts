@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitRemittanceUpdated } from "@/actions/server/emitRemittanceUpdated";
 
 export async function PATCH(
   req: Request,
@@ -56,6 +57,12 @@ export async function PATCH(
       "remittance-pending-count",
       { count: pendingCount }
     );
+
+    await emitRemittanceUpdated({
+      transactionId: remittance.id,
+      casinoGroup: remittance.casinoGroup.name,
+      action: "CREATED",
+    });
 
     return NextResponse.json({ success: true, remittance });
   } catch (e) {

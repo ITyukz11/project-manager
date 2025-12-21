@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitRemittanceUpdated } from "@/actions/server/emitRemittanceUpdated";
 
 const STATUS_SORT = {
   PENDING: 1,
@@ -202,6 +203,11 @@ export async function POST(req: Request) {
           })
         );
 
+        await emitRemittanceUpdated({
+          transactionId: remittance.id,
+          casinoGroup: casinoGroupName,
+          action: "CREATED",
+        });
         return remittance;
       });
       return NextResponse.json({ success: true, result });

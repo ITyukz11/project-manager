@@ -55,7 +55,7 @@ export function RemittanceFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { mutate } = useRemittance(casinoGroup);
+  const { refetch } = useRemittance(casinoGroup);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 
@@ -108,7 +108,7 @@ export function RemittanceFormDialog({
       // Optionally, reset form or close dialog
       form.reset();
       onOpenChange(false);
-      mutate();
+      refetch();
       onSubmitted?.();
     } catch (e: any) {
       toast.error(e.message || "Something went wrong!");
