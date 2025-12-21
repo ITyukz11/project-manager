@@ -8,6 +8,7 @@ import {
   UserCircle,
   X,
   MessageSquare,
+  Pencil,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -169,7 +170,7 @@ export default function Page() {
               const isUser = session?.user?.id === thread.author?.id;
               const dateTime = formatDate(
                 thread.createdAt,
-                "MM/dd/yy 'at' hh: mm a"
+                "MM/dd/yy 'at' hh:mm a"
               );
 
               return (
@@ -510,6 +511,15 @@ export default function Page() {
             >
               View Status History
             </Button>
+            {cashout.status !== "PENDING" && (
+              <Button
+                variant="outline"
+                onClick={() => setShowStatusSheet(true)}
+                className="text-sm"
+              >
+                Edit
+              </Button>
+            )}
           </div>
         </div>
       ) : (
