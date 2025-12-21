@@ -36,7 +36,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
-import { getStatusColorClass } from "@/components/getStatusColorClass";
+import {
+  getStatusColorClass,
+  getStatusIcon,
+} from "@/components/getStatusColorClass";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
@@ -396,7 +399,12 @@ export default function Page() {
           {/* Entry By */}
           <div>
             <Label className="text-muted-foreground text-xs mb-1 block">
-              Entry By
+              Entry By {/* Badge inside input */}
+              {cashout.transactionRequestId && (
+                <span className=" inline-flex items-start rounded-lg text-xs font-semibold text-blue-900">
+                  - GATEWAY
+                </span>
+              )}
             </Label>
             <Input readOnly value={cashout.user?.name} className="text-sm" />
           </div>
@@ -470,8 +478,19 @@ export default function Page() {
                 cashout.status
               )}`}
             >
+              {getStatusIcon(cashout.status)}
               {cashout.status}
             </Badge>
+            {cashout.transactionRequestId && (
+              <Badge
+                className={`ml-2 capitalize text-xs cursor-pointer ${getStatusColorClass(
+                  "CLAIMED"
+                )}`}
+              >
+                {getStatusIcon("CLAIMED")}
+                CLAIMED
+              </Badge>
+            )}
           </div>
 
           {/* Admin Actions */}
