@@ -4,7 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
-import { getStatusColorClass } from "@/components/getStatusColorClass";
+import {
+  getStatusColorClass,
+  getStatusIcon,
+} from "@/components/getStatusColorClass";
 
 // Assuming Cashout type
 export type CashoutForTable = {
@@ -82,6 +85,7 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
           row.original.status
         )}`}
       >
+        {getStatusIcon(row.original.status)}
         {row.original.status}
       </Badge>
     ),

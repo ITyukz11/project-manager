@@ -5,6 +5,10 @@ import { format } from "date-fns";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Label } from "@/components/ui/label";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
+import {
+  getStatusColorClass,
+  getStatusIcon,
+} from "@/components/getStatusColorClass";
 
 // Assuming Cashout type
 export type ConcernForTable = {
@@ -64,14 +68,11 @@ export const concernColumn: ColumnDef<ConcernForTable>[] = [
     ),
     cell: ({ row }) => (
       <Badge
-        className={`w-fit capitalize ${
-          row.original.status === "PENDING"
-            ? "bg-yellow-400 text-black"
-            : row.original.status === "COMPLETED"
-            ? "bg-green-600 text-white"
-            : "bg-red-600 text-white"
-        }`}
+        className={`w-fit capitalize ${getStatusColorClass(
+          row.original.status
+        )}`}
       >
+        {getStatusIcon(row.original.status)}
         {row.original.status}
       </Badge>
     ),

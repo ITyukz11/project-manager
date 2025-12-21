@@ -2,31 +2,15 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  XCircle,
-} from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { CasinoGroup, TransactionRequest, User } from "@prisma/client";
 import { TransactionRequestActionMenu } from "./TransactionRequestAction";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
-import { Spinner } from "@/components/ui/spinner";
 
-const getStatusIcon = (status?: string) => {
-  switch (status) {
-    case "APPROVED":
-    case "COMPLETED":
-      return <CheckCircle2 className="h-4 w-4" />;
-    case "REJECTED":
-      return <XCircle className="h-4 w-4" />;
-    case "PENDING":
-      return <Spinner />;
-    default:
-      return <AlertCircle className="h-4 w-4" />;
-  }
-};
+import {
+  getStatusColorClass,
+  getStatusIcon,
+} from "@/components/getStatusColorClass";
 
 export const transactionRequestColumns: ColumnDef<
   TransactionRequest & { processedBy: User; casinoGroup: CasinoGroup }
@@ -145,15 +129,7 @@ export const transactionRequestColumns: ColumnDef<
 
       return (
         <div className="flex flex-col">
-          <Badge
-            className={`w-fit ${
-              status === "PENDING"
-                ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                : status === "APPROVED"
-                ? "bg-green-600 hover:bg-green-700 text-white"
-                : "bg-red-500 hover:bg-red-600 text-white"
-            }`}
-          >
+          <Badge className={`w-fit ${getStatusColorClass(status)}`}>
             {getStatusIcon(status)}
             {status}
           </Badge>

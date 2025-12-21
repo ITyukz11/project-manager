@@ -3,6 +3,10 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DataTableColumnHeader } from "../data-table-column-header";
+import {
+  getStatusColorClass,
+  getStatusIcon,
+} from "@/components/getStatusColorClass";
 
 // Assuming Cashout type
 export type RemittanceForTable = {
@@ -62,14 +66,11 @@ export const remittanceColumn: ColumnDef<RemittanceForTable>[] = [
     ),
     cell: ({ row }) => (
       <Badge
-        className={`w-fit capitalize ${
-          row.original.status === "PENDING"
-            ? "bg-yellow-400 text-black"
-            : row.original.status === "COMPLETED"
-            ? "bg-green-600 text-white"
-            : "bg-red-600 text-white"
-        }`}
+        className={`w-fit capitalize ${getStatusColorClass(
+          row.original.status
+        )}`}
       >
+        {getStatusIcon(row.original.status)}
         {row.original.status}
       </Badge>
     ),
