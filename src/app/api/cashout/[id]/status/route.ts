@@ -56,9 +56,10 @@ export async function PATCH(
 
     // 4. Update transaction status in TransactionRequest table if linked
     if (cashout.transactionRequestId) {
+      const transactionStatus = status === "COMPLETED" ? "APPROVED" : status;
       await prisma.transactionRequest.update({
         where: { id: cashout.transactionRequestId },
-        data: { status: "APPROVED" },
+        data: { status: transactionStatus },
       });
     }
 

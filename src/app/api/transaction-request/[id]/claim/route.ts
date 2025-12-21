@@ -133,6 +133,8 @@ export async function POST(
             status,
             processedById: currentUser.id,
             processedAt: new Date(),
+            receiptUrl:
+              attachmentData.length > 0 ? attachmentData[0].url : null,
           },
         });
         await tx.cashoutLogs.create({

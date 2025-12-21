@@ -433,7 +433,7 @@ export function TransactionDetailsDialog({
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                        className="text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                         onClick={() => openConfirmDialog("CLAIMED")}
                       >
                         <CheckCircle className="h-4 w-4" />
@@ -444,7 +444,7 @@ export function TransactionDetailsDialog({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                      className="text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                       onClick={() => openConfirmDialog("APPROVED")}
                     >
                       <CheckCircle className="h-4 w-4" />
@@ -454,7 +454,7 @@ export function TransactionDetailsDialog({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-red-600 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                    className="text-red-600 hover:text-red-700 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
                     onClick={() => openConfirmDialog("REJECTED")}
                   >
                     <XCircle className="h-4 w-4" />

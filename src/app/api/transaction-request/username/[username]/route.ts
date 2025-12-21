@@ -159,6 +159,7 @@ export async function GET(
           bankDetails: t.bankDetails,
           receiptUrl: t.receiptUrl,
           casinoGroup: t.casinoGroup.name,
+          remarks: t.remarks,
           processedBy: t.processedBy
             ? {
                 name: t.processedBy.name,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { pusher, pusherChannel } from "@/lib/pusher";
+import { pusher } from "@/lib/pusher";
 import { put } from "@vercel/blob";
 import crypto from "crypto";
 import { ADMINROLES } from "@/lib/types/role";
