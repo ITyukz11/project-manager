@@ -41,7 +41,9 @@ export function TransactionRequestActionMenu({
   const params = useParams();
   const casinoGroup = params.casinogroup;
 
-  const { mutate } = useTransactionRequest(casinoGroup?.toLocaleString() || "");
+  const { refetch } = useTransactionRequest(
+    casinoGroup?.toLocaleString() || ""
+  );
 
   const openConfirmDialog = (status: "APPROVED" | "REJECTED") => {
     setActionType(status);
@@ -76,7 +78,7 @@ export function TransactionRequestActionMenu({
       }
 
       toast.success(`Transaction ${actionType.toLowerCase()} successfully`);
-      mutate();
+      refetch();
       setIsDialogOpen(false);
       setRemarks("");
       setActionType(null);
