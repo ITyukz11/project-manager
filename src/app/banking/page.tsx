@@ -758,7 +758,14 @@ export default function BankingPage() {
                         <CardContent>
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
-                              <Badge>{transaction.type}</Badge>
+                              <Badge
+                                className={`${getStatusColorClass(
+                                  transaction.type
+                                )}`}
+                              >
+                                {getStatusIcon(transaction.type)}
+                                {transaction.type}
+                              </Badge>
                               <Badge
                                 className={`${getStatusColorClass(
                                   transaction.status

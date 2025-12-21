@@ -40,6 +40,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
+import { getStatusColorClass } from "@/components/getStatusColorClass";
 
 interface TransactionDetailsDialogProps {
   open: boolean;
@@ -484,22 +485,20 @@ export function TransactionDetailsDialog({
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getTypeBadgeVariant(transaction?.type)}>
+                      <Badge
+                        variant={
+                          getStatusBadgeVariant(transaction?.type) as any
+                        }
+                        className={getStatusColorClass(transaction?.type)}
+                      >
+                        {getStatusIcon(transaction?.type)}
                         {transaction?.type}
                       </Badge>
                       <Badge
                         variant={
                           getStatusBadgeVariant(transaction?.status) as any
                         }
-                        className={`flex items-center gap-1 ${
-                          transaction?.status === "PENDING"
-                            ? "bg-yellow-600 hover:bg-yellow-700 text-white"
-                            : transaction?.status === "CLAIMED"
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
-                            : transaction?.status === "APPROVED"
-                            ? "bg-green-600 hover:bg-green-700 text-white"
-                            : ""
-                        }`}
+                        className={getStatusColorClass(transaction?.status)}
                       >
                         {getStatusIcon(transaction?.status)}
                         {transaction?.status}

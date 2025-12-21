@@ -36,13 +36,8 @@ export const transactionRequestColumns: ColumnDef<
     cell: ({ row }) => {
       const type = row.getValue("type") as string;
       return (
-        <Badge
-          className={`${
-            type === "CASHIN"
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-orange-600 hover:bg-orange-700"
-          } text-white`}
-        >
+        <Badge className={`${getStatusColorClass(type)}`}>
+          {getStatusIcon(type)}
           {type}
         </Badge>
       );
