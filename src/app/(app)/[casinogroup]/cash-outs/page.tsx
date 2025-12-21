@@ -40,7 +40,7 @@ const Page = () => {
 
       {/* Table */}
       {isLoading ? (
-        <div className="w-full flex flex-col gap-2 items-center">
+        <div className="w-full flex flex-col gap-2 items-center mt-2">
           <Skeleton className="w-full h-10" />
           <Skeleton className="w-full h-40" />
         </div>
