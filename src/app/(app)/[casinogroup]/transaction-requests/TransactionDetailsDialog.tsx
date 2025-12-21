@@ -165,9 +165,9 @@ export function TransactionDetailsDialog({
   const [showReceipt, setShowReceipt] = useState(true);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [actionType, setActionType] = useState<"CLAIMED" | "REJECTED" | null>(
-    null
-  );
+  const [actionType, setActionType] = useState<
+    "CLAIMED" | "REJECTED" | "APPROVED" | null
+  >(null);
   const [remarks, setRemarks] = useState("");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -199,7 +199,7 @@ export function TransactionDetailsDialog({
     }
   }, [open, transactionId, mutate]);
 
-  const openConfirmDialog = (status: "CLAIMED" | "REJECTED") => {
+  const openConfirmDialog = (status: "CLAIMED" | "REJECTED" | "APPROVED") => {
     setActionType(status);
     setRemarks("");
     setReceiptFile(null);
@@ -301,10 +301,18 @@ export function TransactionDetailsDialog({
       formData.append("amount", transaction!.amount.toString());
 
       formData.append("casinoGroup", transaction!.casinoGroup.name);
-      formData.append("status", "CLAIMED");
+      formData.append("status", actionType);
+
       if (remarks.trim()) {
-        formData.append("details", remarks.trim());
+        formData.append("remarks", remarks.trim());
       }
+
+      const details =
+        transaction!.bankDetails +
+        (remarks.trim() ? `\n\nRemarks: ${remarks.trim()}` : "");
+
+      formData.append("details", details);
+
       if (receiptFile) {
         formData.append("attachment", receiptFile);
       }
@@ -312,7 +320,7 @@ export function TransactionDetailsDialog({
       let response: Response | undefined;
       let data: any;
 
-      if (actionType === "CLAIMED" && transaction?.type === "CASHOUT") {
+      if (actionType === "CLAIMED" || transaction?.type === "CASHOUT") {
         response = await fetch(
           `/api/transaction-request/${transactionId}/claim`,
           {
@@ -327,7 +335,7 @@ export function TransactionDetailsDialog({
           return;
         }
         toast.success("Claimed and requested a cashout successfully!");
-      } else if (actionType === "REJECTED") {
+      } else {
         response = await fetch(`/api/transaction-request/${transactionId}`, {
           method: "PATCH",
           body: formData,
@@ -338,10 +346,7 @@ export function TransactionDetailsDialog({
           toast.error(data?.error || "Failed to reject transaction");
           return;
         }
-        toast.success("Transaction rejected successfully!");
-      } else {
-        // handle other action types if needed
-        return;
+        toast.success(`Transaction ${actionType.toLowerCase()} successfully!`);
       }
 
       // Only run if there is a successful update:
@@ -423,15 +428,29 @@ export function TransactionDetailsDialog({
               {/* Action Buttons */}
               {isPending && !isLoading && (
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                    onClick={() => openConfirmDialog("CLAIMED")}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Claim
-                  </Button>
+                  {transaction?.type === "CASHOUT" ? (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                        onClick={() => openConfirmDialog("CLAIMED")}
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Claim
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                      onClick={() => openConfirmDialog("APPROVED")}
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Approve
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -809,6 +828,11 @@ export function TransactionDetailsDialog({
                   <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
                   Claim Chips
                 </>
+              ) : actionType === "APPROVED" ? (
+                <>
+                  <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+                  Approve Transaction
+                </>
               ) : (
                 <>
                   <XCircle className="mr-2 h-5 w-5 text-red-600" />
@@ -818,6 +842,8 @@ export function TransactionDetailsDialog({
             </DialogTitle>
             <DialogDescription>
               {actionType === "CLAIMED"
+                ? "You are about to approve this transaction"
+                : actionType === "APPROVED"
                 ? "You are about to approve this transaction"
                 : "You are about to reject this transaction"}
             </DialogDescription>
@@ -925,18 +951,24 @@ export function TransactionDetailsDialog({
               Cancel
             </Button>
             <Button
-              variant={actionType === "CLAIMED" ? "default" : "destructive"}
+              variant={
+                actionType === "CLAIMED" || actionType === "APPROVED"
+                  ? "default"
+                  : "destructive"
+              }
               onClick={handleStatusUpdate}
               disabled={isUpdating}
               className="w-full sm:w-auto"
             >
               {isUpdating ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Processing...
                 </>
               ) : actionType === "CLAIMED" ? (
                 "Claim"
+              ) : actionType === "APPROVED" ? (
+                "Approve"
               ) : (
                 "Reject"
               )}
