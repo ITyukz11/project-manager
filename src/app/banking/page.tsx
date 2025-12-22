@@ -104,8 +104,12 @@ export default function BankingPage() {
   >("cashin");
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(null);
   const [amount, setAmount] = useState("");
+
+  //params
   const [username, setUsername] = useState("");
   const [casino, setCasinoGroup] = useState("");
+  const [balance, setBalance] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Dialog states
@@ -129,10 +133,13 @@ export default function BankingPage() {
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const COOLDOWN_SECONDS = 10;
+
+  console.log("balance: ", balance);
   // Get username and casino group from URL parameters
   useEffect(() => {
     const usernameParam = searchParams.get("username");
     const casinoGroupParam = searchParams.get("casino");
+    const balanceParam = searchParams.get("balance");
 
     if (usernameParam) {
       setUsername(usernameParam);
@@ -140,6 +147,10 @@ export default function BankingPage() {
 
     if (casinoGroupParam) {
       setCasinoGroup(casinoGroupParam);
+    }
+
+    if (balanceParam) {
+      setBalance(balanceParam);
     }
   }, [searchParams]);
 
@@ -315,6 +326,11 @@ export default function BankingPage() {
       formData.append("casinoGroupName", casino);
 
       if (activeTab === "cashout") {
+        if (Number(amount) >= Number(balance)) {
+          return toast.error(
+            `Insufficient Balance. You only have ${Number(balance)}`
+          );
+        }
         const bankName =
           selectedBank === "Other" ? customBank.trim() : selectedBank;
         const bankDetailsFormatted = `Bank: ${bankName}\nAccount Name: ${accountName.trim()}\nAccount Number: ${accountNumber.trim()}`;
@@ -366,6 +382,7 @@ export default function BankingPage() {
     username,
     selectedPayment,
     casino,
+    balance,
     selectedBank,
     customBank,
     accountName,
