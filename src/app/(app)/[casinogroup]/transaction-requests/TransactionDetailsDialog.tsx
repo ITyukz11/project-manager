@@ -403,10 +403,6 @@ export function TransactionDetailsDialog({
     }
   };
 
-  const getTypeBadgeVariant = (type?: string) => {
-    return type === "CASHIN" ? "default" : "secondary";
-  };
-
   const isPending = transaction?.status === "PENDING";
   const isCashout = transaction?.type === "CASHOUT";
 
@@ -419,10 +415,10 @@ export function TransactionDetailsDialog({
               <div>
                 <DialogTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Transaction Details
+                  Gateway Transaction Details
                 </DialogTitle>
                 <DialogDescription>
-                  Detailed information about the transaction request
+                  Detailed information about the request
                 </DialogDescription>
               </div>
 

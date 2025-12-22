@@ -140,7 +140,6 @@ export default function BankingPage() {
     const usernameParam = searchParams.get("username");
     const casinoGroupParam = searchParams.get("casino");
     const balanceParam = searchParams.get("balance");
-
     if (usernameParam) {
       setUsername(usernameParam);
     }
@@ -412,7 +411,7 @@ export default function BankingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F1F1F1] dark:bg-primary/10">
+    <div className="dark relative min-h-screen bg-[url('/qbet-bg.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">

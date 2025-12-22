@@ -47,7 +47,7 @@ export default function Page() {
           <Title
             title={`${casinoGroup
               ?.toLocaleString()
-              .toUpperCase()} Transaction Request`}
+              .toUpperCase()} Gateway Requests`}
             subtitle="Track manual payment requests from users real-time"
             lastUpdate={lastUpdate}
             isRefreshing={isRefreshing}

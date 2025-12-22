@@ -144,7 +144,7 @@ export default function NavCasinoGroup({
     () => [
       {
         href: `/${casinoGroupLower}/transaction-requests`,
-        text: "Transactions",
+        text: "Gateway",
         icon: ArrowLeftRight,
         disable: false,
         pendingCount: pendingTransaction,
