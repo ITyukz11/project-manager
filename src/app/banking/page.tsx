@@ -3,47 +3,25 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import {
-  Loader2,
-  Upload,
-  X,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import Image from "next/image";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { formatDate } from "date-fns";
-import { ReceiptButton } from "./receipt-button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  getStatusColorClass,
-  getStatusIcon,
-} from "@/components/getStatusColorClass";
+import { AlertCircle } from "lucide-react";
 
-type PaymentMethod = "QRPH" | null;
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CashInContent } from "./(tabs)/cashin.tab";
+
+import { CashOutContent } from "./(tabs)/cashout.tab";
+import { TransactionHistoryContent } from "./(tabs)/history.tab";
+import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
+
+export type PaymentMethod = "QRPH" | null;
+
+const QR_CODE_MAP: Record<string, string> = {
+  QRPH: "/Sec-QRPH-qr.png",
+  GoTyme: "/gotyme-qr1.png",
+};
 
 // Transaction type
-interface Transaction {
+export type Transaction = {
   id: string;
   type: string;
   amount: number;
@@ -59,42 +37,6 @@ interface Transaction {
   createdAt: string;
   updatedAt: string;
   remarks: string | null;
-}
-
-// Move constants outside component to prevent recreation
-const BANK_LIST = [
-  // E-Wallets & Digital Banks
-  "GCash",
-  "Maya",
-  "GoTyme Bank",
-  "Seabank",
-  // Traditional Banks
-  "BDO",
-  "BPI",
-  "Metrobank",
-  "Landbank",
-  "PNB",
-  "UnionBank",
-  "Security Bank",
-  "RCBC",
-  "Chinabank",
-  "EastWest Bank",
-  "UCPB",
-  "PSBank",
-  "Maybank",
-  "CTBC Bank",
-];
-
-const PAYMENT_METHODS = [
-  { id: "QRPH", name: "QRPH", icon: "/all-banks1.png" },
-  { id: "GoTyme", name: "GoTyme", icon: "/gotyme.png" },
-];
-
-const QUICK_AMOUNTS = [100, 150, 200, 300, 500, 1000];
-
-const QR_CODE_MAP: Record<string, string> = {
-  QRPH: "/Sec-QRPH-qr.png",
-  GoTyme: "/gotyme-qr1.png",
 };
 
 export default function BankingPage() {
@@ -452,685 +394,69 @@ export default function BankingPage() {
 
           {/* CASH IN TAB */}
           <TabsContent value="cashin">
-            <Card>
-              <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
-                {/* Step 1: Payment Method Selection */}
-                <div>
-                  <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-                    Step 1. Select Payment Method
-                  </Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-                    {PAYMENT_METHODS.map((method) => (
-                      <Card
-                        key={method.id}
-                        className={`cursor-pointer transition-all hover:shadow-lg ${
-                          selectedPayment === method.id
-                            ? "ring-2 ring-primary shadow-lg"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          setSelectedPayment(method.id as PaymentMethod)
-                        }
-                      >
-                        <CardContent className="p-0 flex flex-col items-center justify-center ">
-                          <Image
-                            src={method.icon}
-                            alt={method.name}
-                            width={150}
-                            height={150}
-                            className="rounded-xl"
-                          />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Step 2: Amount Input */}
-                <div>
-                  <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-                    Step 2. Enter Amount
-                  </Label>
-                  <div className="space-y-3 sm:space-y-4">
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="₱ 100 - 50,000"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="text-base sm:text-lg h-12"
-                    />
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                      {QUICK_AMOUNTS.map((amt) => (
-                        <Button
-                          key={amt}
-                          variant="outline"
-                          onClick={() => setAmount(amt.toString())}
-                          className="h-10 sm:h-12 text-sm sm:text-base"
-                        >
-                          ₱{amt}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <Button
-                  onClick={handleProceedToQR}
-                  className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90"
-                >
-                  Proceed to Payment
-                </Button>
-              </CardContent>
-            </Card>
+            <CashInContent
+              selectedPayment={selectedPayment}
+              setSelectedPayment={setSelectedPayment}
+              amount={amount}
+              setAmount={setAmount}
+              handleProceedToQR={handleProceedToQR}
+            />
           </TabsContent>
 
           {/* CASH OUT TAB */}
           <TabsContent value="cashout">
-            <Card>
-              <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
-                {/* Step 1: Payment Method Selection */}
-                <div>
-                  <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-                    Step 1. Select Payment Method
-                  </Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-                    {PAYMENT_METHODS.map((method) => (
-                      <Card
-                        key={method.id}
-                        className={`cursor-pointer transition-all hover:shadow-lg ${
-                          selectedPayment === method.id
-                            ? "ring-2 ring-primary shadow-lg"
-                            : ""
-                        }`}
-                        onClick={() =>
-                          setSelectedPayment(method.id as PaymentMethod)
-                        }
-                      >
-                        <CardContent className="p-0 flex flex-col items-center justify-center ">
-                          <Image
-                            src={method.icon}
-                            alt={method.name}
-                            width={150}
-                            height={150}
-                            className="rounded-xl"
-                          />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Step 2: Amount and Bank Details */}
-                <div>
-                  <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-                    Step 2. Enter Amount & Bank Details
-                  </Label>
-                  <div className="space-y-3 sm:space-y-4">
-                    {/* Amount Input */}
-                    <div>
-                      <Label
-                        htmlFor="cashout-amount"
-                        className="text-sm mb-2 block"
-                      >
-                        Amount
-                      </Label>
-                      <Input
-                        id="cashout-amount"
-                        type="number"
-                        placeholder="₱ 100 - 50,000"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="h-12"
-                      />
-                    </div>
-
-                    {/* Quick Amount Buttons */}
-                    <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                      {QUICK_AMOUNTS.map((amt) => (
-                        <Button
-                          key={amt}
-                          variant="outline"
-                          onClick={() => setAmount(amt.toString())}
-                          className="h-10 sm:h-12 text-sm sm:text-base"
-                        >
-                          ₱{amt}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Bank Selection Dropdown */}
-                    <div>
-                      <Label
-                        htmlFor="bank-select"
-                        className="text-sm mb-2 block"
-                      >
-                        Bank Name
-                      </Label>
-                      <Select
-                        value={selectedBank}
-                        onValueChange={(value) => {
-                          setSelectedBank(value);
-                          // Clear custom bank if switching away from "Other"
-                          if (value !== "Other") {
-                            setCustomBank("");
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-full" size={"lg"}>
-                          <SelectValue
-                            placeholder="Select your bank"
-                            className="h-12"
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {BANK_LIST.map((bank) => (
-                            <SelectItem key={bank} value={bank}>
-                              {bank}
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Custom Bank Input - Shows only when "Other" is selected */}
-                    {selectedBank === "Other" && (
-                      <div>
-                        <Label
-                          htmlFor="custom-bank"
-                          className="text-sm mb-2 block"
-                        >
-                          Enter Bank Name
-                        </Label>
-                        <Input
-                          id="custom-bank"
-                          type="text"
-                          placeholder="Enter your bank name"
-                          value={customBank}
-                          onChange={(e) => setCustomBank(e.target.value)}
-                          className="h-12"
-                        />
-                      </div>
-                    )}
-
-                    {/* Account Name Input */}
-                    <div>
-                      <Label
-                        htmlFor="account-name"
-                        className="text-sm mb-2 block"
-                      >
-                        Account Name
-                      </Label>
-                      <Input
-                        id="account-name"
-                        type="text"
-                        placeholder="Enter account holder name"
-                        value={accountName}
-                        onChange={(e) => setAccountName(e.target.value)}
-                        className="h-12"
-                      />
-                    </div>
-
-                    {/* Account Number Input */}
-                    <div>
-                      <Label
-                        htmlFor="account-number"
-                        className="text-sm mb-2 block"
-                      >
-                        Account Number
-                      </Label>
-                      <Input
-                        id="account-number"
-                        type="text"
-                        placeholder="Enter account number"
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value)}
-                        className="h-12"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <Button
-                  onClick={handleProceedToQR}
-                  className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90"
-                >
-                  Submit Cash Out Request
-                </Button>
-              </CardContent>
-            </Card>
+            <CashOutContent
+              selectedPayment={selectedPayment}
+              setSelectedPayment={setSelectedPayment}
+              amount={amount}
+              setAmount={setAmount}
+              selectedBank={selectedBank}
+              setSelectedBank={setSelectedBank}
+              customBank={customBank}
+              setCustomBank={setCustomBank}
+              accountName={accountName}
+              setAccountName={setAccountName}
+              accountNumber={accountNumber}
+              setAccountNumber={setAccountNumber}
+              handleProceedToQR={handleProceedToQR}
+            />
           </TabsContent>
 
           {/* HISTORY TAB - UPDATED */}
           <TabsContent value="history">
-            <Card>
-              <CardContent>
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Transaction History</h3>
-                  <Button
-                    onClick={fetchTransactionHistory}
-                    disabled={isLoadingHistory || cooldownRemaining > 0}
-                    variant="outline"
-                  >
-                    {isLoadingHistory ? (
-                      <>
-                        <Loader2 className="animate-spin h-4 w-4 " />
-                        Loading...
-                      </>
-                    ) : cooldownRemaining > 0 ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 " />
-                        Wait {cooldownRemaining}s
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4 " />
-                        Refresh History
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Loading State */}
-                {isLoadingHistory && transactions.length === 0 && (
-                  <div className="text-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">
-                      Loading transactions...
-                    </p>
-                  </div>
-                )}
-
-                {/* Error State */}
-                {historyError && !isLoadingHistory && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{historyError}</AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Empty State */}
-                {!isLoadingHistory &&
-                  !historyError &&
-                  transactions.length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground text-sm sm:text-base">
-                        No transactions found
-                      </p>
-                      <p className="text-muted-foreground text-xs mt-2">
-                        Your transaction history will appear here
-                      </p>
-                    </div>
-                  )}
-
-                {/* Transaction List */}
-                {!isLoadingHistory && transactions.length > 0 && (
-                  <div className="space-y-3">
-                    {transactions.map((transaction) => (
-                      <Card key={transaction.id} className="overflow-hidden">
-                        <CardContent>
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                className={`${getStatusColorClass(
-                                  transaction.type
-                                )}`}
-                              >
-                                {getStatusIcon(transaction.type)}
-                                {transaction.type}
-                              </Badge>
-                              <Badge
-                                className={`${getStatusColorClass(
-                                  transaction.status
-                                )}`}
-                              >
-                                {getStatusIcon(transaction.status)}
-                                {transaction.status}
-                              </Badge>
-                            </div>
-                            <p className="text-lg font-bold text-foreground">
-                              ₱{transaction.amount.toLocaleString()}
-                            </p>
-                          </div>
-
-                          <div className="space-y-1 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">ID:</span>
-                              <span className="font-mono text-xs">
-                                {transaction.id.substring(0, 12)}...
-                              </span>
-                            </div>
-
-                            {transaction.paymentMethod && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Payment Method:
-                                </span>
-                                <span>{transaction.paymentMethod}</span>
-                              </div>
-                            )}
-
-                            {transaction.bankDetails && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Bank Details:
-                                </span>
-                                <span className="text-right text-xs max-w-[200px] truncate">
-                                  {transaction.bankDetails}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* ✨ UPDATED: Use ReceiptButton component */}
-                            {transaction.receiptUrl && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">
-                                  Receipt:
-                                </span>
-                                <ReceiptButton
-                                  receiptUrl={transaction.receiptUrl}
-                                  transactionId={transaction.id}
-                                  variant="link"
-                                />
-                              </div>
-                            )}
-
-                            <div className="flex justify-between pt-2 border-t">
-                              <span className="text-muted-foreground">
-                                Created:
-                              </span>
-                              <span className="text-xs">
-                                {formatDate(
-                                  new Date(transaction.createdAt),
-                                  "MMM dd, yyyy HH:mm"
-                                )}
-                              </span>
-                            </div>
-                            {transaction.remarks && (
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Remarks:
-                                </span>
-                                <span className="text-right text-xs max-w-[200px] truncate italic">
-                                  {transaction.remarks}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-
-                    {transactions.length >= 50 && (
-                      <p className="text-center text-xs text-muted-foreground pt-4">
-                        Showing last 50 transactions
-                      </p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <TabsContent value="history">
+              <TransactionHistoryContent
+                transactions={transactions}
+                isLoadingHistory={isLoadingHistory}
+                historyError={historyError}
+                cooldownRemaining={cooldownRemaining}
+                casinoLink={casino}
+                fetchTransactionHistory={fetchTransactionHistory}
+              />
+            </TabsContent>
           </TabsContent>
         </Tabs>
       </div>
 
       {/* QR Code & Receipt Upload Dialog */}
-      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
-        <DialogContent className="max-w-lg overflow-y-auto max-h-[95vh]">
-          {!showSuccessMessage ? (
-            <>
-              <DialogHeader>
-                <DialogTitle>Complete Your Payment</DialogTitle>
-                <DialogDescription className="flex flex-row gap-1">
-                  <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400 " />
-                  Please follow the instructions below to complete your
-                  transaction
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4">
-                {/* Instructions Alert */}
-                {activeTab === "cashin" && (
-                  <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                    <AlertDescription className="text-sm text-blue-900 dark:text-blue-100">
-                      <ol className="list-none space-y-2">
-                        <li className="flex gap-2">
-                          <span className="font-semibold shrink-0">
-                            Step 1:
-                          </span>
-                          <span>Save or screenshot the QR code below</span>
-                        </li>
-                        <li className="flex gap-2">
-                          <span className="font-semibold shrink-0">
-                            Step 2:
-                          </span>
-                          <span>
-                            Upload QR to your GCash, Maya or Other Banks and
-                            send ₱{amount}
-                          </span>
-                        </li>
-                        <li className="flex gap-2">
-                          <span className="font-semibold shrink-0">
-                            Step 3:
-                          </span>
-                          <span>
-                            Take a screenshot of your payment confirmation
-                          </span>
-                        </li>
-                        <li className="flex gap-2">
-                          <span className="font-semibold shrink-0">
-                            Step 4:
-                          </span>
-                          <span>Upload the receipt screenshot below</span>
-                        </li>
-                        <li className="flex gap-2">
-                          <span className="font-semibold shrink-0">
-                            Step 5:
-                          </span>
-                          <span>
-                            Go back to your dashboard or transaction history to
-                            verify your payment. Good luck!
-                          </span>
-                        </li>
-                      </ol>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* QR Code Display */}
-                {activeTab === "cashin" && selectedPayment && (
-                  <div className="flex flex-col items-center space-y-3">
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-foreground">
-                        {selectedPayment} Payment QR Code
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Scan or screenshot this code to make payment
-                      </p>
-                    </div>
-                    <div className="relative w-64 h-64 bg-muted rounded-lg flex items-center justify-center border-2 border-border">
-                      <Image
-                        src={QR_CODE_MAP[selectedPayment]}
-                        alt={`${selectedPayment} QR Code`}
-                        fill
-                        className="object-contain p-4 rounded-lg"
-                      />
-                    </div>
-                    <div className="bg-primary/10 px-4 py-2 rounded-md">
-                      <p className="text-sm text-foreground">
-                        Amount to Send:{" "}
-                        <span className="font-bold text-lg">₱{amount}</span>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Receipt Upload */}
-                {activeTab === "cashin" && (
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="receipt-upload"
-                      className="text-sm font-semibold"
-                    >
-                      Upload Payment Receipt
-                    </Label>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      Please upload a clear screenshot of your payment
-                      confirmation
-                    </p>
-                    {!receiptPreview ? (
-                      <Label
-                        htmlFor="receipt-upload"
-                        className="cursor-pointer"
-                      >
-                        <div className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                          <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-xs text-muted-foreground">
-                            PNG, JPG up to 5MB
-                          </p>
-                        </div>
-                        <Input
-                          id="receipt-upload"
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleReceiptChange}
-                        />
-                      </Label>
-                    ) : (
-                      <div className="relative">
-                        <div className="relative w-full h-48 bg-muted rounded-lg border-2 border-green-500">
-                          <Image
-                            src={receiptPreview}
-                            alt="Receipt preview"
-                            fill
-                            className="object-contain rounded-lg"
-                          />
-                        </div>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={removeReceipt}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Receipt uploaded successfully
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Cash Out Summary */}
-                {activeTab === "cashout" && (
-                  <>
-                    <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                      <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <AlertDescription className="text-sm text-blue-900 dark:text-blue-100 ml-2">
-                        Please review your cash-out details carefully before
-                        submitting. Our team will process your request shortly.
-                      </AlertDescription>
-                    </Alert>
-                    <div className="space-y-3 p-4 bg-muted rounded-lg border">
-                      <h4 className="font-semibold text-sm">
-                        Transaction Summary
-                      </h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Amount:</span>
-                          <span className="font-semibold">₱{amount}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Payment Method:
-                          </span>
-                          <span className="font-semibold">
-                            {selectedPayment}
-                          </span>
-                        </div>
-                        <div className="pt-2 border-t">
-                          <p className="text-xs font-semibold text-muted-foreground mb-2">
-                            Bank Account Details:
-                          </p>
-                          <div className="text-xs text-foreground bg-background p-3 rounded space-y-1">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Bank:
-                              </span>
-                              <span className="font-medium">
-                                {displayBankName}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Account Name:
-                              </span>
-                              <span className="font-medium">{accountName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Account Number:{" "}
-                              </span>
-                              <span className="font-medium font-mono">
-                                {accountNumber}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  onClick={handleFinalSubmit}
-                  disabled={
-                    isSubmitting || (activeTab === "cashin" && !receiptFile)
-                  }
-                  className="w-full h-11"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing Request...
-                    </>
-                  ) : (
-                    <>
-                      {activeTab === "cashin"
-                        ? "Upload Receipt"
-                        : "Submit Cash Out Request"}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="py-8 text-center space-y-4">
-              <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
-              <DialogHeader>
-                <DialogTitle className="text-xl">
-                  Request Submitted Successfully!
-                </DialogTitle>
-                <DialogDescription className="text-base">
-                  Thank you for your patience. Our team is reviewing your
-                  request and will process it shortly. Your account will be
-                  credited once verified.
-                </DialogDescription>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground">
-                This window will close automatically...
-              </p>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <PaymentQRCodeDialog
+        open={showQRDialog}
+        onOpenChange={setShowQRDialog}
+        activeTab={activeTab}
+        amount={amount}
+        selectedPayment={selectedPayment}
+        QR_CODE_MAP={QR_CODE_MAP}
+        displayBankName={displayBankName}
+        accountName={accountName}
+        accountNumber={accountNumber}
+        receiptPreview={receiptPreview}
+        receiptFile={receiptFile}
+        handleReceiptChange={handleReceiptChange}
+        removeReceipt={removeReceipt}
+        isSubmitting={isSubmitting}
+        handleFinalSubmit={handleFinalSubmit}
+        showSuccessMessage={showSuccessMessage}
+      />
     </div>
   );
 }
