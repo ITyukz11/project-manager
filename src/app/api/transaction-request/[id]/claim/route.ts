@@ -61,12 +61,6 @@ export async function POST(
         { status: 400 }
       );
     }
-    if (!status || status !== "CLAIMED") {
-      return NextResponse.json(
-        { error: "Invalid status. Must be CLAIMED only." },
-        { status: 400 }
-      );
-    }
 
     // Upload attachments
     const attachments: File[] = formData.getAll("attachment") as File[];

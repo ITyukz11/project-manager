@@ -321,7 +321,7 @@ export function TransactionDetailsDialog({
       let response: Response | undefined;
       let data: any;
 
-      if (actionType === "CLAIMED" || transaction?.type === "CASHOUT") {
+      if (actionType === "CLAIMED" && transaction?.type === "CASHOUT") {
         response = await fetch(
           `/api/transaction-request/${transactionId}/claim`,
           {
@@ -858,60 +858,62 @@ export function TransactionDetailsDialog({
             </AlertDescription>
           </Alert>
           {/* Receipt Upload for Cashout */}
-          {transaction?.type === "CASHOUT" && !transaction?.receiptUrl && (
-            <div className="space-y-2">
-              <Label htmlFor="receipt">
-                Receipt <span className="text-destructive">*</span>
-              </Label>
+          {transaction?.type === "CASHOUT" &&
+            actionType === "CLAIMED" &&
+            !transaction?.receiptUrl && (
+              <div className="space-y-2">
+                <Label htmlFor="receipt">
+                  Receipt <span className="text-destructive">*</span>
+                </Label>
 
-              {!receiptPreview ? (
-                <div className="space-y-2">
-                  <Input
-                    id="receipt"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleReceiptChange}
-                    className="cursor-pointer"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="overflow-hidden w-fit relative bg-muted rounded-lg border">
-                    <Image
-                      src={receiptPreview}
-                      alt="Receipt Preview"
-                      width={100}
-                      height={100}
+                {!receiptPreview ? (
+                  <div className="space-y-2">
+                    <Input
+                      id="receipt"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReceiptChange}
+                      className="cursor-pointer"
                     />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0 relative">
-                      <p className="text-xs text-muted-foreground truncate">
-                        {receiptFile?.name}
-                      </p>
-                      {receiptSource && (
-                        <p className="text-xs text-muted-foreground">
-                          Source:{" "}
-                          {receiptSource === "upload"
-                            ? "📁 Upload"
-                            : "📋 Pasted"}
-                        </p>
-                      )}
+                ) : (
+                  <div className="space-y-2">
+                    <div className="overflow-hidden w-fit relative bg-muted rounded-lg border">
+                      <Image
+                        src={receiptPreview}
+                        alt="Receipt Preview"
+                        width={100}
+                        height={100}
+                      />
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeReceipt}
-                      className="text-destructive hover:text-destructive ml-2"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                    </Button>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0 relative">
+                        <p className="text-xs text-muted-foreground truncate">
+                          {receiptFile?.name}
+                        </p>
+                        {receiptSource && (
+                          <p className="text-xs text-muted-foreground">
+                            Source:{" "}
+                            {receiptSource === "upload"
+                              ? "📁 Upload"
+                              : "📋 Pasted"}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeReceipt}
+                        className="text-destructive hover:text-destructive ml-2"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
           <div className="space-y-2">
             <Label htmlFor="remarks">
@@ -930,6 +932,7 @@ export function TransactionDetailsDialog({
             />
             {transaction?.type === "CASHOUT" &&
               !transaction?.receiptUrl &&
+              actionType === "CLAIMED" &&
               !receiptFile && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <ImageIcon className="h-3 w-3" />
