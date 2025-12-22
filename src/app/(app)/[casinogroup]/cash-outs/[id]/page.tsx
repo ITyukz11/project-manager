@@ -45,6 +45,7 @@ import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
+import { cn } from "@/lib/utils";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -402,14 +403,36 @@ export default function Page() {
           {/* Entry By */}
           <div>
             <Label className="text-muted-foreground text-xs mb-1 block">
-              Entry By {/* Badge inside input */}
+              Entry By
+            </Label>
+            <div
+              className={cn(
+                "flex flex-row gap-1 items-center justify-start overflow-hidden text-sm",
+                "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+              )}
+            >
               {cashout.transactionRequestId && (
-                <span className=" inline-flex items-start rounded-lg text-xs font-semibold text-blue-900">
-                  - GATEWAY
+                <span className="relative inline-flex">
+                  {/* Ping layer (only when PENDING) */}
+                  {cashout.status === "COMPLETED" && (
+                    <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse">
+                      GATEWAY
+                    </span>
+                  )}
+
+                  {/* Main label */}
+                  <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
+                    GATEWAY
+                  </span>
                 </span>
               )}
-            </Label>
-            <Input readOnly value={cashout.user?.name} className="text-sm" />
+
+              <Label className="font-normal">{cashout.user?.name}</Label>
+            </div>
+
+            {/* <Input readOnly value={cashout.user?.name} className="text-sm" /> */}
           </div>
 
           {/* Date Requested At */}
