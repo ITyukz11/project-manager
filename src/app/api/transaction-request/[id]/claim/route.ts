@@ -151,13 +151,28 @@ export async function POST(
     // --- Post-DB: Notify and Emit Events ---
     try {
       // Trigger pending count for group
-      const pendingCount = await prisma.cashout.count({
-        where: { status: "PENDING", casinoGroupId: casinoGroup.id },
-      });
+      const [cashoutPendingCount, transactionPendingCount] = await Promise.all([
+        prisma.cashout.count({
+          where: { status: "PENDING", casinoGroupId: casinoGroup.id },
+        }),
+        prisma.transactionRequest.count({
+          where: {
+            status: "PENDING",
+            casinoGroupId: casinoGroup.id, // or use casinoGroupName if you join by name
+          },
+        }),
+      ]);
+
       await pusher.trigger(
         `cashout-${casinoGroupName.toLowerCase()}`,
         "cashout-pending-count",
-        { count: pendingCount }
+        { count: cashoutPendingCount }
+      );
+
+      await pusher.trigger(
+        `transaction-${casinoGroupName.toLowerCase()}`, // channel name
+        "transaction-pending-count", // event name
+        { count: transactionPendingCount }
       );
 
       // Notify tagged users

@@ -616,6 +616,18 @@ export async function POST(req: Request) {
         );
       })
     );
+    const pendingCount = await prisma.transactionRequest.count({
+      where: {
+        status: "PENDING",
+        casinoGroupId: casinoGroup.id, // or use casinoGroupName if you join by name
+      },
+    });
+
+    await pusher.trigger(
+      `transaction-${casinoGroupName.toLowerCase()}`, // channel name
+      "transaction-pending-count", // event name
+      { count: pendingCount }
+    );
 
     await emitTransactionUpdated({
       transactionId: transaction.id,

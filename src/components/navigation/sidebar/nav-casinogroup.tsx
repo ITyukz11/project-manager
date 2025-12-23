@@ -81,6 +81,13 @@ export default function NavCasinoGroup({
   }, [counts, isLoading]);
 
   // Pusher event handlers
+  const handleTransactionUpdate = React.useCallback(
+    (data: { count: number }) => {
+      setPendingTransaction(data.count);
+    },
+    []
+  );
+
   const handleCashinUpdate = React.useCallback((data: { count: number }) => {
     setPendingCashins(data.count);
   }, []);
@@ -105,6 +112,11 @@ export default function NavCasinoGroup({
   }, []);
 
   // Memoized channel names
+  const transactionChannel = React.useMemo(
+    () => [`transaction-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
+
   const cashinChannel = React.useMemo(
     () => [`cashin-${casinoGroupLower}`],
     [casinoGroupLower]
@@ -127,6 +139,13 @@ export default function NavCasinoGroup({
   );
 
   // Pusher subscriptions
+
+  usePusher({
+    channels: transactionChannel,
+    eventName: "transaction-pending-count",
+    onEvent: handleTransactionUpdate,
+  });
+
   usePusher({
     channels: cashinChannel,
     eventName: "cashin-pending-count",
