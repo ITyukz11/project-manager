@@ -30,6 +30,7 @@ export async function GET(req: Request) {
 
     // ✅ Execute all counts in parallel using Promise.all
     const [
+      cashinCount,
       cashoutCount,
       remittanceCount,
       concernCount,
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
       prisma.cashin.count({
         where: {
           status: {
-            in: [CashinStatus.PENDING, CashinStatus.PARTIAL],
+            in: [CashinStatus.ACCOMMODATING],
           },
           casinoGroupId: casinoGroup.id,
         },
@@ -89,12 +90,14 @@ export async function GET(req: Request) {
     ]);
 
     return NextResponse.json({
+      cashin: cashinCount,
       cashout: cashoutCount,
       remittance: remittanceCount,
       concern: concernCount,
       task: taskCount,
       transaction: transactionCount,
       total:
+        cashinCount +
         cashoutCount +
         remittanceCount +
         concernCount +

@@ -227,6 +227,7 @@ export default function NavCasinoGroup({
 
   const totalPending = React.useMemo(() => {
     return (
+      pendingCashins +
       pendingTransaction +
       pendingCashouts +
       pendingRemittances +
@@ -234,6 +235,7 @@ export default function NavCasinoGroup({
       pendingTasks
     );
   }, [
+    pendingCashins,
     pendingTransaction,
     pendingCashouts,
     pendingRemittances,
