@@ -1,0 +1,74 @@
+// Cashin: attributed to a User (admin, superadmin, regular user)
+model Cashin {
+  id              String       @id @default(uuid())
+  amount          Float
+  userName        String  //Player Username
+  status          CashinStatus   @default(PENDING)
+
+  attachments     CashinAttachment[]
+
+  details         String
+
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+  cashinThreads  CashinThread[]
+  cashinLogs     CashinLogs[]
+
+  transactionRequestId String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model CashinLogs{
+  id           String     @id @default(uuid())
+  action       String
+  cashinId    String
+  cashin      Cashin    @relation(fields: [cashinId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model CashinThread {
+  id           String     @id @default(uuid())
+  message      String
+  cashinId     String
+  cashin       Cashin     @relation(fields: [cashinId], references: [id])
+  
+  // Either a registered user
+  authorId     String?    
+  author       User?      @relation(fields: [authorId], references: [id])
+  
+  // Or an anonymous player
+  authorName   String?    // <-- optional, store player username here
+
+  mentions     User[]     @relation("CashinThreadMentions")
+  attachments  CashinAttachment[] 
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+
+model CashinAttachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  cashinId         String?      // <-- Make optional
+  cashin           Cashin?     @relation(fields: [cashinId], references: [id])
+  cashinThreadId   String?      // <-- NEW
+  cashinThread     CashinThread? @relation(fields: [cashinThreadId], references: [id])
+  createdAt         DateTime @default(now())
+}
+
+enum CashinStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  REJECTED
+  ACCOMMODATING
+}

@@ -12,8 +12,9 @@ import { CashInContent } from "./(tabs)/cashin.tab";
 import { CashOutContent } from "./(tabs)/cashout.tab";
 import { TransactionHistoryContent } from "./(tabs)/history.tab";
 import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
+import { usePusher } from "@/lib/hooks/use-pusher";
 
-export type PaymentMethod = "QRPH" | null;
+export type PaymentMethod = "QRPH" | "GoTyme" | "Chat-Based" | null;
 
 const QR_CODE_MAP: Record<string, string> = {
   QRPH: "/Sec-QRPH-qr.png",
@@ -71,6 +72,11 @@ export default function BankingPage() {
   const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [customBank, setCustomBank] = useState("");
+
+  // Chat-Based payment state
+  const [enableChatBased, setEnableChatBased] = useState(false);
+  const [chatBasedLoading, setChatBasedLoading] = useState(false);
+  const [cashinId, setCashinId] = useState<string | null>(null);
 
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
@@ -184,8 +190,8 @@ export default function BankingPage() {
     setReceiptFile(null);
     setReceiptPreview(null);
   }, []);
-  console.log("test");
-  const handleProceedToQR = useCallback(() => {
+
+  const handleProceedToQR = useCallback(async () => {
     if (!username.trim()) {
       toast.error("Username is required");
       return;
@@ -198,6 +204,57 @@ export default function BankingPage() {
 
     if (!selectedPayment) {
       toast.error("Please select a payment method");
+      return;
+    }
+
+    if (selectedPayment === "Chat-Based") {
+      setChatBasedLoading(true);
+
+      const toastId = toast.loading("Connecting to chat-based cashin...");
+
+      const formData = new FormData();
+      formData.append("type", activeTab === "cashin" ? "CASHIN" : "CASHOUT");
+      formData.append("username", username.trim());
+      formData.append("amount", amount);
+      formData.append("balance", balance);
+      formData.append("paymentMethod", selectedPayment || "");
+      formData.append("casinoGroupName", casino);
+      formData.append("enableChatBased", enableChatBased ? "true" : "false");
+
+      try {
+        const response = await fetch("/api/transaction-request/chat-based", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_BANKING_API_KEY}`,
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to submit transaction");
+        }
+
+        console.log("Chat-Based cashin created:", data);
+        // Success toast
+        toast.success("Successfully created chat-based channel", {
+          id: toastId,
+        });
+        setEnableChatBased(true);
+        setShowSuccessMessage(true);
+        setCashinId(data.transaction.cashinId);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error occurred";
+
+        toast.error("Failed to connect Chat-Based payment: " + message, {
+          id: toastId,
+        });
+      } finally {
+        setChatBasedLoading(false);
+      }
+
       return;
     }
 
@@ -242,6 +299,9 @@ export default function BankingPage() {
     customBank,
     accountName,
     accountNumber,
+    balance,
+    enableChatBased,
+    setEnableChatBased,
   ]);
 
   const handleFinalSubmit = useCallback(async () => {
@@ -336,7 +396,7 @@ export default function BankingPage() {
   }, [selectedBank, customBank]);
 
   // Show error if required parameters are missing
-  if (!username || !casino) {
+  if (!username || !casino || !balance) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4 w-xl justify-self-center">
         <Alert variant="destructive">
@@ -344,7 +404,8 @@ export default function BankingPage() {
           <AlertDescription>
             <p className="font-semibold mb-2">Missing Required Parameters</p>
             <p className="text-sm">
-              Please access this page with username and casino parameters.
+              Please access this page with username, casino, and balance
+              parameters.
             </p>
           </AlertDescription>
         </Alert>
@@ -355,7 +416,7 @@ export default function BankingPage() {
   return (
     <div className="dark relative min-h-screen bg-[url('/qbet-bg.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
-        <div className="mb-6">
+        <div className="mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Transaction Request
           </h1>
@@ -366,26 +427,29 @@ export default function BankingPage() {
             <p>
               Casino: <span className="font-semibold">{casino}</span>
             </p>
+            <p>
+              Balance: <span className="font-semibold">{balance}</span>
+            </p>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-primary/10">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger
               value="cashin"
-              className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+              className="data-[state=active]:bg-white data-[state=active]:text-black"
             >
               Cash in
             </TabsTrigger>
             <TabsTrigger
               value="cashout"
-              className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+              className="data-[state=active]:bg-white data-[state=active]:text-black"
             >
               Cash out
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="data-[state=active]:bg-background data-[state=active]:text-foreground"
+              className="data-[state=active]:bg-white data-[state=active]:text-black"
               onClick={fetchTransactionHistory}
             >
               History
@@ -400,6 +464,12 @@ export default function BankingPage() {
               amount={amount}
               setAmount={setAmount}
               handleProceedToQR={handleProceedToQR}
+              enableChatBased={enableChatBased}
+              chatBasedLoading={chatBasedLoading}
+              setEnableChatBased={setEnableChatBased}
+              cashinId={cashinId}
+              playerUsername={username}
+              casinoLink={casino}
             />
           </TabsContent>
 

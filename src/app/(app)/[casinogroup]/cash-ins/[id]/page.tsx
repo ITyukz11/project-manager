@@ -1,5 +1,4 @@
 "use client";
-import { useCashoutById } from "@/lib/hooks/swr/cashout/useCashoutById";
 import {
   ArrowLeft,
   Paperclip,
@@ -8,7 +7,6 @@ import {
   UserCircle,
   X,
   MessageSquare,
-  Pencil,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -34,7 +32,6 @@ import { formatAmountWithDecimals } from "@/components/formatAmount";
 import { useSession } from "next-auth/react";
 import { UpdateStatusDialog } from "../(components)/UpdateStatusDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CashoutStatusHistorySheet } from "../(components)/CashoutStatusHistorySheet";
 import { Input } from "@/components/ui/input";
 import { ADMINROLES } from "@/lib/types/role";
 import {
@@ -46,12 +43,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Image from "next/image";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { cn } from "@/lib/utils";
+import { CashinStatusHistorySheet } from "../(components)/CashinStatusHistorySheet";
+import { useCashinById } from "@/lib/hooks/swr/cashin/useCashinById";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
 
   const router = useRouter();
-  const { cashout, isLoading, error, mutate } = useCashoutById(id as string);
+  const { cashin, isLoading, error, mutate } = useCashinById(id as string);
   const [value, setValue] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -112,7 +111,7 @@ export default function Page() {
       formData.append("message", inputValue);
       attachments.forEach((file) => formData.append("attachment", file));
 
-      const res = await fetch(`/api/cashout/${id}/thread`, {
+      const res = await fetch(`/api/cashin/${id}/thread`, {
         method: "POST",
         body: formData,
       });
@@ -154,7 +153,7 @@ export default function Page() {
         Comments
       </div>
       <ScrollArea className="flex-1 min-h-[200px] max-h-[400px] md:max-h-[calc(100vh-300px)] pr-2">
-        {!isLoading && cashout && cashout.cashoutThreads.length === 0 && (
+        {!isLoading && cashin && cashin.cashinThreads.length === 0 && (
           <div className="flex flex-col h-full text-muted-foreground text-sm">
             <span className="italic">
               No comments yet.
@@ -163,10 +162,10 @@ export default function Page() {
           </div>
         )}
 
-        {!isLoading && cashout && cashout.cashoutThreads.length > 0 && (
+        {!isLoading && cashin && cashin.cashinThreads.length > 0 && (
           <ul className="flex flex-col gap-3">
-            {cashout.cashoutThreads.map((thread) => {
-              const author = thread.author?.name || "—";
+            {cashin.cashinThreads.map((thread) => {
+              const author = thread.author?.name || "Player";
               const role = thread.author?.role;
               const isUser = session?.user?.id === thread.author?.id;
               const dateTime = formatDate(
@@ -246,7 +245,8 @@ export default function Page() {
                     }`}
                   >
                     <span className="text-xs text-muted-foreground dark:text-gray-400">
-                      {role} &middot; {author} &middot; {dateTime}
+                      {role && <>{role} &middot;</>} {author} &middot;{" "}
+                      {dateTime}
                     </span>
                   </div>
                 </li>
@@ -378,14 +378,14 @@ export default function Page() {
         </div>
       ) : error ? (
         <div className="text-sm text-red-600">Error: {error.message}</div>
-      ) : cashout ? (
+      ) : cashin ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-y-4 md:gap-x-8">
           {/* Username */}
           <div>
             <Label className="text-muted-foreground text-xs mb-1 block">
               Username
             </Label>
-            <Input readOnly value={cashout.userName} className="text-sm" />
+            <Input readOnly value={cashin.userName} className="text-sm" />
           </div>
 
           {/* Amount */}
@@ -395,7 +395,7 @@ export default function Page() {
             </Label>
             <Input
               readOnly
-              value={formatAmountWithDecimals(cashout.amount)}
+              value={formatAmountWithDecimals(cashin.amount)}
               className="font-mono text-sm"
             />
           </div>
@@ -413,10 +413,10 @@ export default function Page() {
                 "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
               )}
             >
-              {cashout.transactionRequestId && (
+              {cashin.transactionRequestId && (
                 <span className="relative inline-flex">
                   {/* Ping layer (only when PENDING) */}
-                  {cashout.status === "COMPLETED" && (
+                  {cashin.status === "COMPLETED" && (
                     <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse">
                       GATEWAY
                     </span>
@@ -429,10 +429,10 @@ export default function Page() {
                 </span>
               )}
 
-              <Label className="font-normal">{cashout.user?.name}</Label>
+              <Label className="font-normal">{cashin.user?.name}</Label>
             </div>
 
-            {/* <Input readOnly value={cashout.user?.name} className="text-sm" /> */}
+            {/* <Input readOnly value={cashin.user?.name} className="text-sm" /> */}
           </div>
 
           {/* Date Requested At */}
@@ -443,8 +443,8 @@ export default function Page() {
             <Input
               readOnly
               value={
-                cashout.createdAt
-                  ? formatDate(cashout.createdAt, "M/dd/yyyy 'at' hh:mm a")
+                cashin.createdAt
+                  ? formatDate(cashin.createdAt, "M/dd/yyyy 'at' hh:mm a")
                   : "—"
               }
               className="text-sm"
@@ -458,7 +458,7 @@ export default function Page() {
             </Label>
             <Textarea
               readOnly
-              value={cashout.details}
+              value={cashin.details}
               className="text-sm min-h-20"
             />
           </div>
@@ -470,14 +470,14 @@ export default function Page() {
             </Label>
             <div className="border rounded-md p-2 min-h-20 bg-muted/20">
               <ul className="space-y-1">
-                {Array.isArray(cashout.attachments) &&
-                  cashout.attachments.length === 0 && (
+                {Array.isArray(cashin.attachments) &&
+                  cashin.attachments.length === 0 && (
                     <li className="text-xs text-muted-foreground italic">
                       No attachments
                     </li>
                   )}
-                {Array.isArray(cashout.attachments) &&
-                  cashout.attachments.map((att) => (
+                {Array.isArray(cashin.attachments) &&
+                  cashin.attachments.map((att) => (
                     <li key={att.id} className="flex items-center gap-1">
                       <Paperclip size={14} className="text-muted-foreground" />
                       <a
@@ -501,13 +501,13 @@ export default function Page() {
             </Label>
             <Badge
               className={`capitalize text-xs cursor-pointer ${getStatusColorClass(
-                cashout.status
+                cashin.status
               )}`}
             >
-              {getStatusIcon(cashout.status)}
-              {cashout.status}
+              {getStatusIcon(cashin.status)}
+              {cashin.status}
             </Badge>
-            {cashout.transactionRequestId && (
+            {cashin.transactionRequestId && (
               <Badge
                 className={`ml-2 capitalize text-xs cursor-pointer ${getStatusColorClass(
                   "CLAIMED"
@@ -523,8 +523,8 @@ export default function Page() {
           <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
             {isAllowed && (
               <UpdateStatusDialog
-                cashoutId={id}
-                currentStatus={cashout?.status}
+                cashinId={id}
+                currentStatus={cashin?.status}
               />
             )}
             <Button
@@ -534,7 +534,7 @@ export default function Page() {
             >
               View Status History
             </Button>
-            {cashout.status !== "PENDING" && (
+            {cashin.status !== "PENDING" && (
               <Button
                 variant="outline"
                 onClick={() => setShowStatusSheet(true)}
@@ -546,7 +546,7 @@ export default function Page() {
           </div>
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground">No cashout found. </div>
+        <div className="text-sm text-muted-foreground">No cashin found. </div>
       )}
     </>
   );
@@ -572,9 +572,9 @@ export default function Page() {
             </TabsTrigger>
             <TabsTrigger value="comments" className="text-sm">
               Comments
-              {cashout && cashout.cashoutThreads.length > 0 && (
+              {cashin && cashin.cashinThreads.length > 0 && (
                 <Badge variant="secondary" className="ml-2 text-xs">
-                  {cashout.cashoutThreads.length}
+                  {cashin.cashinThreads.length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -628,10 +628,10 @@ export default function Page() {
         onClose={() => setPreviewImg(null)}
       />
 
-      <CashoutStatusHistorySheet
+      <CashinStatusHistorySheet
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
-        data={cashout?.cashoutLogs || []}
+        data={cashin?.cashinLogs || []}
       />
     </div>
   );

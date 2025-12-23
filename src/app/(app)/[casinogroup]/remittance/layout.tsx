@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RemittanceFormDialog } from "./(components)/RemittanceFormDialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { BanknoteArrowUp } from "lucide-react";
+import { BanknoteArrowUp, Wallet } from "lucide-react";
 import { Title } from "@/components/Title";
 import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
 import { useParams } from "next/navigation";
@@ -26,7 +26,7 @@ export default function RemittanceLayout({
           lastUpdate={lastUpdate}
           isRefreshing={isLoading}
           icon={
-            <BanknoteArrowUp className="h-5 w-5 md:h-6 md:w-6 text-green-600 dark:text-green-400" />
+            <Wallet className="h-5 w-5 md:h-6 md:w-6 text-green-600 dark:text-green-400" />
           }
           live
           error={error}

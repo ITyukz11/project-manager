@@ -33,14 +33,17 @@ model User {
   isClockedIn      Boolean         @default(false) 
   attendances      Attendance[]    // history
 
-  transactionRequests TransactionRequest[]
-
   remarks          String?        // additional remarks or notes
   groupChats       GroupChat[]
 
   referredBy       User?           @relation("UserReferrals", fields: [referredById], references: [id])
   referredById     String?
   referrals        User[]          @relation("UserReferrals")
+
+  cashinThreads   CashinThread[]
+  mentionedInCashinThreads CashinThread[] @relation("CashinThreadMentions")
+  cashins         Cashin[]
+  cashinLogs      CashinLogs[]
 
   cashoutThreads   CashoutThread[]
   mentionedInThreads CashoutThread[] @relation("CashoutThreadMentions")
@@ -65,8 +68,13 @@ model User {
   taskThreads   TaskThread[]
   mentionedInTaskThreads TaskThread[] @relation("TaskThreadMentions")
   taskLogs      TaskLogs[]
+
+  transactionRequests TransactionRequest[]
+
   superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins
   casinoGroups     CasinoGroup[] // Many-to-many relationship with CasinoGroup
+
+
 
   // Ready-check relations
   initiatedReadyChecks  ReadyCheck[]               @relation("ReadyCheckInitiator")

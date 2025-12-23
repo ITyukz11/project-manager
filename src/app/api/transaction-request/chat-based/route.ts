@@ -1,0 +1,296 @@
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { pusher } from "@/lib/pusher";
+import { ADMINROLES } from "@/lib/types/role";
+
+function validateApiKey(req: Request): {
+  isValid: boolean;
+  keyName?: string;
+  error?: string;
+} {
+  const authHeader = req.headers.get("authorization");
+
+  if (!authHeader) {
+    return { isValid: false, error: "Missing Authorization header" };
+  }
+
+  let apiKey = "";
+  if (authHeader.startsWith("Bearer ")) {
+    apiKey = authHeader.substring(7);
+  } else if (authHeader.startsWith("ApiKey ")) {
+    apiKey = authHeader.substring(7);
+  } else {
+    apiKey = authHeader;
+  }
+
+  if (!apiKey || apiKey.trim() === "") {
+    return {
+      isValid: false,
+      error: "Invalid Authorization format.  Use:  Bearer YOUR_API_KEY",
+    };
+  }
+
+  const validKeys =
+    process.env.BANKING_API_KEYS?.split(",").map((k) => k.trim()) || [];
+
+  if (validKeys.length === 0) {
+    console.error("❌ No API keys configured in environment!");
+    return { isValid: false, error: "API authentication not configured" };
+  }
+
+  if (!validKeys.includes(apiKey)) {
+    console.warn(`⚠️ Invalid API key attempt: ${apiKey.substring(0, 10)}...`);
+    return { isValid: false, error: "Invalid API key" };
+  }
+
+  let keyName = "unknown";
+  if (apiKey === process.env.BANKING_API_KEY_MASTER) {
+    keyName = "master";
+  } else if (apiKey === process.env.BANKING_API_KEY_PARTNER1) {
+    keyName = "partner1";
+  } else if (apiKey === process.env.BANKING_API_KEY_PARTNER2) {
+    keyName = "partner2";
+  } else if (apiKey === process.env.NEXT_PUBLIC_BANKING_API_KEY) {
+    keyName = "public";
+  }
+
+  return { isValid: true, keyName };
+}
+
+function getClientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  const realIp = req.headers.get("x-real-ip");
+  return forwarded?.split(",")[0] || realIp || "unknown";
+}
+
+// POST handler
+export async function POST(req: Request) {
+  try {
+    // ============================================
+    // SECURITY CHECK 0: API Key Authentication
+    // ============================================
+    const authResult = validateApiKey(req);
+
+    if (!authResult.isValid) {
+      console.warn(`🔒 Authentication failed: ${authResult.error}`);
+      return NextResponse.json(
+        {
+          error: "Unauthorized.  Invalid or missing API key.",
+          details: authResult.error,
+        },
+        { status: 401 }
+      );
+    }
+
+    console.log(`🔑 API Key validated:  ${authResult.keyName}`);
+
+    const clientIp = getClientIp(req);
+    const formData = await req.formData();
+
+    const type = formData.get("type") as string;
+    const balance = formData.get("balance") as string;
+    const username = formData.get("username") as string;
+    const amountStr = formData.get("amount") as string;
+    const bankDetails = formData.get("bankDetails") as string | null;
+    const paymentMethod = formData.get("paymentMethod") as string | null;
+    const casinoGroupName = formData.get("casinoGroupName") as string;
+
+    // ============================================
+    // SECURITY CHECK 2: Rate Limiting by Username
+    // ============================================
+    const sanitizedUsername = username?.trim().toLowerCase() || "";
+
+    if (!balance || balance.trim() === "") {
+      return NextResponse.json(
+        {
+          error: "Balance is required.",
+          field: "balance",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!username || username.trim() === "") {
+      return NextResponse.json(
+        {
+          error: "Username is required.",
+          field: "username",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!/^[a-z0-9_-]{3,30}$/i.test(sanitizedUsername)) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid username format. Use 3-30 characters (letters, numbers, underscore, hyphen).",
+          field: "username",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!amountStr || isNaN(Number(amountStr))) {
+      return NextResponse.json(
+        {
+          error: "Amount is required and must be a valid number.",
+          field: "amount",
+        },
+        { status: 400 }
+      );
+    }
+
+    const parsedAmount = parseFloat(amountStr);
+    // ============================================
+    // SECURITY CHECK 3: Validate Casino Group
+    // ============================================
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: {
+        name: { equals: casinoGroupName, mode: "insensitive" },
+      },
+    });
+
+    if (!casinoGroup) {
+      return NextResponse.json(
+        {
+          error: "Invalid casino group specified.",
+          field: "casinoGroupName",
+        },
+        { status: 422 }
+      );
+    }
+
+    // ============================================
+    // CREATE TRANSACTION REQUEST & CASHIN
+    // ============================================
+    const { transaction, cashin } = await prisma.$transaction(async (tx) => {
+      const transaction = await tx.transactionRequest.create({
+        data: {
+          type,
+          balance,
+          username: sanitizedUsername,
+          amount: parsedAmount,
+          bankDetails: bankDetails || null,
+          paymentMethod: paymentMethod || null,
+          status: "PENDING",
+          chatBased: true,
+          casinoGroupId: casinoGroup.id,
+          ipAddress: clientIp,
+          userAgent: req.headers.get("user-agent") || null,
+        },
+      });
+
+      const cashin = await tx.cashin.create({
+        data: {
+          amount: parsedAmount,
+          userName: sanitizedUsername,
+          status: "PENDING",
+          details: `Chat-based ${type}`,
+          casinoGroupId: casinoGroup.id,
+          transactionRequestId: transaction.id,
+        },
+      });
+
+      await tx.transactionRequest.update({
+        where: { id: transaction.id },
+        data: {
+          cashInId: cashin.id,
+        },
+      });
+
+      return { transaction, cashin };
+    });
+
+    // // Get all tagged users for this notification
+    // // ============================================
+    // // TRIGGER REAL-TIME NOTIFICATION
+    // // ============================================
+    const notifiedUsersId = await prisma.user
+      .findMany({
+        where: {
+          role: {
+            in: [
+              ADMINROLES.SUPERADMIN,
+              ADMINROLES.ADMIN,
+              ADMINROLES.ACCOUNTING,
+              ADMINROLES.LOADER,
+              ADMINROLES.TL,
+            ],
+          },
+        },
+        select: { id: true },
+        cacheStrategy: { ttl: 60 * 10 }, // 10 minutes
+      })
+      .then((users) => users.map((user) => user.id));
+
+    // // For each user, create the notification and send via Pusher
+    await Promise.all([
+      notifiedUsersId.map(async (userId) => {
+        const notification = await prisma.notifications.create({
+          data: {
+            userId,
+            message: `${sanitizedUsername} requested a ${type}: "amounting ${parsedAmount}" in ${casinoGroupName}.`,
+            link: `/${casinoGroupName.toLowerCase()}/transaction-requests/${
+              transaction.id
+            }`,
+            isRead: false,
+            type: "transaction-request",
+            actor: sanitizedUsername,
+            subject: parsedAmount.toLocaleString() + " " + type,
+            casinoGroup: casinoGroupName,
+          },
+        });
+
+        //You can use a specific event name for this type
+        await pusher.trigger(
+          `user-notify-${userId}`,
+          "notifications-event", // Event name by notification type
+          notification
+        );
+
+        await pusher.trigger(
+          `chatbased-cashin-${cashin.id}`,
+          "cashin:thread-updated",
+          {
+            cashin,
+          }
+        );
+      }),
+    ]);
+
+    console.log(
+      `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        transaction: {
+          id: transaction.id,
+          cashinId: cashin.id,
+          type: transaction.type,
+          amount: transaction.amount,
+          status: transaction.status,
+          createdAt: transaction.createdAt,
+        },
+        message: "Transaction request submitted successfully.",
+      },
+      { status: 201 }
+    );
+  } catch (e: any) {
+    console.error("❌ Transaction creation error:", e);
+
+    if (e.name === "PrismaClientKnownRequestError") {
+      return NextResponse.json(
+        { error: "Database error. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to create transaction request.  Please try again." },
+      { status: 500 }
+    );
+  }
+}

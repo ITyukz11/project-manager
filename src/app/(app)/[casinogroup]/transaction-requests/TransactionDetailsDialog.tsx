@@ -27,6 +27,7 @@ import {
   Lock,
   Trash2,
   ImageIcon,
+  MessageSquare,
 } from "lucide-react";
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -167,7 +168,7 @@ export function TransactionDetailsDialog({
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [actionType, setActionType] = useState<
-    "CLAIMED" | "REJECTED" | "APPROVED" | null
+    "CLAIMED" | "REJECTED" | "APPROVED" | "ACCOMMODATING" | null
   >(null);
   const [remarks, setRemarks] = useState("");
 
@@ -200,7 +201,9 @@ export function TransactionDetailsDialog({
     }
   }, [open, transactionId, mutate]);
 
-  const openConfirmDialog = (status: "CLAIMED" | "REJECTED" | "APPROVED") => {
+  const openConfirmDialog = (
+    status: "CLAIMED" | "REJECTED" | "APPROVED" | "ACCOMMODATING"
+  ) => {
     setActionType(status);
     setRemarks("");
     setReceiptFile(null);
@@ -438,15 +441,33 @@ export function TransactionDetailsDialog({
                       </Button>
                     </>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                      onClick={() => openConfirmDialog("APPROVED")}
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      Approve
-                    </Button>
+                    <>
+                      {transaction?.paymentMethod === "Chat-Based" ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="relative text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                          onClick={() => openConfirmDialog("ACCOMMODATING")}
+                        >
+                          <span className="absolute top-0 right-0 flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                          </span>
+                          <MessageSquare className="h-4 w-4" />
+                          Enter Chat
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                          onClick={() => openConfirmDialog("APPROVED")}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Approve
+                        </Button>
+                      )}
+                    </>
                   )}
                   <Button
                     size="sm"
@@ -828,6 +849,11 @@ export function TransactionDetailsDialog({
                   <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
                   Approve Transaction
                 </>
+              ) : actionType === "ACCOMMODATING" ? (
+                <>
+                  <CheckCircle className="mr-2 h-5 w-5 text-green-600" />
+                  Accommodate Player
+                </>
               ) : (
                 <>
                   <XCircle className="mr-2 h-5 w-5 text-red-600" />
@@ -840,6 +866,8 @@ export function TransactionDetailsDialog({
                 ? "You are about to approve this transaction"
                 : actionType === "APPROVED"
                 ? "You are about to approve this transaction"
+                : actionType === "ACCOMMODATING"
+                ? "You are about to accommodate this player"
                 : "You are about to reject this transaction"}
             </DialogDescription>
           </DialogHeader>
@@ -950,7 +978,9 @@ export function TransactionDetailsDialog({
             </Button>
             <Button
               variant={
-                actionType === "CLAIMED" || actionType === "APPROVED"
+                actionType === "CLAIMED" ||
+                actionType === "APPROVED" ||
+                actionType === "ACCOMMODATING"
                   ? "default"
                   : "destructive"
               }
@@ -965,6 +995,8 @@ export function TransactionDetailsDialog({
                 </>
               ) : actionType === "CLAIMED" ? (
                 "Claim"
+              ) : actionType === "ACCOMMODATING" ? (
+                "Accommodate"
               ) : actionType === "APPROVED" ? (
                 "Approve"
               ) : (

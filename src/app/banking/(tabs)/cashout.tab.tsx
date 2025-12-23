@@ -15,7 +15,7 @@ import {
 import { PaymentMethod } from "../page";
 import {
   BANK_LIST,
-  PAYMENT_METHODS,
+  PAYMENT_METHODS_CASHOUT,
   QUICK_AMOUNTS,
 } from "@/lib/constants/data";
 
@@ -58,7 +58,7 @@ export function CashOutContent({
 }: CashOutContentProps) {
   return (
     <Card>
-      <CardContent className="pt-4 sm:pt-6 space-y-4 sm:space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6">
         {/* Step 1: Payment Method Selection */}
         <div>
           <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
@@ -66,7 +66,7 @@ export function CashOutContent({
           </Label>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-            {PAYMENT_METHODS.map((method) => (
+            {PAYMENT_METHODS_CASHOUT.map((method) => (
               <Card
                 key={method.id}
                 className={`cursor-pointer transition-all hover:shadow-lg ${

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import {
   ArrowLeftRight,
+  BanknoteArrowDown,
   BanknoteArrowUp,
   CheckSquare,
   ChevronRight,
@@ -56,6 +57,7 @@ export default function NavCasinoGroup({
 
   // Local state for real-time updates
   const [pendingTransaction, setPendingTransaction] = React.useState(0);
+  const [pendingCashins, setPendingCashins] = React.useState(0);
   const [pendingCashouts, setPendingCashouts] = React.useState(0);
   const [pendingConcerns, setPendingConcerns] = React.useState(0);
   const [pendingRemittances, setPendingRemittances] = React.useState(0);
@@ -70,6 +72,7 @@ export default function NavCasinoGroup({
   React.useEffect(() => {
     if (!isLoading && counts) {
       setPendingTransaction(counts.transaction);
+      setPendingCashins(counts.cashin);
       setPendingCashouts(counts.cashout);
       setPendingRemittances(counts.remittance);
       setPendingConcerns(counts.concern);
@@ -78,6 +81,10 @@ export default function NavCasinoGroup({
   }, [counts, isLoading]);
 
   // Pusher event handlers
+  const handleCashinUpdate = React.useCallback((data: { count: number }) => {
+    setPendingCashins(data.count);
+  }, []);
+
   const handleCashoutUpdate = React.useCallback((data: { count: number }) => {
     setPendingCashouts(data.count);
   }, []);
@@ -98,6 +105,10 @@ export default function NavCasinoGroup({
   }, []);
 
   // Memoized channel names
+  const cashinChannel = React.useMemo(
+    () => [`cashin-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
   const cashoutChannel = React.useMemo(
     () => [`cashout-${casinoGroupLower}`],
     [casinoGroupLower]
@@ -116,6 +127,12 @@ export default function NavCasinoGroup({
   );
 
   // Pusher subscriptions
+  usePusher({
+    channels: cashinChannel,
+    eventName: "cashin-pending-count",
+    onEvent: handleCashinUpdate,
+  });
+
   usePusher({
     channels: cashoutChannel,
     eventName: "cashout-pending-count",
@@ -162,16 +179,23 @@ export default function NavCasinoGroup({
         disable: false,
       },
       {
+        href: `/${casinoGroupLower}/cash-ins`,
+        text: "Cash Ins",
+        icon: BanknoteArrowDown,
+        disable: false,
+        pendingCount: pendingCashins,
+      },
+      {
         href: `/${casinoGroupLower}/cash-outs`,
         text: "Cash Outs",
-        icon: Wallet,
+        icon: BanknoteArrowUp,
         disable: false,
         pendingCount: pendingCashouts,
       },
       {
         href: `/${casinoGroupLower}/remittance`,
         text: "Remittance",
-        icon: BanknoteArrowUp,
+        icon: Wallet,
         disable: false,
         pendingCount: pendingRemittances,
       },
@@ -197,6 +221,7 @@ export default function NavCasinoGroup({
       pendingRemittances,
       pendingConcerns,
       pendingTasks,
+      pendingCashins,
     ]
   );
 

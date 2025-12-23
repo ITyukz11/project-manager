@@ -43,6 +43,11 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+html body[data-scroll-locked] {
+  overflow: visible !important;
+  margin-right: 0 !important;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);

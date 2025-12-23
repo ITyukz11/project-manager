@@ -241,6 +241,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
 
     const type = formData.get("type") as string;
+    const balance = formData.get("balance") as string;
     const username = formData.get("username") as string;
     const amountStr = formData.get("amount") as string;
     const bankDetails = formData.get("bankDetails") as string | null;
@@ -543,6 +544,7 @@ export async function POST(req: Request) {
     const transaction = await prisma.transactionRequest.create({
       data: {
         type,
+        balance,
         username: sanitizedUsername,
         amount: parsedAmount,
         bankDetails: bankDetails || null,

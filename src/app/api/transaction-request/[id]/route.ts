@@ -26,12 +26,14 @@ export async function PATCH(
     // Validation
     if (
       !status ||
-      !["PENDING", "APPROVED", "REJECTED", "CLAIMED"].includes(status)
+      !["PENDING", "APPROVED", "REJECTED", "CLAIMED", "ACCOMMODATING"].includes(
+        status
+      )
     ) {
       return NextResponse.json(
         {
           error:
-            "Invalid status. Must be PENDING, APPROVED, REJECTED, or CLAIMED.",
+            "Invalid status. Must be PENDING, APPROVED, REJECTED, CLAIMED, or ACCOMMODATING.",
         },
         { status: 400 }
       );
@@ -130,6 +132,22 @@ export async function PATCH(
       },
     });
 
+    // 🔹 If status is ACCOMMODATING, update the linked Cashin
+    if (status === "ACCOMMODATING" && updatedTransaction.cashInId) {
+      try {
+        await prisma.cashin.update({
+          where: { id: updatedTransaction.cashInId },
+          data: {
+            status: "ACCOMMODATING",
+          },
+        });
+      } catch (cashinErr: any) {
+        console.error(
+          `Failed to update linked Cashin ${updatedTransaction.cashInId}:`,
+          cashinErr
+        );
+      }
+    }
     // Trigger Pusher notification
     if (process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.PUSHER_SECRET) {
       try {

@@ -7,6 +7,7 @@ const fetcher = async (url: string) => {
 };
 
 export interface PendingCounts {
+  cashin: number;
   cashout: number;
   remittance: number;
   concern: number;
@@ -34,6 +35,7 @@ export const usePendingCounts = (casinoGroup?: string) => {
 
   return {
     counts: data ?? {
+      cashin: 0,
       cashout: 0,
       remittance: 0,
       concern: 0,

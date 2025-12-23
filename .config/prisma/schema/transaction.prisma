@@ -11,13 +11,16 @@ model TransactionRequest {
   
   paymentMethod String?  // GCash, Maya, GoTyme
   status        String   @default("PENDING") // PENDING, COMPLETED, REJECTED
+  balance    String?  // URL to attachment/image proof reply in updating status
 
-  remarks       String? // For rejection reason or additional notes
-  
+  remarks         String? // For rejection reason or additional notes
   receiptUrl      String?
   receiptHash     String?       // 🆕 For duplicate detection
   ipAddress       String?       // 🆕 For audit trail
   userAgent       String?       // 🆕 For audit trail
+
+  chatBased      Boolean  @default(false) // Whether this request is from chat-based system
+  cashInId       String?  // Link to Cashin if applicable
 
   // Track who processed/updated this transaction (admin/staff)
   processedById String? 
@@ -26,7 +29,6 @@ model TransactionRequest {
   
   casinoGroupId String
   casinoGroup   CasinoGroup @relation(fields:  [casinoGroupId], references: [id], onDelete:  Cascade)
-  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

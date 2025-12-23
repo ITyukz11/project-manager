@@ -36,9 +36,10 @@ export const useAttendanceLogs = (userId?: string) => {
     [url, "GET"],
     fetchAttendanceLogs,
     {
-      revalidateOnFocus: true,
+      refreshInterval: 30000, // 30 seconds instead of 10
+      dedupingInterval: 5000, // Prevent duplicate requests
+      revalidateOnFocus: true, // Only revalidate manually
       revalidateOnReconnect: true,
-      refreshInterval: 10000, // auto refresh every 10 seconds
     }
   );
 

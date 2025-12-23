@@ -4,9 +4,11 @@ import {
   ArrowUpCircle,
   BadgeCheck,
   CheckCircle2,
+  MessageSquare,
   XCircle,
 } from "lucide-react";
 import { Spinner } from "./ui/spinner";
+
 export function getStatusColorClass(status: string): string {
   switch (status) {
     case "PENDING":
@@ -14,6 +16,9 @@ export function getStatusColorClass(status: string): string {
 
     case "PARTIAL":
       return "bg-sky-600 hover:bg-sky-700 text-white";
+
+    case "ACCOMMODATING":
+      return "bg-purple-600 hover:bg-purple-700 text-white";
 
     case "COMPLETED":
     case "APPROVED":
@@ -57,6 +62,9 @@ export const getStatusIcon = (status?: string) => {
 
     case "REJECTED":
       return <XCircle className="h-4 w-4" />;
+
+    case "ACCOMMODATING":
+      return <Spinner />;
 
     default:
       return <AlertCircle className="h-4 w-4" />;

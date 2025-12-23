@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { CashoutStatus } from "@prisma/client";
+import { CashinStatus, CashoutStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -36,6 +36,15 @@ export async function GET(req: Request) {
       taskCount,
       transactionCount,
     ] = await Promise.all([
+      // Cashin count
+      prisma.cashin.count({
+        where: {
+          status: {
+            in: [CashinStatus.PENDING, CashinStatus.PARTIAL],
+          },
+          casinoGroupId: casinoGroup.id,
+        },
+      }),
       // Cashout count
       prisma.cashout.count({
         where: {
