@@ -428,7 +428,7 @@ export function ChatBasedContent({
       />
       <audio
         ref={notificationAudioRef}
-        src="/sounds/notif2.wav"
+        src="/sounds/message.wav"
         preload="auto"
       />
     </div>

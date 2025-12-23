@@ -356,7 +356,7 @@ export function TransactionDetailsDialog({
         toast.success(`Transaction ${actionType} successfully!`);
       }
       if (actionType === "ACCOMMODATING") {
-        router.push(`${casinoGroup}/cash-ins/${data.cashinId}`);
+        router.push(`${casinoGroup}/cash-ins/${data.cashInId}`);
       }
       await mutate();
       await mutateList();

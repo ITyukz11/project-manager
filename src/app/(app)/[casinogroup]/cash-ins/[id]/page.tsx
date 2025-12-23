@@ -45,6 +45,7 @@ import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { cn } from "@/lib/utils";
 import { CashinStatusHistorySheet } from "../(components)/CashinStatusHistorySheet";
 import { useCashinById } from "@/lib/hooks/swr/cashin/useCashinById";
+import { usePusher } from "@/lib/hooks/use-pusher";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -59,6 +60,7 @@ export default function Page() {
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const [previewFilename, setPreviewFilename] = useState<string | null>(null);
   const [showStatusSheet, setShowStatusSheet] = useState(false);
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Attachments state
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -101,6 +103,15 @@ export default function Page() {
     setAttachments((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  console.log("cashinId:", id);
+  usePusher({
+    channels: [`chatbased-cashin-${id}`],
+    eventName: "cashin:thread-updated",
+    onEvent: () => {
+      mutate(); // 🔥 refetch comments
+    },
+    audioRef: notificationAudioRef,
+  });
   async function handleCommentSend(e: React.FormEvent) {
     e.preventDefault();
     if (!inputValue.trim() && attachments.length === 0) return;
@@ -632,6 +643,11 @@ export default function Page() {
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
         data={cashin?.cashinLogs || []}
+      />
+      <audio
+        ref={notificationAudioRef}
+        src="/sounds/message.wav"
+        preload="auto"
       />
     </div>
   );
