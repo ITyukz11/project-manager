@@ -37,7 +37,13 @@ export function UpdateStatusDialog({ cashinId, currentStatus }) {
     },
   });
 
-  const statuses = ["PENDING", "PARTIAL", "COMPLETED", "REJECTED"];
+  const statuses = [
+    "PENDING",
+    "PARTIAL",
+    "COMPLETED",
+    "REJECTED",
+    "ACCOMMODATING",
+  ];
 
   // 2. Submission handler (native form submit)
   async function onSubmit(values) {
