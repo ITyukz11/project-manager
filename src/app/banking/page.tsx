@@ -148,6 +148,7 @@ export default function BankingPage() {
     if (activeTab === "history") {
       fetchTransactionHistory();
     }
+    setSelectedPayment(null);
   }, [activeTab, fetchTransactionHistory]);
 
   // ✅ Optional:  Countdown timer for UI feedback
