@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitCashinUpdated } from "@/actions/server/emitCashinUpdated";
+import { CashinStatus } from "@prisma/client";
 
 export async function PATCH(
   req: Request,
@@ -49,7 +50,7 @@ export async function PATCH(
     // 3. Get updated pending count for this casinoGroup
     const pendingCount = await prisma.cashin.count({
       where: {
-        status: "PENDING",
+        status: CashinStatus.ACCOMMODATING,
         casinoGroupId: cashin.casinoGroupId,
       },
     });
