@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { put } from "@vercel/blob";
+import { pusher } from "@/lib/pusher";
 
 export async function POST(
   req: Request,
@@ -76,6 +77,11 @@ export async function POST(
     const createdThread = await prisma.cashinThread.findUnique({
       where: { id: thread.id },
       include: { attachments: true, author: true },
+    });
+
+    // 🔥 REALTIME PUSH
+    await pusher.trigger(`chatbased-cashin-${id}`, "cashin:thread-updated", {
+      cashinId: id,
     });
 
     return NextResponse.json({ success: true, thread: createdThread });

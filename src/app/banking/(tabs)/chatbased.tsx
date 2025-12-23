@@ -49,6 +49,8 @@ export function ChatBasedContent({
   const [attachments, setAttachments] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const { cashin, isLoading, error, mutate } = useCashinById(
     cashinId ?? undefined
   );
@@ -93,6 +95,7 @@ export function ChatBasedContent({
     onEvent: () => {
       mutate(); // 🔥 refetch comments
     },
+    audioRef: notificationAudioRef,
   });
 
   // Remove single attachment (for preview UI)
@@ -422,6 +425,11 @@ export function ChatBasedContent({
         imageUrl={previewImg}
         filename={previewFilename}
         onClose={() => setPreviewImg(null)}
+      />
+      <audio
+        ref={notificationAudioRef}
+        src="/sounds/notif2.wav"
+        preload="auto"
       />
     </div>
   );

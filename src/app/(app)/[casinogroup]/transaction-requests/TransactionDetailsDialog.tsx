@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { useTransactionDetails } from "@/lib/hooks/swr/transaction-request/details/useTransactionDetails";
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -182,6 +182,7 @@ export function TransactionDetailsDialog({
   );
 
   const params = useParams();
+  const router = useRouter();
   const casinoGroup = params.casinogroup;
 
   const { transaction, isLoading, error, mutate } =
@@ -295,16 +296,15 @@ export function TransactionDetailsDialog({
   };
 
   const handleStatusUpdate = async () => {
-    if (!actionType || !transactionId) return;
+    if (!actionType || !transactionId || !transaction) return;
 
     setIsUpdating(true);
 
     try {
       const formData = new FormData();
-      formData.append("userName", transaction!.username);
-      formData.append("amount", transaction!.amount.toString());
-
-      formData.append("casinoGroup", transaction!.casinoGroup.name);
+      formData.append("userName", transaction.username);
+      formData.append("amount", transaction.amount.toString());
+      formData.append("casinoGroup", transaction.casinoGroup.name);
       formData.append("status", actionType);
 
       if (remarks.trim()) {
@@ -312,7 +312,7 @@ export function TransactionDetailsDialog({
       }
 
       const details =
-        transaction!.bankDetails +
+        transaction.bankDetails +
         (remarks.trim() ? `\n\nRemarks: ${remarks.trim()}` : "");
 
       formData.append("details", details);
@@ -321,49 +321,51 @@ export function TransactionDetailsDialog({
         formData.append("attachment", receiptFile);
       }
 
-      let response: Response | undefined;
+      let response: Response;
       let data: any;
 
-      if (actionType === "CLAIMED" && transaction?.type === "CASHOUT") {
+      if (actionType === "CLAIMED" && transaction.type === "CASHOUT") {
         response = await fetch(
           `/api/transaction-request/${transactionId}/claim`,
-          {
-            method: "POST",
-            body: formData,
-          }
+          { method: "POST", body: formData }
         );
+
         data = await response.json();
 
         if (!response.ok) {
-          toast.error(data?.error || "Claimed failed!");
+          toast.error(data?.error || "Claim failed");
           return;
         }
+
         toast.success("Claimed and requested a cashout successfully!");
       } else {
         response = await fetch(`/api/transaction-request/${transactionId}`, {
           method: "PATCH",
           body: formData,
         });
+
         data = await response.json();
 
         if (!response.ok) {
-          toast.error(data?.error || "Failed to reject transaction");
+          toast.error(
+            data?.error || `Failed to ${actionType.toLowerCase()} transaction`
+          );
           return;
         }
-        toast.success(`Transaction ${actionType.toLowerCase()} successfully!`);
-      }
 
-      // Only run if there is a successful update:
+        toast.success(`Transaction ${actionType} successfully!`);
+      }
+      if (actionType === "ACCOMMODATING") {
+        router.push(`${casinoGroup}/cash-ins/${data.cashinId}`);
+      }
       await mutate();
       await mutateList();
-      setReceiptFile(null);
-      setReceiptPreview(null);
-      setReceiptSource(null);
+
       setIsActionDialogOpen(false);
       setRemarks("");
       setActionType(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to update transaction");
+      toast.error(error?.message || "Failed to update transaction");
     } finally {
       setIsUpdating(false);
       setReceiptFile(null);

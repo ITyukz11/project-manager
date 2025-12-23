@@ -294,7 +294,7 @@ export const NotificationDropdown = () => {
       </DropdownMenu>
       <audio
         ref={notificationAudioRef}
-        src="/sounds/notif2.wav"
+        src="/sounds/message.mp3"
         preload="auto"
       />
     </>

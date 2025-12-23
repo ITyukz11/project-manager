@@ -53,63 +53,114 @@ export default function NavCasinoGroup({
   const pathname = usePathname();
 
   // ✅ Single SWR call for all counts!
-  const { counts, isLoading } = usePendingCounts(casinoGroup.name);
-
-  // Local state for real-time updates
-  const [pendingTransaction, setPendingTransaction] = React.useState(0);
-  const [pendingCashins, setPendingCashins] = React.useState(0);
-  const [pendingCashouts, setPendingCashouts] = React.useState(0);
-  const [pendingConcerns, setPendingConcerns] = React.useState(0);
-  const [pendingRemittances, setPendingRemittances] = React.useState(0);
-  const [pendingTasks, setPendingTasks] = React.useState(0);
+  const { counts, isLoading, mutate } = usePendingCounts(casinoGroup.name);
 
   const casinoGroupLower = React.useMemo(
     () => casinoGroup.name.toLowerCase(),
     [casinoGroup.name]
   );
 
-  // Sync SWR data to local state
-  React.useEffect(() => {
-    if (!isLoading && counts) {
-      setPendingTransaction(counts.transaction);
-      setPendingCashins(counts.cashin);
-      setPendingCashouts(counts.cashout);
-      setPendingRemittances(counts.remittance);
-      setPendingConcerns(counts.concern);
-      setPendingTasks(counts.task);
-    }
-  }, [counts, isLoading]);
-
   // Pusher event handlers
-  const handleTransactionUpdate = React.useCallback(
-    (data: { count: number }) => {
-      setPendingTransaction(data.count);
-    },
-    []
-  );
+  const handleTransactionUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        transaction: data.count,
+        total:
+          data.count +
+          prev!.cashin +
+          prev!.cashout +
+          prev!.remittance +
+          prev!.concern +
+          prev!.task,
+      }),
+      false
+    );
+  };
 
-  const handleCashinUpdate = React.useCallback((data: { count: number }) => {
-    setPendingCashins(data.count);
-  }, []);
+  const handleCashinUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        cashin: data.count,
+        total:
+          prev!.transaction +
+          data.count +
+          prev!.cashout +
+          prev!.remittance +
+          prev!.concern +
+          prev!.task,
+      }),
+      false
+    );
+  };
 
-  const handleCashoutUpdate = React.useCallback((data: { count: number }) => {
-    setPendingCashouts(data.count);
-  }, []);
+  const handleCashoutUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        cashout: data.count,
+        total:
+          prev!.transaction +
+          prev!.cashin +
+          data.count +
+          prev!.remittance +
+          prev!.concern +
+          prev!.task,
+      }),
+      false
+    );
+  };
 
-  const handleRemittanceUpdate = React.useCallback(
-    (data: { count: number }) => {
-      setPendingRemittances(data.count);
-    },
-    []
-  );
+  const handleRemittanceUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        remittance: data.count,
+        total:
+          prev!.transaction +
+          prev!.cashin +
+          prev!.cashout +
+          data.count +
+          prev!.concern +
+          prev!.task,
+      }),
+      false
+    );
+  };
 
-  const handleConcernUpdate = React.useCallback((data: { count: number }) => {
-    setPendingConcerns(data.count);
-  }, []);
-
-  const handleTaskUpdate = React.useCallback((data: { count: number }) => {
-    setPendingTasks(data.count);
-  }, []);
+  const handleConcernUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        concern: data.count,
+        total:
+          prev!.transaction +
+          prev!.cashin +
+          prev!.cashout +
+          data.count +
+          prev!.remittance +
+          prev!.task,
+      }),
+      false
+    );
+  };
+  const handleTaskUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        task: data.count,
+        total:
+          prev!.transaction +
+          prev!.cashin +
+          prev!.cashout +
+          prev!.remittance +
+          prev!.concern +
+          data.count,
+      }),
+      false
+    );
+  };
 
   // Memoized channel names
   const transactionChannel = React.useMemo(
@@ -183,7 +234,7 @@ export default function NavCasinoGroup({
         text: "Gateway",
         icon: ArrowLeftRight,
         disable: false,
-        pendingCount: pendingTransaction,
+        pendingCount: counts.transaction,
       },
       {
         href: `/${casinoGroupLower}/accounts`,
@@ -202,76 +253,58 @@ export default function NavCasinoGroup({
         text: "Cash Ins",
         icon: BanknoteArrowDown,
         disable: false,
-        pendingCount: pendingCashins,
+        pendingCount: counts.cashin,
       },
       {
         href: `/${casinoGroupLower}/cash-outs`,
         text: "Cash Outs",
         icon: BanknoteArrowUp,
         disable: false,
-        pendingCount: pendingCashouts,
+        pendingCount: counts.cashout,
       },
       {
         href: `/${casinoGroupLower}/remittance`,
         text: "Remittance",
         icon: Wallet,
         disable: false,
-        pendingCount: pendingRemittances,
+        pendingCount: counts.remittance,
       },
       {
         href: `/${casinoGroupLower}/concerns`,
         text: "Concerns",
         icon: MessageCircle,
         disable: false,
-        pendingCount: pendingConcerns,
+        pendingCount: counts.concern,
       },
       {
         href: `/${casinoGroupLower}/tasks`,
         text: "Tasks",
         icon: CheckSquare,
         disable: false,
-        pendingCount: pendingTasks,
+        pendingCount: counts.task,
       },
     ],
     [
       casinoGroupLower,
-      pendingTransaction,
-      pendingCashouts,
-      pendingRemittances,
-      pendingConcerns,
-      pendingTasks,
-      pendingCashins,
+      counts.transaction,
+      counts.cashin,
+      counts.cashout,
+      counts.remittance,
+      counts.concern,
+      counts.task,
     ]
   );
 
-  const totalPending = React.useMemo(() => {
-    return (
-      pendingCashins +
-      pendingTransaction +
-      pendingCashouts +
-      pendingRemittances +
-      pendingConcerns +
-      pendingTasks
-    );
-  }, [
-    pendingCashins,
-    pendingTransaction,
-    pendingCashouts,
-    pendingRemittances,
-    pendingConcerns,
-    pendingTasks,
-  ]);
-
   // ✅ Helper function to get total badge color classes
   const getTotalBadgeColorClass = React.useCallback(() => {
-    if (totalPending === 0) {
+    if (counts.total === 0) {
       // Green for zero
       return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800";
     } else {
       // Yellow for other pending items
       return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-300 dark:border-yellow-800";
     }
-  }, [totalPending]);
+  }, [counts.total]);
 
   const SectionIcon = ClipboardList;
 
@@ -290,7 +323,7 @@ export default function NavCasinoGroup({
                 getTotalBadgeColorClass()
               )}
             >
-              {totalPending}
+              {counts.total}
             </Badge>
           )}
           <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />

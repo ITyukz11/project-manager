@@ -27,9 +27,8 @@ export const usePendingCounts = (casinoGroup?: string) => {
     url,
     fetcher,
     {
-      refreshInterval: 30000, // Refresh every 30 seconds
+      refreshInterval: 0, // Refresh every 30 seconds
       revalidateOnFocus: false, // Don't refetch on window focus
-      dedupingInterval: 10000, // Dedupe requests within 10 seconds
     }
   );
 
