@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/select";
 import { PaymentMethod } from "../page";
 import {
-  BANK_LIST,
+  BANK_ONLY,
+  E_WALLET_BANK,
   PAYMENT_METHODS_CASHOUT,
   QUICK_AMOUNTS,
 } from "@/lib/constants/data";
+import { useEffect } from "react";
 
 interface CashOutContentProps {
   selectedPayment: PaymentMethod | null;
@@ -56,6 +58,12 @@ export function CashOutContent({
   setAccountNumber,
   handleProceedToQR,
 }: CashOutContentProps) {
+  useEffect(() => {
+    // Reset bank selection when payment method changes
+    setSelectedBank("");
+    setCustomBank("");
+  }, [selectedPayment, setSelectedBank, setCustomBank]);
+
   return (
     <Card>
       <CardContent className="space-y-4 sm:space-y-6">
@@ -144,11 +152,18 @@ export function CashOutContent({
                 </SelectTrigger>
 
                 <SelectContent>
-                  {BANK_LIST.map((bank) => (
-                    <SelectItem key={bank} value={bank}>
-                      {bank}
-                    </SelectItem>
-                  ))}
+                  {selectedPayment === "GCash/Maya"
+                    ? E_WALLET_BANK.map((bank) => (
+                        <SelectItem key={bank} value={bank}>
+                          {bank}
+                        </SelectItem>
+                      ))
+                    : BANK_ONLY.map((bank) => (
+                        <SelectItem key={bank} value={bank}>
+                          {bank}
+                        </SelectItem>
+                      ))}
+
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>

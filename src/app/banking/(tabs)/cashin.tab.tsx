@@ -36,7 +36,6 @@ export function CashInContent({
   setEnableChatBased,
   chatBasedLoading = false,
   cashinId,
-  usersData,
   casinoLink,
   playerUsername,
 }: CashInContentProps) {

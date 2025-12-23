@@ -646,7 +646,7 @@ export default function Page() {
       />
       <audio
         ref={notificationAudioRef}
-        src="/sounds/message.wav"
+        src="/sounds/message.mp3"
         preload="auto"
       />
     </div>
