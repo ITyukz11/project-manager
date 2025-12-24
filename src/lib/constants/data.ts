@@ -13,6 +13,21 @@ export const PAYMENT_METHODS_CASHOUT = [
   },
 ];
 
-export const BANK_LIST = ["GCash/MAYA", "Bank Transfer"];
+export const E_WALLET_BANK = ["GCash", "MAYA"];
+export const BANK_ONLY = [
+  "GoTyme",
+  "Landbank",
+  "BDO",
+  "BPI",
+  "Metrobank",
+  "PNB",
+  "CitiBank",
+  "UnionBank",
+  "RCBC",
+  "Security",
+  "EastWest",
+  "China",
+  "Maybank",
+];
 
 export const QUICK_AMOUNTS = [100, 150, 200, 300, 500, 1000];

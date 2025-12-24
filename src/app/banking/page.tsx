@@ -12,9 +12,14 @@ import { CashInContent } from "./(tabs)/cashin.tab";
 import { CashOutContent } from "./(tabs)/cashout.tab";
 import { TransactionHistoryContent } from "./(tabs)/history.tab";
 import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
-import { usePusher } from "@/lib/hooks/use-pusher";
 
-export type PaymentMethod = "QRPH" | "GoTyme" | "Chat-Based" | null;
+export type PaymentMethod =
+  | "QRPH"
+  | "GCash/Maya"
+  | "GoTyme"
+  | "Bank"
+  | "Chat-Based"
+  | null;
 
 const QR_CODE_MAP: Record<string, string> = {
   QRPH: "/Sec-QRPH-qr.png",
