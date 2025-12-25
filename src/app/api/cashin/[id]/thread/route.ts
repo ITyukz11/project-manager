@@ -19,7 +19,21 @@ export async function POST(
     const formData = await req.formData();
     const message = (formData.get("message") as string)?.trim();
     const username = (formData.get("username") as string)?.trim(); // for anonymous
+
+    const casinoGroup =
+      (formData.get("casinoGroup") as string | null)?.trim() || "";
     const attachmentFiles = formData.getAll("attachment") as File[];
+    const mentionsRaw = formData.get("mentions") as string | null;
+
+    // Parse mentions safely
+    let mentions: string[] = [];
+    try {
+      if (mentionsRaw) {
+        mentions = JSON.parse(mentionsRaw);
+      }
+    } catch (err) {
+      console.warn("Failed to parse mentions:", err);
+    }
 
     // Require either a message OR at least one attachment
     const hasMessage = message && message.length > 0;
@@ -73,6 +87,37 @@ export async function POST(
       });
     }
 
+    // Notify mentioned users
+    if (mentions.length > 0) {
+      const usersToNotify = await prisma.user.findMany({
+        where: { username: { in: mentions } },
+        select: { id: true, username: true },
+      });
+
+      await Promise.all(
+        usersToNotify.map(async (user) => {
+          const notification = await prisma.notifications.create({
+            data: {
+              userId: user.id,
+              message: `${currentUser?.username} mentioned you in a cashin comment.`,
+              link: `/${casinoGroup}/cash-ins/${id}`, // adjust front-end link
+              type: "mention",
+              actor: currentUser?.username,
+              subject: "Cashin Thread",
+              casinoGroup: casinoGroup ?? "", // adjust if needed,
+              isRead: false,
+            },
+          });
+
+          // Optional: real-time notification via Pusher
+          await pusher.trigger(
+            `user-notify-${user.id}`,
+            "notifications-event",
+            notification
+          );
+        })
+      );
+    }
     // Return thread including attachments and author info
     const createdThread = await prisma.cashinThread.findUnique({
       where: { id: thread.id },
