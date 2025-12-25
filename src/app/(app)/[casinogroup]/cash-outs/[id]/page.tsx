@@ -28,7 +28,6 @@ import {
 } from "@/components/getStatusColorClass";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { cn } from "@/lib/utils";
 import { CommentsSection } from "@/components/CommentSection";
 

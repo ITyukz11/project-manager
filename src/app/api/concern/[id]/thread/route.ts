@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { put } from "@vercel/blob";
+import { pusher } from "@/lib/pusher";
 
 export async function POST(
   req: Request,
@@ -24,8 +25,20 @@ export async function POST(
 
     const formData = await req.formData();
     const message = formData.get("message");
+    const casinoGroup =
+      (formData.get("casinoGroup") as string | null)?.trim() || "";
     const attachmentFiles = formData.getAll("attachment") as File[];
+    const mentionsRaw = formData.get("mentions") as string | null;
 
+    // Parse mentions safely
+    let mentions: string[] = [];
+    try {
+      if (mentionsRaw) {
+        mentions = JSON.parse(mentionsRaw);
+      }
+    } catch (err) {
+      console.warn("Failed to parse mentions:", err);
+    }
     // Filter valid attachment files
     const validAttachments = attachmentFiles.filter(
       (file) => file && typeof file === "object" && file.size > 0
@@ -79,6 +92,38 @@ export async function POST(
           concernThreadId: thread.id,
         })),
       });
+    }
+
+    // Notify mentioned users
+    if (mentions.length > 0) {
+      const usersToNotify = await prisma.user.findMany({
+        where: { username: { in: mentions } },
+        select: { id: true, username: true },
+      });
+
+      await Promise.all(
+        usersToNotify.map(async (user) => {
+          const notification = await prisma.notifications.create({
+            data: {
+              userId: user.id,
+              message: `${currentUser.username} mentioned you in a concern comment.`,
+              link: `/${casinoGroup}/concerns/${id}`, // adjust front-end link
+              type: "mention",
+              actor: currentUser.username,
+              subject: "Concern Thread",
+              casinoGroup: casinoGroup ?? "", // adjust if needed
+              isRead: false,
+            },
+          });
+
+          // Optional: real-time notification via Pusher
+          await pusher.trigger(
+            `user-notify-${user.id}`,
+            "notifications-event",
+            notification
+          );
+        })
+      );
     }
 
     // Return thread including its attachments

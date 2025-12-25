@@ -102,6 +102,11 @@ export default function Page() {
     try {
       const formData = new FormData();
       formData.append("message", inputValue);
+      if (typeof casinogroup === "string") {
+        formData.append("casinoGroup", casinogroup);
+      }
+      formData.append("mentions", JSON.stringify(value));
+
       attachments.forEach((file) => formData.append("attachment", file));
 
       const res = await fetch(`/api/cashin/${id}/thread`, {

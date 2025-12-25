@@ -26,7 +26,7 @@ import { ADMINROLES } from "@/lib/types/role";
 import { CommentsSection } from "@/components/CommentSection";
 
 export default function Page() {
-  const { id } = useParams();
+  const { id, casinogroup } = useParams();
   const router = useRouter();
   const { concern, isLoading, error, mutate } = useConcernById(id as string);
   const [value, setValue] = useState<string[]>([]);
@@ -84,6 +84,10 @@ export default function Page() {
     try {
       const formData = new FormData();
       formData.append("message", inputValue);
+      formData.append("mentions", JSON.stringify(value));
+      if (typeof casinogroup === "string") {
+        formData.append("casinoGroup", casinogroup);
+      }
       attachments.forEach((file) => formData.append("attachment", file));
 
       const res = await fetch(`/api/concern/${id}/thread`, {
