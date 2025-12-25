@@ -51,13 +51,11 @@ const navSecondary: {
   { title: "Guide", url: "#", icon: HelpCircle, disable: true },
 ];
 
-export function NavSecondary(
-  props: React.ComponentPropsWithoutRef<typeof SidebarGroup>
-) {
+export function NavSecondary() {
   const { onlineUsersCount, isLoading } = useOnlineUsers();
 
   return (
-    <SidebarGroup {...props}>
+    <SidebarGroup className="mt-auto">
       <SidebarGroupContent>
         <SidebarMenu>
           {navSecondary.map((item, index) =>
@@ -78,12 +76,12 @@ export function NavSecondary(
                 <SidebarMenuButton asChild>
                   <Link
                     href={item.url}
-                    className="flex items-center gap-2 justify-between w-full"
+                    className={`flex items-center gap-2 ${
+                      item.showBadge ? "justify-between" : ""
+                    } w-full`}
                   >
-                    <div className="flex items-center gap-2">
-                      <item.icon className="w-4 h-4" aria-hidden />
-                      <span>{item.title}</span>
-                    </div>
+                    <item.icon className="w-4 h-4" aria-hidden />
+                    <span>{item.title}</span>
 
                     {/* Show badge for Online Users */}
                     {item.showBadge && !isLoading && (

@@ -242,12 +242,12 @@ export default function NavCasinoGroup({
         icon: Users,
         disable: false,
       },
-      {
-        href: `/${casinoGroupLower}/network`,
-        text: "Network",
-        icon: Share2,
-        disable: false,
-      },
+      // {
+      //   href: `/${casinoGroupLower}/network`,
+      //   text: "Network",
+      //   icon: Share2,
+      //   disable: false,
+      // },
       {
         href: `/${casinoGroupLower}/cash-ins`,
         text: "Cash Ins",

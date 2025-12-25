@@ -70,7 +70,7 @@ export const AppSidebar = () => {
           )}
         </SidebarGroup>
         <Separator />
-        <NavSecondary className="mt-auto" />
+        <NavSecondary />
       </SidebarContent>
       <SidebarFooter>
         <NavUser
