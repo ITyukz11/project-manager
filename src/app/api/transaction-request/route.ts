@@ -585,6 +585,12 @@ export async function POST(req: Request) {
               ADMINROLES.TL,
             ],
           },
+          casinoGroups: {
+            some: {
+              id: casinoGroup.id, // 🔥 only users in this casino group
+            },
+          },
+          active: true,
         },
         select: { id: true },
       })
