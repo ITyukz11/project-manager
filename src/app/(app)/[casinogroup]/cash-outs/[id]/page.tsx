@@ -48,6 +48,7 @@ export default function Page() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  console.log("value: ", value);
   // Handle image paste/drop
   function handlePasteDrop(e: React.ClipboardEvent | React.DragEvent) {
     let files: File[] = [];
@@ -93,6 +94,10 @@ export default function Page() {
     try {
       const formData = new FormData();
       formData.append("message", inputValue);
+      if (typeof casinogroup === "string") {
+        formData.append("casinoGroup", casinogroup);
+      }
+      formData.append("mentions", JSON.stringify(value));
       attachments.forEach((file) => formData.append("attachment", file));
 
       const res = await fetch(`/api/cashout/${id}/thread`, {

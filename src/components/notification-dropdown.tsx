@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -17,7 +17,6 @@ import { Bell } from "lucide-react";
 import { usePusher } from "@/lib/hooks/use-pusher";
 import { Spinner } from "./ui/spinner";
 import { Notifications } from "@prisma/client";
-import { useRef } from "react";
 
 export const NotificationDropdown = () => {
   const { data: session } = useSession();
@@ -25,12 +24,13 @@ export const NotificationDropdown = () => {
 
   const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const [notifications, setNotifications] = useState<Notifications[]>([]);
-  const [archiveNotifications, setArchiveNotifications] = useState<
-    Notifications[]
-  >([]);
+  const [inbox, setInbox] = useState<Notifications[]>([]);
+  const [comments, setComments] = useState<Notifications[]>([]);
+  const [archives, setArchives] = useState<Notifications[]>([]);
 
-  const [activeTab, setActiveTab] = useState<"inbox" | "archives">("inbox");
+  const [activeTab, setActiveTab] = useState<"inbox" | "comments" | "archives">(
+    "inbox"
+  );
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
@@ -43,20 +43,26 @@ export const NotificationDropdown = () => {
     return formatDistanceToNow(parsedDate, { addSuffix: true });
   };
 
+  // Fetch notifications
   useEffect(() => {
     if (!userId) return;
 
-    // Fetch notifications for the current user
     const fetchNotifications = async () => {
       setLoading(true);
       try {
         const res = await fetch(`/api/notifications?userId=${userId}`);
         const data = await res.json();
 
-        setNotifications(
-          data.notifications?.filter((n: Notifications) => !n.isRead) || []
+        const allUnread: Notifications[] =
+          data.notifications?.filter((n: Notifications) => !n.isRead) || [];
+
+        setComments(
+          allUnread.filter((n) => n.type === "mention" || n.type === "comment")
         );
-        setArchiveNotifications(
+        setInbox(
+          allUnread.filter((n) => n.type !== "mention" && n.type !== "comment")
+        );
+        setArchives(
           data.notifications?.filter((n: Notifications) => n.isRead) || []
         );
       } catch (e) {
@@ -69,31 +75,60 @@ export const NotificationDropdown = () => {
     fetchNotifications();
   }, [userId]);
 
-  // Real-time Pusher updates for tagged concerns
+  // Real-time updates
   usePusher({
     channels: userId ? [`user-notify-${userId}`] : [],
     eventName: "notifications-event",
     onEvent: (newNotification: Notifications) => {
-      let isNew = false;
-
       if (newNotification.isRead) {
-        setArchiveNotifications((prev) => {
-          const alreadyExists = prev.some((n) => n.id === newNotification.id);
-          if (!alreadyExists) isNew = true;
-          return alreadyExists ? prev : [newNotification, ...prev];
+        // Move to archives
+        setArchives((prev) => {
+          const exists = prev.some((n) => n.id === newNotification.id);
+          return exists ? prev : [newNotification, ...prev];
         });
+        setInbox((prev) => prev.filter((n) => n.id !== newNotification.id));
+        setComments((prev) => prev.filter((n) => n.id !== newNotification.id));
       } else {
-        setNotifications((prev) => {
-          const alreadyExists = prev.some((n) => n.id === newNotification.id);
-          if (!alreadyExists) isNew = true;
-          return alreadyExists ? prev : [newNotification, ...prev];
-        });
+        // Unread: push to correct tab
+        if (
+          newNotification.type === "comment" ||
+          newNotification.type === "mention"
+        ) {
+          setComments((prev) => {
+            const exists = prev.some((n) => n.id === newNotification.id);
+            return exists ? prev : [newNotification, ...prev];
+          });
+        } else {
+          setInbox((prev) => {
+            const exists = prev.some((n) => n.id === newNotification.id);
+            return exists ? prev : [newNotification, ...prev];
+          });
+        }
       }
     },
     audioRef: notificationAudioRef,
   });
 
-  // Mark a single notification as read and move to archive
+  // Inside NotificationDropdown component
+  const markAllAsRead = async () => {
+    if (!userId) return;
+    try {
+      await fetch("/api/notifications/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }), // No notificationId => mark all
+      });
+
+      // Move all inbox and comments to archives
+      setArchives((prev) => [...inbox, ...comments, ...prev]);
+      setInbox([]);
+      setComments([]);
+    } catch (e) {
+      console.error("Failed to mark all as read", e);
+    }
+  };
+
+  // Mark as read
   const markAsRead = async (notificationId: string, link?: string | null) => {
     try {
       await fetch("/api/notifications/read", {
@@ -101,30 +136,107 @@ export const NotificationDropdown = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notificationId, userId }),
       });
-      setNotifications((prev) => {
-        const notif = prev.find((n) => n.id === notificationId);
-        if (!notif) return prev;
-        setArchiveNotifications((arch) => {
-          // Remove any existing item with the same id first
-          const archNoDup = arch.filter((n) => n.id !== notificationId);
-          return [{ ...notif, isRead: true }, ...archNoDup];
-        });
-        return prev.filter((n) => n.id !== notificationId);
-      });
+
+      // Move to archives
+      const moveToArchives = (arr: Notifications[], setArr: any) => {
+        const notif = arr.find((n) => n.id === notificationId);
+        if (!notif) return;
+        setArr((prev: Notifications[]) =>
+          prev.filter((n) => n.id !== notificationId)
+        );
+        setArchives((prev) => [{ ...notif, isRead: true }, ...prev]);
+      };
+
+      moveToArchives(inbox, setInbox);
+      moveToArchives(comments, setComments);
 
       if (link) {
-        if (pathname === link) {
-          // Already on the route, so just reload the page
-          router.refresh(); // For Next.js App Router
-          // router.reload(); // For Pages Router
-        } else {
-          router.push(link);
-        }
+        if (pathname === link) router.refresh();
+        else router.push(link);
       }
     } catch (e) {
       console.error("Failed to mark as read", e);
     }
   };
+
+  const renderNotificationMessage = (notification: Notifications) => {
+    if (notification.actor && notification.subject) {
+      const actor = <span className="font-bold">{notification.actor}</span>;
+      const subject = (
+        <span className="font-bold">&quot;{notification.subject}&quot;</span>
+      );
+      const casinoGroup = notification.casinoGroup ? (
+        <>
+          <span> in </span>
+          <span className="font-bold">{notification.casinoGroup}</span>
+        </>
+      ) : null;
+
+      switch (notification.type) {
+        case "comment":
+          return (
+            <>
+              {actor} commented on {subject}
+              {casinoGroup}.
+            </>
+          );
+        case "concern":
+        case "concerns":
+          return (
+            <>
+              {actor} tagged you in Concerns {subject}
+              {casinoGroup}.
+            </>
+          );
+        case "cashout":
+          return (
+            <>
+              {actor} requested a Cashout: {subject}
+              {casinoGroup}.
+            </>
+          );
+        case "task":
+        case "tasks":
+          return (
+            <>
+              {actor} assigned you a Task: {subject}
+              {casinoGroup}.
+            </>
+          );
+        case "remittance":
+          return (
+            <>
+              {actor} initiated a Remittance: {subject}
+              {casinoGroup}.
+            </>
+          );
+        case "transaction-request":
+          return (
+            <>
+              {actor} requested {subject}
+              {casinoGroup}.
+            </>
+          );
+        case "mention":
+          return (
+            <>
+              {actor} mentioned you in {subject}
+              {casinoGroup}.
+            </>
+          );
+        default:
+          return <>{notification.message}</>;
+      }
+    }
+    return <>{notification.message}</>;
+  };
+
+  const currentList =
+    activeTab === "inbox"
+      ? inbox
+      : activeTab === "comments"
+      ? comments
+      : archives;
 
   return (
     <>
@@ -132,16 +244,17 @@ export const NotificationDropdown = () => {
         <DropdownMenuTrigger asChild>
           <Button size={"sm"} variant={"outline"} className="relative">
             <Bell className="w-4 h-4" />
-            {notifications.length > 0 && (
+            {inbox.length + comments.length > 0 && (
               <div className="z-50 absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {notifications.length}
+                {inbox.length + comments.length}
               </div>
             )}
           </Button>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent className="w-[380px] mr-10 p-0 shadow-lg overflow-hidden bg-white dark:bg-neutral-900 border">
           {/* Tabs */}
-          <div className="flex border-b  px-4">
+          <div className="flex border-b px-4">
             <button
               className={`cursor-pointer flex-1 py-2 text-sm font-semibold transition-colors ${
                 activeTab === "inbox"
@@ -151,9 +264,24 @@ export const NotificationDropdown = () => {
               onClick={() => setActiveTab("inbox")}
             >
               Inbox
-              {notifications.length > 0 && (
+              {inbox.length > 0 && (
                 <span className="ml-2 bg-red-500 text-white rounded-full px-2 text-xs font-bold">
-                  {notifications.length}
+                  {inbox.length}
+                </span>
+              )}
+            </button>
+            <button
+              className={`cursor-pointer flex-1 py-2 text-sm font-semibold transition-colors ${
+                activeTab === "comments"
+                  ? "border-b-2 border-black dark:border-white text-black dark:text-white"
+                  : "text-gray-500 hover:text-black dark:hover:text-gray-400"
+              }`}
+              onClick={() => setActiveTab("comments")}
+            >
+              Comments
+              {comments.length > 0 && (
+                <span className="ml-2 bg-gray-300 dark:bg-gray-700 text-black dark:text-white rounded-full px-2 text-xs font-bold">
+                  {comments.length}
                 </span>
               )}
             </button>
@@ -166,19 +294,19 @@ export const NotificationDropdown = () => {
               onClick={() => setActiveTab("archives")}
             >
               Archives
-              {archiveNotifications.length > 0 && (
+              {archives.length > 0 && (
                 <span className="ml-2 bg-gray-300 dark:bg-gray-700 text-black dark:text-white rounded-full px-2 text-xs font-bold">
-                  {archiveNotifications.length}
+                  {archives.length}
                 </span>
               )}
             </button>
           </div>
+
           {/* Notifications list */}
           <DropdownMenuGroup className="max-h-80 overflow-y-auto bg-white dark:bg-neutral-900 px-2">
             {loading ? (
               <Spinner />
-            ) : (activeTab === "inbox" ? notifications : archiveNotifications)
-                .length === 0 ? (
+            ) : currentList.length === 0 ? (
               <div className="p-6 text-sm text-gray-500 dark:text-gray-400 text-center">
                 No{" "}
                 {activeTab === "inbox"
@@ -189,15 +317,12 @@ export const NotificationDropdown = () => {
                 notifications.
               </div>
             ) : (
-              (activeTab === "inbox"
-                ? notifications
-                : archiveNotifications
-              ).map((notification) => (
+              currentList.map((notification) => (
                 <DropdownMenuItem
                   key={notification.id}
-                  className={`flex justify-between items-start gap-2 py-3 px-2 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-muted/50`}
+                  className="flex justify-between items-start gap-2 py-3 px-2 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-muted/50"
                   onClick={
-                    activeTab === "inbox"
+                    activeTab !== "archives"
                       ? () => markAsRead(notification.id, notification.link)
                       : undefined
                   }
@@ -210,88 +335,38 @@ export const NotificationDropdown = () => {
                           : "text-gray-800 dark:text-gray-200"
                       }`}
                     >
-                      {notification.actor && notification.subject ? (
-                        <>
-                          <span className="font-bold">
-                            {notification.actor}
-                          </span>
-                          {notification.type === "concerns" && (
-                            <>
-                              <span> tagged you in Concerns </span>
-                              <span className="font-bold">
-                                &quot;{notification.subject}&quot;
-                              </span>
-                            </>
-                          )}
-                          {notification.type === "cashout" && (
-                            <>
-                              <span> requested a Cashout: </span>
-                              <span className="font-bold">
-                                &quot;{notification.subject}&quot;
-                              </span>
-                            </>
-                          )}
-                          {notification.type === "tasks" && (
-                            <>
-                              <span> assigned you a Task: </span>
-                              <span className="font-bold">
-                                &quot;{notification.subject}&quot;
-                              </span>
-                            </>
-                          )}
-                          {notification.type === "remittance" && (
-                            <>
-                              <span> initiated a Remittance: </span>
-                              <span className="font-bold">
-                                &quot;{notification.subject}&quot;
-                              </span>
-                            </>
-                          )}
-                          {notification.type === "transaction-request" && (
-                            <>
-                              <span> requested</span>
-                              <span className="font-bold">
-                                {" "}
-                                {" " + notification.subject + " "}
-                              </span>
-                            </>
-                          )}
-                          {/* If a casino group exists, add it */}
-                          {notification.casinoGroup && (
-                            <>
-                              <span> in </span>
-                              <span className="font-bold">
-                                {notification.casinoGroup}
-                              </span>
-                            </>
-                          )}
-                          .
-                        </>
-                      ) : (
-                        <>{notification.message}</>
-                      )}
+                      {renderNotificationMessage(notification)}
                     </p>
                     <p className="text-xs text-muted-foreground dark:text-gray-400">
                       {getTimeAgo(notification.createdAt)}
                     </p>
                   </div>
-                  {!notification.isRead && activeTab === "inbox" && (
+                  {!notification.isRead && activeTab !== "archives" && (
                     <div className="w-2 h-2 bg-green-500 rounded-full mt-1" />
                   )}
                 </DropdownMenuItem>
               ))
             )}
           </DropdownMenuGroup>
-          <Link href="/notifications">
+
+          <div className="flex  bg-white dark:bg-neutral-900">
+            <Link href="/notifications" className="flex-1">
+              <Button className="w-full rounded-none " variant="outline">
+                See all notifications
+              </Button>
+            </Link>
             <Button
-              className="w-full mt-2 border-0 border-t rounded-none bg-white dark:bg-neutral-900 text-black dark:text-white"
+              className="flex-1 rounded-none"
               variant="outline"
+              onClick={markAllAsRead}
+              disabled={inbox.length + comments.length === 0}
             >
-              See all notifications
+              Mark all as Read
             </Button>
-          </Link>
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
+
       <audio
         ref={notificationAudioRef}
         src="/sounds/notif2.wav"
