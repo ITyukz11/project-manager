@@ -27,6 +27,7 @@ export async function GET(
         remittanceLogs: { include: { performedBy: true } },
         remittanceThreads: {
           include: { author: true, attachments: true },
+          orderBy: { createdAt: "asc" },
         },
       },
     });

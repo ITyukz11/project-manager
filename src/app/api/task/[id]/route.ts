@@ -27,6 +27,7 @@ export async function GET(
         taskLogs: { include: { performedBy: true } },
         taskThreads: {
           include: { author: true, attachments: true },
+          orderBy: { createdAt: "asc" },
         },
         tagUsers: true,
       },

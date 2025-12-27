@@ -27,6 +27,7 @@ export async function GET(
         cashinLogs: { include: { performedBy: true } },
         cashinThreads: {
           include: { author: true, attachments: true },
+          orderBy: { createdAt: "asc" },
         },
       },
     });

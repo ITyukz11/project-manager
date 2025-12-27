@@ -27,6 +27,7 @@ export async function GET(
         concernLogs: { include: { performedBy: true } },
         concernThreads: {
           include: { author: true, attachments: true },
+          orderBy: { createdAt: "asc" },
         },
         tagUsers: true,
       },

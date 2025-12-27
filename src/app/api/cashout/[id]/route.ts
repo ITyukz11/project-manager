@@ -27,6 +27,7 @@ export async function GET(
         cashoutLogs: { include: { performedBy: true } },
         cashoutThreads: {
           include: { author: true, attachments: true },
+          orderBy: { createdAt: "asc" },
         },
       },
     });
