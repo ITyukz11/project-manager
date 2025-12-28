@@ -84,6 +84,7 @@ model User {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   
+  balance        Float        @default(10000) // User's current balance
 }
 
 model Attendance {
