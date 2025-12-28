@@ -55,7 +55,7 @@ export function ConcernFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { mutate } = useConcerns(casinoGroup);
+  const { refetch: mutate } = useConcerns(casinoGroup);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 

@@ -27,7 +27,12 @@ export type CashoutForTable = {
 
 export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
   {
-    accessorKey: "entryBy",
+    id: "entryBy",
+    accessorFn: (row) => {
+      if (row.transactionRequestId) return "gateway";
+
+      return row.createdByAdmin?.name || row.user?.name || "";
+    },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Entry By" />
     ),
@@ -35,21 +40,16 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
       const cashout = row.original;
       const isGateway = !!cashout.transactionRequestId;
 
-      // Show Admin's name if present, else NetworkUser name
       const entry = cashout.createdByAdmin?.name || cashout.user?.name || "—";
 
       return (
         <span className="font-medium flex items-center gap-1">
           {isGateway && (
             <span className="relative inline-flex">
-              {/* Ping layer (only when PENDING) */}
               {cashout.status === "COMPLETED" && (
-                <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse">
-                  GATEWAY
-                </span>
+                <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse" />
               )}
 
-              {/* Main label */}
               <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
                 GATEWAY
               </span>
@@ -84,13 +84,13 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     ),
   },
   {
-    accessorKey: "details",
+    id: "details",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Details" />
     ),
     cell: ({ row }) => {
       const details = row.original.details || "";
-      const maxLength = 80;
+      const maxLength = 20;
       const truncated =
         details.length > maxLength
           ? details.substring(0, maxLength) + "..."

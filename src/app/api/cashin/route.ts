@@ -22,26 +22,74 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get casinoGroup from URL search params
+    // Get casinoGroup and dateRange from URL search params
     const url = new URL(req.url);
     const casinoGroup = url.searchParams.get("casinoGroup");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
 
-    // Build base where clause for admin roles
-    const whereClause: any = {
-      status: { not: "PENDING" }, // 🔹 Exclude ACCOMMODATING
-    };
-    // If casinoGroup is provided, add filter
-    if (casinoGroup) {
-      whereClause.casinoGroup = {
-        name: { equals: casinoGroup, mode: "insensitive" },
-      };
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
+
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
     }
 
-    // Filter roles: include admin + network roles (customize as needed)
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
+
+    // Allowed roles filter
     const allowedRoles = [
       ...Object.values(ADMINROLES),
       ...Object.values(NETWORKROLES),
     ];
+
+    // Build "where" clause to match cashout/cashout logic, but adapted for cashin statuses
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        { status: "PARTIAL" },
+        { status: "ACCOMMODATING" },
+        {
+          // for other statuses, filter by date range if set
+          NOT: { status: { in: ["PENDING", "PARTIAL", "ACCOMMODATING"] } },
+          ...(fromDate || toDate
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+      ...(casinoGroup && {
+        casinoGroup: {
+          name: { equals: casinoGroup, mode: "insensitive" },
+        },
+      }),
+    };
+
     const cashins = await prisma.cashin.findMany({
       where: whereClause,
       include: {
@@ -61,7 +109,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
-
 // --- POST handler to create a new cashin ---
 export async function POST(req: Request) {
   try {

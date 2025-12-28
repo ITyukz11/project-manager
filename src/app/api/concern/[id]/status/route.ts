@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitConcernUpdated } from "@/actions/server/emitConcernUpdated";
 
 export async function PATCH(
   req: Request,
@@ -77,6 +78,12 @@ export async function PATCH(
       "concern-pending-count",
       { count: pendingCount }
     );
+
+    await emitConcernUpdated({
+      transactionId: concern.id,
+      casinoGroup: concern.casinoGroup.name.toLowerCase(),
+      action: "UPDATED",
+    });
 
     return NextResponse.json({ success: true, concern: updatedConcern });
   } catch (e) {

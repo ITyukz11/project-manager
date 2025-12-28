@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { put } from "@vercel/blob";
 import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
+import { pusher } from "@/lib/pusher";
 
 // PATCH handler to update transaction status
 export async function PATCH(
@@ -22,6 +23,8 @@ export async function PATCH(
     const status = formData.get("status") as string;
     const remarks = formData.get("remarks") as string | null;
     const receiptFile = formData.get("receipt") as File | null;
+    const casinoGroupName =
+      (formData.get("casinoGroup") as string | null) || "";
 
     // Validation
     if (
@@ -44,7 +47,7 @@ export async function PATCH(
       where: { id },
       include: {
         casinoGroup: {
-          select: { name: true },
+          select: { name: true, id: true },
         },
       },
     });
@@ -148,6 +151,22 @@ export async function PATCH(
         );
       }
     }
+
+    const pendingCount = await prisma.transactionRequest.count({
+      where: {
+        status: {
+          in: ["PENDING", "CLAIMED", "ACCOMMODATING"],
+        },
+        casinoGroupId: existingTransaction.casinoGroup.id,
+      },
+    });
+
+    await pusher.trigger(
+      `transaction-${existingTransaction.casinoGroup.name.toLowerCase()}`, // channel name
+      "transaction-pending-count", // event name
+      { count: pendingCount }
+    );
+
     // Trigger Pusher notification
     if (process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.PUSHER_SECRET) {
       try {

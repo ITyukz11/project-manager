@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTableViewOptions } from "./data-table-view-options";
 import { Download, SearchIcon } from "lucide-react";
+import { DateRangePopover } from "../DateRangePopover";
+import { DateRange } from "react-day-picker";
 // import ExcelJS from "exceljs"
 // import { saveAs } from "file-saver"
 
@@ -12,6 +14,8 @@ interface DataTableToolbarProps<TData> {
   table: TanstackTable<TData>;
   selectedRows: Record<string, boolean>;
   allowDateRange: boolean;
+  dateRange?: DateRange | undefined; // ✅ current date range
+  onDateRangeChange?: (range: DateRange | undefined) => void; // ✅ callback
   allowExportToExcel?: boolean;
   allowExportData?: boolean;
   tableType?: string;
@@ -19,7 +23,10 @@ interface DataTableToolbarProps<TData> {
 
 export function DataTableToolbar<TData extends Record<string, unknown>>({
   table,
+  allowDateRange,
   allowExportData,
+  dateRange,
+  onDateRangeChange,
 }: DataTableToolbarProps<TData>) {
   const [filterInput, setFilterInput] = useState<string>("");
 
@@ -84,7 +91,13 @@ export function DataTableToolbar<TData extends Record<string, unknown>>({
           <Label className="md:block hidden md:text-xs lg:text-sm">Print</Label>
         </Button> */}
       </div>
-      <div className="flex flex-row gap-2 items-center">
+      <div className="flex flex-row gap-2 items-center flex-wrap">
+        {allowDateRange && (
+          <DateRangePopover
+            value={dateRange} // ✅ pass current date range
+            onChange={onDateRangeChange} // ✅ callback when changed
+          />
+        )}
         <DataTableViewOptions table={table} />
       </div>
     </div>

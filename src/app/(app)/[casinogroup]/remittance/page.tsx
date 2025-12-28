@@ -1,7 +1,11 @@
 "use client";
 
-import { DataTable } from "@/components/table/data-table";
+import { useState, useMemo } from "react";
+import type { DateRange } from "react-day-picker";
 import { useParams, useRouter } from "next/navigation";
+import { DataTable } from "@/components/table/data-table";
+import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
+import { remittanceColumn } from "@/components/table/remittance/remittanceColumns";
 import {
   Tooltip,
   TooltipContent,
@@ -9,33 +13,66 @@ import {
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TriangleAlert } from "lucide-react";
-import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
-import { remittanceColumn } from "@/components/table/remittance/remittanceColumns";
+import { Badge } from "@/components/ui/badge";
+import { getStatusColorClass } from "@/components/getStatusColorClass";
 
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { remittances, error, isLoading } = useRemittance(casinoGroup);
-
   const router = useRouter();
+
+  const today = new Date();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: today,
+    to: today,
+  });
+
+  const { remittances, error, isLoading } = useRemittance(
+    casinoGroup,
+    dateRange
+  );
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (remittances) {
+      remittances.forEach((c) => {
+        counts[c.status] = (counts[c.status] || 0) + 1;
+      });
+    }
+    return counts;
+  }, [remittances]);
+
+  const STATUS_ORDER = ["PENDING", "COMPLETED", "REJECTED"];
+
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div className="flex flex-row gap-2 ml-auto">
-          {error && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TriangleAlert className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6} className="max-w-xs">
-                <div className="text-sm text-red-400 dark:text-red-700">
-                  {error?.message ||
-                    "Error loading accounts. Please try again later."}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+    <div className="space-y-2">
+      {/* Error Tooltip */}
+      <div className="flex items-center justify-end gap-2">
+        {error && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TriangleAlert className="text-red-500" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={6} className="max-w-xs">
+              <div className="text-sm text-red-400 dark:text-red-700">
+                {error?.message ||
+                  "Error loading accounts. Please try again later."}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+
+      {/* Status Metrics */}
+      <div className="flex flex-wrap gap-2 mx-1">
+        {STATUS_ORDER.map((status) => (
+          <Badge
+            key={status}
+            className={`text-xs ${getStatusColorClass(status)}`}
+          >
+            {status}: {statusCounts[status] || 0}
+          </Badge>
+        ))}
       </div>
 
       {/* Table */}
@@ -51,6 +88,9 @@ const Page = () => {
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
           onViewRowId={(id) => router.push(`/${casinoGroup}/remittance/` + id)}
+          allowDateRange
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
         />
       )}
     </div>

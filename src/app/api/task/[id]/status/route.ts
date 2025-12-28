@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitTaskUpdated } from "@/actions/server/emitTaskUpdated";
 
 export async function PATCH(
   req: Request,
@@ -78,6 +79,11 @@ export async function PATCH(
       { count: pendingCount }
     );
 
+    await emitTaskUpdated({
+      transactionId: task.id,
+      casinoGroup: task.casinoGroup.name.toLowerCase(),
+      action: "UPDATED",
+    });
     return NextResponse.json({ success: true, task: updatedTask });
   } catch (e) {
     return NextResponse.json(

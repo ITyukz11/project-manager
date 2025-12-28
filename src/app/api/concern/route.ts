@@ -4,16 +4,9 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
+import { emitConcernUpdated } from "@/actions/server/emitConcernUpdated";
 
-const STATUS_SORT = {
-  PENDING: 1,
-  COMPLETED: 2,
-  REJECTED: 3,
-};
-
-// ---------------------------------------------------
-// GET: Fetch concerns (casino-group scoped)
-// ---------------------------------------------------
+// --- GET: Fetch concerns (pending first, partial second, then rest by createdAt desc, supports daterange) ---
 export async function GET(req: Request) {
   try {
     const currentUser = await getCurrentUser();
@@ -23,30 +16,79 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const casinoGroup = url.searchParams.get("casinoGroup");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
+
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
+
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
+    }
+
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
 
     const allowedRoles = [
       ...Object.values(ADMINROLES),
       ...Object.values(NETWORKROLES),
     ];
 
-    const concerns = await prisma.concern.findMany({
-      where: {
+    // Build business logic filter as in cashout/cashin/remittance
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        {
+          NOT: { status: { in: ["PENDING"] } },
+          ...(fromParam || toParam
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+      user: {
+        role: { in: allowedRoles },
         ...(casinoGroup && {
-          casinoGroup: {
-            name: { equals: casinoGroup, mode: "insensitive" },
+          casinoGroups: {
+            some: {
+              name: { equals: casinoGroup, mode: "insensitive" },
+            },
           },
         }),
-        user: {
-          role: { in: allowedRoles },
-          ...(casinoGroup && {
-            casinoGroups: {
-              some: {
-                name: { equals: casinoGroup, mode: "insensitive" },
-              },
-            },
-          }),
-        },
       },
+      ...(casinoGroup && {
+        casinoGroup: {
+          name: { equals: casinoGroup, mode: "insensitive" },
+        },
+      }),
+    };
+
+    const concerns = await prisma.concern.findMany({
+      where: whereClause,
       include: {
         attachments: true,
         concernThreads: true,
@@ -55,15 +97,17 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    concerns.sort((a, b) => STATUS_SORT[a.status] - STATUS_SORT[b.status]);
+    // Group sort: PENDING, then rest (createdAt desc already okay for each group)
+    const pending = concerns.filter((x) => x.status === "PENDING");
+    const rest = concerns.filter((x) => x.status !== "PENDING");
+    const sorted = [...pending, ...rest];
 
-    return NextResponse.json(concerns);
+    return NextResponse.json(sorted);
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
-
 // ---------------------------------------------------
 // POST: Create concern (fully secured)
 // ---------------------------------------------------
@@ -240,6 +284,12 @@ export async function POST(req: Request) {
           );
         })
       );
+
+      await emitConcernUpdated({
+        transactionId: concern.id,
+        casinoGroup: casinoGroupName,
+        action: "CREATED",
+      });
 
       return concern;
     });

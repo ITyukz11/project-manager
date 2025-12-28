@@ -1,8 +1,9 @@
 import { CasinoGroup, TransactionRequest, User } from "@prisma/client";
 import useSWR from "swr";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { pusherChannel } from "@/lib/pusher";
 import { usePusher } from "../../use-pusher";
+import { DateRange } from "react-day-picker";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -10,20 +11,26 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-export const useTransactionRequest = (casinoGroup?: string) => {
+export const useTransactionRequest = (
+  casinoGroup?: string,
+  dateRange?: DateRange
+) => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  let url = "/api/transaction-request";
-  if (casinoGroup) {
-    url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
-  }
+  const swrKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (casinoGroup) params.set("casinoGroup", casinoGroup);
+    if (dateRange?.from) params.set("from", dateRange.from.toISOString());
+    if (dateRange?.to) params.set("to", dateRange.to.toISOString());
+    return `/api/transaction-request?${params.toString()}`;
+  }, [casinoGroup, dateRange]);
 
   const { data, error, isLoading, mutate } = useSWR<
     (TransactionRequest & {
       processedBy: User;
       casinoGroup: CasinoGroup;
     })[]
-  >(url, fetcher, {
+  >(swrKey, fetcher, {
     refreshInterval: 0, // ❌ disable polling
     revalidateOnFocus: true,
     revalidateOnReconnect: true,

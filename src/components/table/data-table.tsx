@@ -34,6 +34,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 export interface DataTableAction<T> {
   label: string;
@@ -53,6 +54,8 @@ interface DataTableProps<TData, TValue> {
   setAllowViewRow?: () => void;
   onViewRowId?: (id: string) => void;
   allowDateRange?: boolean;
+  dateRange?: DateRange | undefined; // ✅ current date range
+  onDateRangeChange?: (range: DateRange | undefined) => void; // ✅ callback when user changes it
   allowExportToExcel?: boolean;
   allowExportData?: boolean;
   tableType?: string;
@@ -70,6 +73,8 @@ export function DataTable<TData extends { id: string }, TValue>({
   setAllowViewRow,
   onViewRowId,
   allowDateRange = false,
+  dateRange, // ✅ current date range
+  onDateRangeChange, // ✅ callback when user changes it
   allowExportToExcel = false,
   allowExportData = false,
   tableType,
@@ -198,6 +203,8 @@ export function DataTable<TData extends { id: string }, TValue>({
         table={table}
         selectedRows={rowSelection}
         allowDateRange={allowDateRange}
+        dateRange={dateRange} // ✅ pass current value
+        onDateRangeChange={onDateRangeChange} // ✅ pass callback
         allowExportToExcel={allowExportToExcel}
         allowExportData={allowExportData}
         tableType={tableType}

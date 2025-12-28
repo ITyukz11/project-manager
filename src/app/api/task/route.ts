@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
+import { put } from "@vercel/blob";
 import { pusher } from "@/lib/pusher";
+import { emitTaskUpdated } from "@/actions/server/emitTaskUpdated";
 
-const STATUS_SORT = {
-  PENDING: 1,
-  COMPLETED: 2,
-  REJECTED: 3,
-};
-
-// --- GET handler to fetch all cashouts with attachments and threads ---
+// --- GET handler to fetch all tasks (with date range support) ---
 export async function GET(req: Request) {
   try {
     const currentUser = await getCurrentUser();
@@ -19,25 +14,82 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get casinoGroup from URL search params
+    // Get filters from URL search params
     const url = new URL(req.url);
     const casinoGroup = url.searchParams.get("casinoGroup");
 
-    // Build base where clause for admin roles
-    const whereClause: any = {};
+    // 👇 NEW: Get date range params, if any
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
 
-    // If casinoGroup is provided, add filter
-    if (casinoGroup) {
-      whereClause.casinoGroup = {
-        name: { equals: casinoGroup, mode: "insensitive" },
-      };
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
+
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
     }
 
-    // Filter roles: include admin + network roles (customize as needed)
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
+
     const allowedRoles = [
       ...Object.values(ADMINROLES),
       ...Object.values(NETWORKROLES),
     ];
+
+    // Build business logic filter as in cashout/cashin/remittance
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        {
+          NOT: { status: { in: ["PENDING"] } },
+          ...(fromParam || toParam
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+      user: {
+        role: { in: allowedRoles },
+        ...(casinoGroup && {
+          casinoGroups: {
+            some: {
+              name: { equals: casinoGroup, mode: "insensitive" },
+            },
+          },
+        }),
+      },
+      ...(casinoGroup && {
+        casinoGroup: {
+          name: { equals: casinoGroup, mode: "insensitive" },
+        },
+      }),
+    };
+
     const tasks = await prisma.task.findMany({
       where: whereClause,
       include: {
@@ -49,15 +101,17 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
-    // Now sort in-memory
-    tasks.sort((a, b) => STATUS_SORT[a.status] - STATUS_SORT[b.status]);
 
-    return NextResponse.json(tasks);
+    // Group/Business sorting: pending, then rest by createdAt desc
+    const pending = tasks.filter((x) => x.status === "PENDING");
+    const rest = tasks.filter((x) => x.status !== "PENDING");
+    const sorted = [...pending, ...rest];
+
+    return NextResponse.json(sorted);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
-
 // --- POST handler to create a new cashout ---
 export async function POST(req: Request) {
   try {
@@ -206,6 +260,12 @@ export async function POST(req: Request) {
             );
           })
         );
+
+        await emitTaskUpdated({
+          transactionId: task.id,
+          casinoGroup: casinoGroupName.toLowerCase(),
+          action: "CREATED",
+        });
 
         return task;
       });

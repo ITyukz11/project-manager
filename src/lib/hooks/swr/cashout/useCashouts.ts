@@ -1,29 +1,43 @@
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { pusherChannel } from "@/lib/pusher";
 import { usePusher } from "../../use-pusher";
 import { CashoutForTable } from "@/components/table/cashout/cashoutColumns";
+import { DateRange } from "react-day-picker";
 
-// Simple fetcher function
 const fetcher = async (url: string) => {
   const res = await fetch(url, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to fetch cashouts");
   return res.json();
 };
 
-export const useCashouts = (casinoGroup?: string) => {
+export const useCashouts = (casinoGroup?: string, dateRange?: DateRange) => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  let url = "/api/cashout";
-  if (casinoGroup) {
-    url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
-  }
+  // ✅ Depend on the full dateRange object
+  const swrKey = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (casinoGroup) {
+      params.set("casinoGroup", casinoGroup);
+    }
+
+    if (dateRange?.from) {
+      params.set("from", dateRange.from.toISOString());
+    }
+
+    if (dateRange?.to) {
+      params.set("to", dateRange.to.toISOString());
+    }
+
+    return `/api/cashout?${params.toString()}`;
+  }, [casinoGroup, dateRange]); // <-- depends on full dateRange now
 
   const { data, error, isLoading, mutate } = useSWR<CashoutForTable[]>(
-    url,
+    swrKey,
     fetcher,
     {
-      refreshInterval: 0, // disable polling, rely on Pusher
+      refreshInterval: 0,
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
       dedupingInterval: 3000,
@@ -31,7 +45,6 @@ export const useCashouts = (casinoGroup?: string) => {
     }
   );
 
-  // 🔥 Real-time updates via Pusher
   usePusher<{
     cashoutId: string;
     action: "CREATED" | "APPROVED" | "REJECTED";
@@ -42,8 +55,6 @@ export const useCashouts = (casinoGroup?: string) => {
     onEvent: (payload) => {
       console.log("📢 Cashout updated:", payload);
       setLastUpdate(new Date(payload.timestamp));
-
-      // Revalidate SWR cache
       mutate();
     },
   });

@@ -6,13 +6,6 @@ import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
 
-const STATUS_SORT = {
-  PARTIAL: 1,
-  PENDING: 2,
-  COMPLETED: 3,
-  REJECTED: 4,
-};
-
 // --- GET handler to fetch all cashouts with attachments and threads ---
 export async function GET(req: Request) {
   try {
@@ -21,25 +14,76 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get casinoGroup from URL search params
     const url = new URL(req.url);
     const casinoGroup = url.searchParams.get("casinoGroup");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
 
-    // Build base where clause for admin roles
-    const whereClause: any = {};
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
 
-    // If casinoGroup is provided, add filter
-    if (casinoGroup) {
-      whereClause.casinoGroup = {
-        name: { equals: casinoGroup, mode: "insensitive" },
-      };
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
     }
 
-    // Filter roles: include admin + network roles (customize as needed)
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
+
+    // Build where clause
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        { status: "PARTIAL" }, // always include PENDING and PARTIAL
+        {
+          // other statuses with date range filter
+          NOT: { status: { in: ["PENDING", "PARTIAL"] } },
+          ...(fromDate || toDate
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+    };
+
+    // Casino group filter (applies to all)
+    if (casinoGroup) {
+      whereClause.AND = [
+        {
+          casinoGroup: { name: { equals: casinoGroup, mode: "insensitive" } },
+        },
+      ];
+    }
+
+    // Allowed roles filter
     const allowedRoles = [
       ...Object.values(ADMINROLES),
       ...Object.values(NETWORKROLES),
     ];
+
     const cashouts = await prisma.cashout.findMany({
       where: whereClause,
       include: {
@@ -51,10 +95,16 @@ export async function GET(req: Request) {
       },
       orderBy: { createdAt: "desc" },
     });
-    // Now sort in-memory
-    cashouts.sort((a, b) => STATUS_SORT[a.status] - STATUS_SORT[b.status]);
 
-    return NextResponse.json(cashouts);
+    // Business sorting: pending, partial, rest sorted by createdAt desc
+    const pending = cashouts.filter((x) => x.status === "PENDING");
+    const partial = cashouts.filter((x) => x.status === "PARTIAL");
+    const rest = cashouts.filter(
+      (x) => x.status !== "PENDING" && x.status !== "PARTIAL"
+    );
+    const sorted = [...pending, ...partial, ...rest];
+
+    return NextResponse.json(sorted);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

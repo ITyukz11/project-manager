@@ -29,7 +29,7 @@ export const pusherChannel = {
     `${NotificationChannel.AttachmentProgress}-${key}`,
   onlineUsers: () => NotificationChannel.OnlineUsers,
   transactions: (casinoGroup: string) =>
-    `${NotificationChannel.Transactions}-${casinoGroup}`,
+    `${NotificationChannel.Transactions}-${casinoGroup.toLocaleLowerCase()}`,
 };
 
 export async function emitUploadProgress(

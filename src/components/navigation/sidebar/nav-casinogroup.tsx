@@ -10,7 +10,6 @@ import {
   ChevronRight,
   ClipboardList,
   MessageCircle,
-  Share2,
   Users,
   Wallet,
 } from "lucide-react";
@@ -31,7 +30,6 @@ import { usePusher } from "@/lib/hooks/use-pusher";
 import { Badge } from "@/components/ui/badge";
 import { usePendingCounts } from "@/lib/hooks/swr/casino-group/usePendingCounts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cva } from "class-variance-authority";
 
 interface MenuLink {
   href: string;
@@ -43,7 +41,6 @@ interface MenuLink {
 
 export default function NavCasinoGroup({
   casinoGroup,
-  casinoGroupIndex,
   className,
 }: {
   casinoGroup: { id: string; name: string };

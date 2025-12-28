@@ -1,8 +1,9 @@
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { pusherChannel } from "@/lib/pusher";
 import { usePusher } from "../../use-pusher";
 import { CashinForTable } from "@/components/table/cashin/cashinColumns";
+import { DateRange } from "react-day-picker";
 
 // Simple fetcher function
 const fetcher = async (url: string) => {
@@ -11,16 +12,20 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-export const useCashins = (casinoGroup?: string) => {
+export const useCashins = (casinoGroup?: string, dateRange?: DateRange) => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  let url = "/api/cashin";
-  if (casinoGroup) {
-    url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
-  }
+  // Memoized URL with filters
+  const swrKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (casinoGroup) params.set("casinoGroup", casinoGroup);
+    if (dateRange?.from) params.set("from", dateRange.from.toISOString());
+    if (dateRange?.to) params.set("to", dateRange.to.toISOString());
+    return `/api/cashin?${params.toString()}`;
+  }, [casinoGroup, dateRange]);
 
   const { data, error, isLoading, mutate } = useSWR<CashinForTable[]>(
-    url,
+    swrKey,
     fetcher,
     {
       refreshInterval: 0, // disable polling, rely on Pusher
@@ -42,8 +47,6 @@ export const useCashins = (casinoGroup?: string) => {
     onEvent: (payload) => {
       console.log("📢 Cashin updated:", payload);
       setLastUpdate(new Date(payload.timestamp));
-
-      // Revalidate SWR cache
       mutate();
     },
   });

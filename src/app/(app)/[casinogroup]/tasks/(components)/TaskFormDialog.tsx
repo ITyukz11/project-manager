@@ -55,7 +55,7 @@ export function TaskFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { mutate } = useTask(casinoGroup);
+  const { refetch: mutate } = useTask(casinoGroup);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 

@@ -11,31 +11,67 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TriangleAlert } from "lucide-react";
 import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 import { concernColumn } from "@/components/table/concern/concernColumn";
+import { Badge } from "@/components/ui/badge";
+import { getStatusColorClass } from "@/components/getStatusColorClass";
+import { useMemo, useState } from "react";
+import { DateRange } from "react-day-picker";
 
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { concerns, error, isLoading } = useConcerns(casinoGroup);
+
+  const today = new Date();
+
+  // ✅ Lift dateRange state to Page
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: today,
+    to: today,
+  });
+  const { concerns, error, isLoading } = useConcerns(casinoGroup, dateRange);
 
   const router = useRouter();
+  // Compute status metrics
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (concerns) {
+      concerns.forEach((c) => {
+        counts[c.status] = (counts[c.status] || 0) + 1;
+      });
+    }
+    return counts;
+  }, [concerns]);
+
+  const STATUS_ORDER = ["PENDING", "PARTIAL", "COMPLETED", "REJECTED"];
+
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <div className="flex flex-row gap-2 ml-auto">
-          {error && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <TriangleAlert className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent side="bottom" sideOffset={6} className="max-w-xs">
-                <div className="text-sm text-red-400 dark:text-red-700">
-                  {error?.message ||
-                    "Error loading accounts. Please try again later."}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
+    <div className="space-y-2">
+      {/* Error Tooltip */}
+      <div className="flex items-center justify-end gap-2">
+        {error && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <TriangleAlert className="text-red-500" />
+            </TooltipTrigger>
+            <TooltipContent side="bottom" sideOffset={6} className="max-w-xs">
+              <div className="text-sm text-red-400 dark:text-red-700">
+                {error?.message ||
+                  "Error loading accounts. Please try again later."}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+
+      {/* Status Metrics */}
+      <div className="flex flex-wrap gap-2 mx-1">
+        {STATUS_ORDER.map((status) => (
+          <Badge
+            key={status}
+            className={`text-xs ${getStatusColorClass(status)}`}
+          >
+            {status}: {statusCounts[status] || 0}
+          </Badge>
+        ))}
       </div>
 
       {/* Table */}
@@ -51,6 +87,9 @@ const Page = () => {
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
           onViewRowId={(id) => router.push(`/${casinoGroup}/concerns/` + id)}
+          allowDateRange
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
         />
       )}
     </div>

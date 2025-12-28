@@ -29,7 +29,9 @@ export async function GET(req: Request) {
   // Count pending cashouts for this group
   const count = await prisma.transactionRequest.count({
     where: {
-      status: "PENDING",
+      status: {
+        in: ["PENDING", "CLAIMED", "ACCOMMODATING"],
+      },
       casinoGroupId: casinoGroup.id,
     },
   });

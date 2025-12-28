@@ -3,7 +3,10 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { TaskFormDialog } from "./(components)/TaskFormDialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Clipboard } from "lucide-react";
+import { Clipboard, MessageCircleWarning } from "lucide-react";
+import { Title } from "@/components/Title";
+import { useTask } from "@/lib/hooks/swr/task/useTask";
+import { useParams } from "next/navigation";
 
 export default function RemittanceLayout({
   children,
@@ -11,20 +14,28 @@ export default function RemittanceLayout({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const params = useParams();
+  const casinoGroup = params.casinogroup as string;
+  const { lastUpdate, isLoading, error } = useTask(casinoGroup);
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex flex-row justify-between">
-          <h1 className="text-3xl font-bold">Task</h1>
-          <Button onClick={() => setOpen(true)}>
-            <Clipboard /> Submit Task
-          </Button>
-        </CardTitle>
-        <span className="text-muted-foreground text-sm">
-          Track task requests for your casino group.
-        </span>
-      </CardHeader>
       <CardContent>
+        <Title
+          title={`${casinoGroup?.toLocaleString().toUpperCase()} Tasks`}
+          subtitle="Track task requests for your casino group."
+          lastUpdate={lastUpdate}
+          isRefreshing={isLoading}
+          icon={
+            <Clipboard className="h-5 w-5 md:h-6 md:w-6 text-green-600 dark:text-green-400" />
+          }
+          live
+          error={error}
+          right={
+            <Button onClick={() => setOpen(true)} size={"sm"}>
+              <Clipboard /> <span className="hidden sm:block">Submit Task</span>
+            </Button>
+          }
+        />
         <section>{children}</section>
       </CardContent>
       <TaskFormDialog open={open} onOpenChange={setOpen} />

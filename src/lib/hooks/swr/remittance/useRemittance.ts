@@ -1,8 +1,9 @@
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { pusherChannel } from "@/lib/pusher";
 import { usePusher } from "../../use-pusher";
 import { RemittanceForTable } from "@/components/table/remittance/remittanceColumns";
+import { DateRange } from "react-day-picker";
 
 // Simple fetcher function
 const fetcher = async (url: string) => {
@@ -11,19 +12,23 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-export const useRemittance = (casinoGroup?: string) => {
+export const useRemittance = (casinoGroup?: string, dateRange?: DateRange) => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  let url = "/api/remittance";
-  if (casinoGroup) {
-    url += `?casinoGroup=${encodeURIComponent(casinoGroup)}`;
-  }
+  // Memoized URL with filters
+  const swrKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (casinoGroup) params.set("casinoGroup", casinoGroup);
+    if (dateRange?.from) params.set("from", dateRange.from.toISOString());
+    if (dateRange?.to) params.set("to", dateRange.to.toISOString());
+    return `/api/remittance?${params.toString()}`;
+  }, [casinoGroup, dateRange]);
 
   const { data, error, isLoading, mutate } = useSWR<RemittanceForTable[]>(
-    url,
+    swrKey,
     fetcher,
     {
-      refreshInterval: 0, // disable polling, rely on Pusher
+      refreshInterval: 0,
       revalidateOnFocus: true,
       revalidateOnReconnect: true,
       dedupingInterval: 3000,
@@ -42,8 +47,6 @@ export const useRemittance = (casinoGroup?: string) => {
     onEvent: (payload) => {
       console.log("📢 Remittance updated:", payload);
       setLastUpdate(new Date(payload.timestamp));
-
-      // Revalidate SWR cache
       mutate();
     },
   });

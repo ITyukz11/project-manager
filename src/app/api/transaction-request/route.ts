@@ -179,19 +179,65 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const casinoGroup = url.searchParams.get("casinoGroup");
     const type = url.searchParams.get("type");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
 
-    const whereClause: any = {};
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
 
-    if (casinoGroup) {
-      whereClause.casinoGroup = {
-        name: { equals: casinoGroup, mode: "insensitive" },
-      };
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
     }
+
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
+    // Build business logic filter
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        {
+          NOT: { status: { in: ["PENDING"] } },
+          ...(fromParam || toParam
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+      ...(casinoGroup && {
+        casinoGroup: {
+          name: { equals: casinoGroup, mode: "insensitive" },
+        },
+      }),
+    };
 
     if (type) {
       whereClause.type = type;
     }
-
+    console.log("whereClause:", whereClause);
     const transactions = await prisma.transactionRequest.findMany({
       where: whereClause,
       include: {

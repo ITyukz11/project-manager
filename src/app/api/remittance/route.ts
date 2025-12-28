@@ -24,30 +24,79 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const casinoGroup = url.searchParams.get("casinoGroup");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
+
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
+
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
+    }
+
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
 
     const allowedRoles = [
       ...Object.values(ADMINROLES),
       ...Object.values(NETWORKROLES),
     ];
 
-    const remittances = await prisma.remittance.findMany({
-      where: {
+    // Build new "where" clause with date range filter (same pattern as cashout)
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        {
+          NOT: { status: { in: ["PENDING"] } },
+          ...(fromDate || fromDate
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+      user: {
+        role: { in: allowedRoles },
         ...(casinoGroup && {
-          casinoGroup: {
-            name: { equals: casinoGroup, mode: "insensitive" },
+          casinoGroups: {
+            some: {
+              name: { equals: casinoGroup, mode: "insensitive" },
+            },
           },
         }),
-        user: {
-          role: { in: allowedRoles },
-          ...(casinoGroup && {
-            casinoGroups: {
-              some: {
-                name: { equals: casinoGroup, mode: "insensitive" },
-              },
-            },
-          }),
-        },
       },
+      ...(casinoGroup && {
+        casinoGroup: {
+          name: { equals: casinoGroup, mode: "insensitive" },
+        },
+      }),
+    };
+
+    const remittances = await prisma.remittance.findMany({
+      where: whereClause,
       include: {
         attachments: true,
         remittanceThreads: true,

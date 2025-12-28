@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,6 +10,9 @@ import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTr
 import { transactionRequestColumns } from "@/components/table/transaction-request/transaction-request-columns";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
 import { Title } from "@/components/Title";
+import { Badge } from "@/components/ui/badge";
+import { getStatusColorClass } from "@/components/getStatusColorClass";
+import { DateRange } from "react-day-picker";
 
 export default function Page() {
   const params = useParams();
@@ -17,9 +20,16 @@ export default function Page() {
 
   const [viewRow, setViewRow] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
+  const today = new Date();
+
+  // ✅ Lift dateRange state to Page
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: today,
+    to: today,
+  });
 
   const { transactionRequests, isLoading, error, lastUpdate } =
-    useTransactionRequest(casinoGroup?.toLocaleString() || "");
+    useTransactionRequest(casinoGroup?.toLocaleString() || "", dateRange);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -40,6 +50,29 @@ export default function Page() {
 
   const hiddenColumns = ["bankDetails", "action"];
 
+  // Compute status metrics
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (transactionRequests) {
+      transactionRequests.forEach((c) => {
+        counts[c.status] = (counts[c.status] || 0) + 1;
+      });
+    }
+    return counts;
+  }, [transactionRequests]);
+
+  const STATUS_ORDER = ["ACCOMMODATING", "CLAIMED", "APPROVED", "REJECTED"];
+
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (transactionRequests) {
+      transactionRequests.forEach((c) => {
+        counts[c.type] = (counts[c.type] || 0) + 1;
+      });
+    }
+    return counts;
+  }, [transactionRequests]);
+
   return (
     <>
       <Card>
@@ -58,6 +91,25 @@ export default function Page() {
             error={error}
           />
 
+          {/* Status Metrics */}
+          <div className="flex flex-wrap gap-2 mx-1 mt-1">
+            {["CASHIN", "CASHOUT"].map((type) => (
+              <Badge
+                key={type}
+                className={`text-xs ${getStatusColorClass(type)}`}
+              >
+                {type}: {typeCounts[type] || 0}
+              </Badge>
+            ))}
+            {STATUS_ORDER.map((status) => (
+              <Badge
+                key={status}
+                className={`text-xs ${getStatusColorClass(status)}`}
+              >
+                {status}: {statusCounts[status] || 0}
+              </Badge>
+            ))}
+          </div>
           {/* Table */}
           {isLoading ? (
             <div className="w-full flex flex-col gap-2 items-center">
@@ -76,6 +128,9 @@ export default function Page() {
                 setViewRow(true);
               }}
               setAllowViewRow={() => setViewRow(true)}
+              allowDateRange
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
             />
           )}
         </CardContent>
