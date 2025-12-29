@@ -1,20 +1,42 @@
 "use client";
 
-import LottoIframe from "@/components/LottoIframe";
 import { useSession } from "next-auth/react";
+import LottoIframe from "@/components/LottoIframe";
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
-  // After submit, show the iframe with props
+  // 1️⃣ While session is loading
+  if (status === "loading") {
+    return (
+      <main style={{ padding: 32 }}>
+        <h1>NXTLOTTO TEST</h1>
+        <p>Loading session...</p>
+      </main>
+    );
+  }
+
+  // 2️⃣ If NOT authenticated, do NOT load iframe
+  if (status === "unauthenticated" || !session?.user?.username) {
+    return (
+      <main style={{ padding: 32 }}>
+        <h1>NXTLOTTO TEST</h1>
+        <p>You must be logged in to continue.</p>
+      </main>
+    );
+  }
+
+  // 3️⃣ Authenticated → safe to load iframe
   return (
     <main style={{ padding: 32 }}>
       <h1>NXTLOTTO TEST</h1>
+
       <p>
-        <b>{session?.user?.username || "guestUser"}</b>
+        Logged in as: <b>{session.user.username}</b>
       </p>
+
       <LottoIframe
-        partnerUsername={session?.user?.username || "guestUser"}
+        partnerUsername={session.user.username}
         adminId="35b63fa8-b58b-4cbc-b6bd-1da5f07d5a49"
       />
     </main>
