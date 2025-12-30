@@ -18,6 +18,7 @@ interface TitleProps {
   live?: boolean;
   error?: Error | null;
   right?: ReactNode;
+  titleClassName?: string;
 }
 
 export function Title({
@@ -28,6 +29,7 @@ export function Title({
   icon,
   live = false,
   error,
+  titleClassName,
   right,
 }: TitleProps) {
   return (
@@ -42,7 +44,9 @@ export function Title({
 
         <div className="flex flex-col w-full">
           <div className="flex flex-row gap-2 items-center">
-            <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold flex flex-row justify-between w-full">
+            <CardTitle
+              className={`${titleClassName} text-xl sm:text-2xl md:text-3xl font-bold flex flex-row justify-between w-full`}
+            >
               {title}
               {right && right}
             </CardTitle>

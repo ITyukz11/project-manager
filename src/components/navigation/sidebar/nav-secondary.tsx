@@ -1,7 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Settings, HelpCircle, Clock, CheckSquare, Users } from "lucide-react";
+import {
+  Settings,
+  HelpCircle,
+  Clock,
+  CheckSquare,
+  Users,
+  Receipt,
+} from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -28,6 +35,13 @@ const navSecondary: {
   disable: boolean;
   showBadge?: boolean;
 }[] = [
+  {
+    title: "NXTLOTTO (Beta)",
+    url: "/nxtlotto",
+    icon: Receipt,
+    disable: false,
+    showBadge: false, // Enable badge for this item
+  },
   {
     title: "Online Users",
     url: "/online-users",
