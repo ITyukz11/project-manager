@@ -35,42 +35,35 @@ const fetchOnlineUsers = async (url: string) => {
 /**
  * Hook to fetch and manage online users data with real-time Pusher updates
  */
-export const useOnlineUsers = () => {
+export const useOnlineUsers = (enabled: boolean) => {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const { data, error, isLoading, mutate } = useSWR<OnlineUsersResponse>(
-    "/api/user/current-online",
+    enabled ? "/api/user/current-online" : null,
     fetchOnlineUsers,
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       refreshInterval: 0,
       dedupingInterval: 2000,
-      shouldRetryOnError: true,
-      errorRetryCount: 3,
-      errorRetryInterval: 5000,
+      shouldRetryOnError: false,
     }
   );
 
-  // Handle Pusher events - online users updates
+  // Only subscribe to Pusher if enabled (admin)
   usePusher<{ timestamp: string }>({
-    channels: [pusherChannel.onlineUsers()],
+    channels: enabled ? [pusherChannel.onlineUsers()] : [],
     eventName: "online-users-updated",
     onEvent: (data) => {
-      console.log("📢 Online users updated:", data);
       setLastUpdate(new Date(data.timestamp));
-
-      // Optional: Show toast notification
-      // toast.info("Online users updated");
-
-      mutate(); // Refresh the data
+      mutate();
     },
   });
 
   return {
-    onlineUsers: data?.users ?? [],
-    onlineUsersCount: data?.count ?? 0,
-    isLoading,
+    onlineUsers: enabled ? data?.users ?? [] : [],
+    onlineUsersCount: enabled ? data?.count ?? 0 : 0,
+    isLoading: enabled ? isLoading : false,
     error,
     lastUpdate,
     refetch: mutate,
