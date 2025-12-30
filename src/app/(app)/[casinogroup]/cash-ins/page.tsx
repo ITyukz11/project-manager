@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { DateRange } from "react-day-picker";
 import { useParams, useRouter } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
@@ -21,14 +21,60 @@ const Page = () => {
   const casinoGroup = params.casinogroup as string;
   const router = useRouter();
 
-  const today = new Date();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: today,
-    to: today,
+  /**
+   * 🔑 Per-casinoGroup storage key
+   */
+  const STORAGE_KEY = `cashins-date-range:${casinoGroup}`;
+
+  /**
+   * ✅ Lazy initialize dateRange from localStorage
+   */
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
   });
 
+  /**
+   * ✅ Persist dateRange to localStorage
+   */
+  useEffect(() => {
+    if (!dateRange) return;
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+      })
+    );
+  }, [dateRange, STORAGE_KEY]);
+
+  /**
+   * ✅ Fetch cashins using dateRange
+   */
   const { cashins, error, isLoading } = useCashins(casinoGroup, dateRange);
 
+  /**
+   * ✅ Compute status metrics
+   */
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     if (cashins) {
@@ -90,7 +136,7 @@ const Page = () => {
           columns={CashinColumns}
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
-          onViewRowId={(id) => router.push(`/${casinoGroup}/cash-ins/` + id)}
+          onViewRowId={(id) => router.push(`/${casinoGroup}/cash-ins/${id}`)}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}

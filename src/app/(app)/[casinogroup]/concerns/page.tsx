@@ -13,24 +13,68 @@ import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 import { concernColumn } from "@/components/table/concern/concernColumn";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
-import { useMemo, useState } from "react";
-import { DateRange } from "react-day-picker";
+import { useMemo, useState, useEffect } from "react";
+import type { DateRange } from "react-day-picker";
 
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
+  const router = useRouter();
 
-  const today = new Date();
+  /**
+   * 🔑 Per-casinoGroup storage key
+   */
+  const STORAGE_KEY = `concerns-date-range:${casinoGroup}`;
 
-  // ✅ Lift dateRange state to Page
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: today,
-    to: today,
+  /**
+   * ✅ Lazy initialize dateRange from localStorage
+   */
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
   });
+
+  /**
+   * ✅ Persist dateRange to localStorage
+   */
+  useEffect(() => {
+    if (!dateRange) return;
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+      })
+    );
+  }, [dateRange, STORAGE_KEY]);
+
+  /**
+   * ✅ Fetch concerns using dateRange
+   */
   const { concerns, error, isLoading } = useConcerns(casinoGroup, dateRange);
 
-  const router = useRouter();
-  // Compute status metrics
+  /**
+   * ✅ Compute status metrics
+   */
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     if (concerns) {
@@ -86,7 +130,7 @@ const Page = () => {
           columns={concernColumn}
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
-          onViewRowId={(id) => router.push(`/${casinoGroup}/concerns/` + id)}
+          onViewRowId={(id) => router.push(`/${casinoGroup}/concerns/${id}`)}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}

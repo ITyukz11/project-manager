@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { DateRange } from "react-day-picker";
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { DataTable } from "@/components/table/data-table";
@@ -21,18 +21,61 @@ const Page = () => {
   const casinoGroup = params.casinogroup as string;
   const router = useRouter();
 
-  const today = new Date();
+  /**
+   * 🔑 Per-casinoGroup storage key
+   */
+  const STORAGE_KEY = `cashouts-date-range:${casinoGroup}`;
 
-  // ✅ Lift dateRange state to Page
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: today,
-    to: today,
+  /**
+   * ✅ Lazy initialize dateRange from localStorage
+   * (No useEffect, no cascading renders)
+   */
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
   });
 
-  // ✅ Pass dateRange to SWR hook
+  /**
+   * ✅ Persist dateRange to localStorage
+   */
+  useEffect(() => {
+    if (!dateRange) return;
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+      })
+    );
+  }, [dateRange, STORAGE_KEY]);
+
+  /**
+   * ✅ Fetch cashouts using dateRange
+   */
   const { cashouts, error, isLoading } = useCashouts(casinoGroup, dateRange);
 
-  // Compute status metrics
+  /**
+   * ✅ Compute status metrics
+   */
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     if (cashouts) {
@@ -88,7 +131,7 @@ const Page = () => {
           columns={cashoutColumns}
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
-          onViewRowId={(id) => router.push(`/${casinoGroup}/cash-outs/` + id)}
+          onViewRowId={(id) => router.push(`/${casinoGroup}/cash-outs/${id}`)}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
