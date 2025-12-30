@@ -15,10 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ADMINROLES } from "@/lib/types/role";
 
 export default function OnlineUsersPage() {
   const { data: session } = useSession();
-
+  const isAdmin =
+    session?.user?.role === ADMINROLES.SUPERADMIN ||
+    session?.user?.role === ADMINROLES.ADMIN;
   const {
     onlineUsers,
     onlineUsersCount,
@@ -26,7 +29,7 @@ export default function OnlineUsersPage() {
     error,
     lastUpdate,
     refetch,
-  } = useOnlineUsers();
+  } = useOnlineUsers(isAdmin);
 
   // Customize columns to hide if needed
   const hiddenColumns: string[] = [];

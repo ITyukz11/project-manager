@@ -19,6 +19,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { useOnlineUsers } from "@/lib/hooks/swr/user/useOnlineUsers";
+import { ADMINROLES } from "@/lib/types/role";
+import { useSession } from "next-auth/react";
 
 /**
  * A safe icon type for lucide icons:
@@ -34,20 +36,21 @@ const navSecondary: {
   icon: IconType;
   disable: boolean;
   showBadge?: boolean;
+  adminOnly?: boolean;
 }[] = [
   {
     title: "NXTLOTTO (Beta)",
     url: "/nxtlotto",
     icon: Receipt,
     disable: false,
-    showBadge: false, // Enable badge for this item
   },
   {
     title: "Online Users",
     url: "/online-users",
     icon: Users,
     disable: false,
-    showBadge: true, // Enable badge for this item
+    showBadge: true,
+    adminOnly: true, // 👈 important
   },
   {
     title: "Attendance Logs",
@@ -66,21 +69,31 @@ const navSecondary: {
 ];
 
 export function NavSecondary() {
-  const { onlineUsersCount, isLoading } = useOnlineUsers();
+  const { data: session } = useSession();
+
+  const isAdmin =
+    session?.user?.role === ADMINROLES.SUPERADMIN ||
+    session?.user?.role === ADMINROLES.ADMIN;
+
+  const { onlineUsersCount, isLoading } = useOnlineUsers(isAdmin);
+
+  const filteredNavSecondary = React.useMemo(() => {
+    return navSecondary.filter((item) => {
+      if (item.adminOnly && !isAdmin) return false;
+      return true;
+    });
+  }, [isAdmin]);
 
   return (
     <SidebarGroup className="mt-auto">
       <SidebarGroupContent>
         <SidebarMenu>
-          {navSecondary.map((item, index) =>
+          {filteredNavSecondary.map((item) =>
             item.disable ? (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild disabled>
-                  <a
-                    key={index}
-                    className="hover:text-popover-foreground cursor-not-allowed opacity-50"
-                  >
-                    <item.icon className="w-4 h-4" aria-hidden />
+                  <a className="cursor-not-allowed opacity-50">
+                    <item.icon className="w-4 h-4" />
                     <span>{item.title}</span>
                   </a>
                 </SidebarMenuButton>
@@ -94,11 +107,13 @@ export function NavSecondary() {
                       item.showBadge ? "justify-between" : ""
                     } w-full`}
                   >
-                    <item.icon className="w-4 h-4" aria-hidden />
+                    <item.icon className="w-4 h-4" />
                     <span>{item.title}</span>
-
-                    {/* Show badge for Online Users */}
-                    {item.showBadge && !isLoading && (
+                    {/* Loading skeleton for badge */}
+                    {item.showBadge && isLoading && (
+                      <div className="ml-auto h-5 w-8 bg-muted animate-pulse rounded" />
+                    )}
+                    {item.showBadge && isAdmin && !isLoading && (
                       <div className="ml-auto flex items-center gap-1.5">
                         {/* Count badge */}
                         <Badge
@@ -119,11 +134,6 @@ export function NavSecondary() {
                           {onlineUsersCount}
                         </Badge>
                       </div>
-                    )}
-
-                    {/* Loading skeleton for badge */}
-                    {item.showBadge && isLoading && (
-                      <div className="ml-auto h-5 w-8 bg-muted animate-pulse rounded" />
                     )}
                   </Link>
                 </SidebarMenuButton>
