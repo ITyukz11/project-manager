@@ -42,9 +42,15 @@ export const usePusher = <T = any>({
       if (!hasInteracted.current && audioRef?.current) {
         hasInteracted.current = true;
 
-        audioRef.current
+        const audio = audioRef.current;
+        audio.muted = true;
+        audio
           .play()
-          .then(() => audioRef.current?.pause())
+          .then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.muted = false;
+          })
           .catch(() => {});
 
         document.removeEventListener("click", handleInteraction);
