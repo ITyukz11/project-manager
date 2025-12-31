@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserById } from "@/lib/hooks/swr/user/useUserById";
-import { UserDetailsTab } from "./details/UserDetailsTab";
+import { UserDetailsTab } from "./(tabs)/details/UserDetailsTab";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { UserAttendanceTab } from "./attendance/UserAttendanceTab";
+import { UserAttendanceTab } from "./(tabs)/attendance/UserAttendanceTab";
 // Import your tab components
 // (Optional) import for userError display
 
@@ -64,19 +64,9 @@ export default function UserInformationPage() {
           </Label>
         ) : (
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-              <TabsTrigger
-                value="details"
-                className="cursor-pointer hover:border-b-primary/30 hover:text-black flex items-center gap-2 relative rounded-none rounded-t-md border-b-2 border-b-transparent bg-transparent px-4 pb-1 pt-2 font-semibold text-muted-foreground shadow-none transition-none focus-visible:ring-0 data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                Details
-              </TabsTrigger>
-              <TabsTrigger
-                value="attendance"
-                className="cursor-pointer hover:border-b-primary/30 hover:text-black flex items-center gap-2 relative rounded-none rounded-t-md border-b-2 border-b-transparent bg-transparent px-4 pb-1 pt-2 font-semibold text-muted-foreground shadow-none transition-none focus-visible:ring-0 data-[state=active]:border-b-primary data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                Attendance
-              </TabsTrigger>
+            <TabsList>
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="attendance">Attendance</TabsTrigger>
             </TabsList>
             <TabsContent value="details" className="pb-6">
               {/* Pass the user data and mutate function */}

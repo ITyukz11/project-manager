@@ -17,15 +17,17 @@ const fetchCasinoGroupNetwork = async ([url, method]: [string, string]) => {
 };
 
 /**
- * SWR hook for casino groups. Optionally pass a casinoId for a specific group.
+ * SWR hook for casino groups.
+ * @param casinoId optional casino group id
+ * @param enabled controls whether the request should run
  */
-export const useCasinoGroup = (casinoId?: string) => {
+export const useCasinoGroup = (casinoId?: string, enabled: boolean = true) => {
   const url = casinoId
-    ? `/api/casino-group?casinoId=${casinoId}` // Will call single group endpoint
+    ? `/api/casino-group?casinoId=${casinoId}`
     : "/api/casino-group";
 
   const { data, error, mutate } = useSWR<CasinoGroupWithCounts[]>(
-    [url, "GET"],
+    enabled ? [url, "GET"] : null, // ✅ conditional fetch
     fetchCasinoGroupNetwork,
     {
       revalidateOnFocus: false,
@@ -37,7 +39,7 @@ export const useCasinoGroup = (casinoId?: string) => {
 
   return {
     casinoGroupData: data ?? [],
-    casinoGroupLoading: !error && !data,
+    casinoGroupLoading: enabled && !error && !data,
     casinoGroupError: error,
     refetchCasinoGroup: mutate,
   };

@@ -20,6 +20,8 @@ import { UserWithCasinoGroups } from "@/components/table/users/userColumn";
 import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import { useSession } from "next-auth/react";
+import { ADMINROLES } from "@/lib/types/role";
 
 const EditAccountSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -47,10 +49,13 @@ export function UserDetailsTab({
   mutateUser,
 }: UserDetailsTabProps) {
   const [loading, setLoading] = useState(false);
+  const { data: session } = useSession();
   const { refetchUsers } = useUsers();
   const userCasinoGroupIds = user?.casinoGroups?.map((g) => g.id) ?? [];
+  const isSuperAdmin = session?.user?.role === ADMINROLES.SUPERADMIN;
+
   const { casinoGroupData, casinoGroupLoading, casinoGroupError } =
-    useCasinoGroup();
+    useCasinoGroup(undefined, isSuperAdmin);
 
   const form = useForm<EditAccountDialogValues>({
     resolver: zodResolver(EditAccountSchema),
@@ -173,27 +178,49 @@ export function UserDetailsTab({
             type="text"
             placeholder="Enter email"
           />
-          {casinoGroupError ? (
-            <div className="text-destructive">Error loading casino groups</div>
+          {session?.user?.role === ADMINROLES.SUPERADMIN ? (
+            casinoGroupError ? (
+              <div className="text-destructive">
+                Error loading casino groups
+              </div>
+            ) : (
+              <GlobalFormField
+                form={form}
+                type="multiselect"
+                fieldName="casinoGroupId"
+                label="Casino Groups"
+                required={false}
+                isLoading={casinoGroupLoading || loading}
+                items={
+                  Array.isArray(casinoGroupData)
+                    ? casinoGroupData.map((group: any) => ({
+                        label: group.name,
+                        value: group.id,
+                      }))
+                    : []
+                }
+                placeholder="Select casino groups"
+              />
+            )
           ) : (
             <GlobalFormField
               form={form}
               type="multiselect"
               fieldName="casinoGroupId"
-              label="Casino Group"
-              required={false}
-              isLoading={casinoGroupLoading || loading}
+              label="Casino Groups"
+              disabled
               items={
-                Array.isArray(casinoGroupData)
-                  ? casinoGroupData.map((group: any) => ({
+                Array.isArray(user?.casinoGroups)
+                  ? user.casinoGroups.map((group: any) => ({
                       label: group.name,
                       value: group.id,
                     }))
                   : []
               }
-              placeholder="Select a casino group"
+              placeholder="Casino groups"
             />
           )}
+
           <FormField
             control={form.control}
             name="password"
