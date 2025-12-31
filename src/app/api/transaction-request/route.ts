@@ -655,9 +655,7 @@ export async function POST(req: Request) {
           data: {
             userId,
             message: `${sanitizedUsername} requested a ${type}: "amounting ${parsedAmount}" in ${casinoGroupName}.`,
-            link: `/${casinoGroupName.toLowerCase()}/transaction-requests/${
-              transaction.id
-            }`,
+            link: `/${casinoGroupName.toLowerCase()}/transaction-requests`,
             isRead: false,
             type: "transaction-request",
             actor: sanitizedUsername,
