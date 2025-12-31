@@ -1,0 +1,307 @@
+import { NextResponse } from "next/server";
+import { put } from "@vercel/blob";
+import prisma from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
+import { pusher } from "@/lib/pusher";
+import { emitCustomerSupportUpdated } from "@/actions/server/emitCustomerSupportUpdated";
+
+// --- GET: Fetch customerSupports (pending first, partial second, then rest by createdAt desc, supports daterange) ---
+export async function GET(req: Request) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const url = new URL(req.url);
+    const casinoGroup = url.searchParams.get("casinoGroup");
+    const fromParam = url.searchParams.get("from");
+    const toParam = url.searchParams.get("to");
+
+    // Convert fromParam and toParam to start/end of day if only date is given
+    let fromDate: Date | undefined;
+    let toDate: Date | undefined;
+
+    if (fromParam) {
+      const f = new Date(fromParam);
+      fromDate = new Date(
+        f.getFullYear(),
+        f.getMonth(),
+        f.getDate(),
+        0,
+        0,
+        0,
+        0
+      );
+    }
+
+    if (toParam) {
+      const t = new Date(toParam);
+      toDate = new Date(
+        t.getFullYear(),
+        t.getMonth(),
+        t.getDate(),
+        23,
+        59,
+        59,
+        999
+      );
+    }
+
+    const allowedRoles = [
+      ...Object.values(ADMINROLES),
+      ...Object.values(NETWORKROLES),
+    ];
+
+    // Build business logic filter as in cashout/cashin/remittance
+    const whereClause: any = {
+      OR: [
+        { status: "PENDING" },
+        {
+          NOT: { status: { in: ["PENDING"] } },
+          ...(fromParam || toParam
+            ? {
+                createdAt: {
+                  ...(fromDate && { gte: fromDate }),
+                  ...(toDate && { lte: toDate }),
+                },
+              }
+            : {}),
+        },
+      ],
+      user: {
+        role: { in: allowedRoles },
+        ...(casinoGroup && {
+          casinoGroups: {
+            some: {
+              name: { equals: casinoGroup, mode: "insensitive" },
+            },
+          },
+        }),
+      },
+      ...(casinoGroup && {
+        casinoGroup: {
+          name: { equals: casinoGroup, mode: "insensitive" },
+        },
+      }),
+    };
+
+    const customerSupports = await prisma.customerSupport.findMany({
+      where: whereClause,
+      include: {
+        attachments: true,
+        customerSupportThreads: true,
+        user: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Group sort: PENDING, then rest (createdAt desc already okay for each group)
+    const pending = customerSupports.filter((x) => x.status === "PENDING");
+    const rest = customerSupports.filter((x) => x.status !== "PENDING");
+    const sorted = [...pending, ...rest];
+
+    return NextResponse.json(sorted);
+  } catch (e: any) {
+    console.error(e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}
+// ---------------------------------------------------
+// POST: Create customerSupport (fully secured)
+// ---------------------------------------------------
+export async function POST(req: Request) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in." },
+        { status: 401 }
+      );
+    }
+
+    const formData = await req.formData();
+
+    const subject = formData.get("subject") as string;
+    const details = formData.get("details") as string;
+    const casinoGroupName = formData.get("casinoGroup") as string;
+    const usersRaw = formData.get("users") as string;
+
+    if (!subject?.trim()) {
+      return NextResponse.json(
+        { error: "Subject is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!details?.trim()) {
+      return NextResponse.json(
+        { error: "Customer Support details are required." },
+        { status: 400 }
+      );
+    }
+
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: {
+        name: { equals: casinoGroupName, mode: "insensitive" },
+      },
+    });
+
+    if (!casinoGroup) {
+      return NextResponse.json(
+        { error: "Invalid casino group specified." },
+        { status: 400 }
+      );
+    }
+
+    // ---------------------------------------------------
+    // SECURITY: Creator must belong to casino group
+    // ---------------------------------------------------
+    const isMember = await prisma.user.findFirst({
+      where: {
+        id: currentUser.id,
+        casinoGroups: {
+          some: { id: casinoGroup.id },
+        },
+      },
+    });
+
+    if (!isMember) {
+      return NextResponse.json(
+        { error: "You are not a member of this casino group." },
+        { status: 403 }
+      );
+    }
+
+    // ---------------------------------------------------
+    // Upload attachments
+    // ---------------------------------------------------
+    const attachments: File[] = formData.getAll("attachment") as File[];
+    const attachmentData: {
+      url: string;
+      filename: string;
+      mimetype: string;
+    }[] = [];
+
+    for (const file of attachments) {
+      if (file && file.size > 0) {
+        const blob = await put(file.name, file, {
+          access: "public",
+          addRandomSuffix: true,
+        });
+
+        attachmentData.push({
+          url: blob.url,
+          filename: file.name,
+          mimetype: file.type || "",
+        });
+      }
+    }
+
+    // ---------------------------------------------------
+    // SECURITY: Validate tagged users (same casino group)
+    // ---------------------------------------------------
+    const requestedUserIds: string[] = usersRaw ? JSON.parse(usersRaw) : [];
+
+    const validTaggedUsers = await prisma.user.findMany({
+      where: {
+        id: { in: requestedUserIds },
+        active: true,
+        casinoGroups: {
+          some: { id: casinoGroup.id },
+        },
+      },
+      select: { id: true },
+    });
+
+    const taggedUserIds = validTaggedUsers.map((u) => u.id);
+
+    // ---------------------------------------------------
+    // Transaction
+    // ---------------------------------------------------
+    const result = await prisma.$transaction(async (prisma) => {
+      const customerSupport = await prisma.customerSupport.create({
+        data: {
+          subject,
+          details,
+          casinoGroupId: casinoGroup.id,
+          userId: currentUser.id,
+          tagUsers: {
+            connect: taggedUserIds.map((id) => ({ id })),
+          },
+          attachments: {
+            createMany: {
+              data: attachmentData,
+            },
+          },
+        },
+        include: { attachments: true },
+      });
+
+      await prisma.customerSupportLogs.create({
+        data: {
+          customerSupportId: customerSupport.id,
+          action: "PENDING",
+          performedById: currentUser.id,
+        },
+      });
+
+      const pendingCount = await prisma.customerSupport.count({
+        where: {
+          status: "PENDING",
+          casinoGroupId: casinoGroup.id,
+        },
+      });
+
+      // Group-scoped realtime update
+      await pusher.trigger(
+        `customerSupport-${casinoGroupName.toLowerCase()}`,
+        "customerSupport-pending-count",
+        { count: pendingCount }
+      );
+
+      // Per-user notifications (SAFE)
+      await Promise.all(
+        taggedUserIds.map(async (userId) => {
+          const notification = await prisma.notifications.create({
+            data: {
+              userId,
+              message: `${currentUser.username} tagged you in the CustomerSupport "${customerSupport.subject}" in ${casinoGroupName}.`,
+              link: `/${casinoGroupName.toLowerCase()}/customerSupports/${
+                customerSupport.id
+              }`,
+              isRead: false,
+              type: "customerSupports",
+              actor: currentUser.username,
+              subject: customerSupport.subject,
+              casinoGroup: casinoGroupName,
+            },
+          });
+
+          await pusher.trigger(
+            `user-notify-${userId}`,
+            "notifications-event",
+            notification
+          );
+        })
+      );
+
+      await emitCustomerSupportUpdated({
+        transactionId: customerSupport.id,
+        casinoGroup: casinoGroupName,
+        action: "CREATED",
+      });
+
+      return customerSupport;
+    });
+
+    return NextResponse.json({ success: true, result });
+  } catch (e: any) {
+    console.error("Unexpected error creating customerSupport:", e);
+    return NextResponse.json(
+      { error: "Unexpected server error. Please try again later." },
+      { status: 500 }
+    );
+  }
+}

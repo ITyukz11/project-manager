@@ -13,6 +13,7 @@ export interface PendingCounts {
   concern: number;
   task: number;
   transaction: number;
+  customerSupport: number;
   total: number;
 }
 
@@ -40,6 +41,7 @@ export const usePendingCounts = (casinoGroup?: string) => {
       concern: 0,
       task: 0,
       transaction: 0,
+      customerSupport: 0,
       total: 0,
     },
     error,

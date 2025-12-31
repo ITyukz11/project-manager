@@ -36,6 +36,7 @@ export async function GET(req: Request) {
       concernCount,
       taskCount,
       transactionCount,
+      customerSupportCount,
     ] = await Promise.all([
       // Cashin count
       prisma.cashin.count({
@@ -87,6 +88,13 @@ export async function GET(req: Request) {
           casinoGroupId: casinoGroup.id,
         },
       }),
+      // Transaction Request count
+      prisma.customerSupport.count({
+        where: {
+          status: "PENDING", // Adjust based on your schema
+          casinoGroupId: casinoGroup.id,
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -96,13 +104,15 @@ export async function GET(req: Request) {
       concern: concernCount,
       task: taskCount,
       transaction: transactionCount,
+      customerSupport: customerSupportCount,
       total:
         cashinCount +
         cashoutCount +
         remittanceCount +
         concernCount +
         taskCount +
-        transactionCount,
+        transactionCount +
+        customerSupportCount,
     });
   } catch (error) {
     console.error("Error fetching pending counts:", error);

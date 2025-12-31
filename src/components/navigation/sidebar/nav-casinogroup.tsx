@@ -43,7 +43,7 @@ export default function NavCasinoGroup({
   casinoGroup,
   className,
 }: {
-  casinoGroup: { id: string; name: string };
+  casinoGroup: { id: string; name: string; is3rdParty: boolean };
   casinoGroupIndex: number;
   className?: string;
 }) {
@@ -62,14 +62,15 @@ export default function NavCasinoGroup({
     mutate(
       (prev) => ({
         ...prev!,
-        transaction: data.count,
+        transaction: data.count ?? 0,
         total:
-          data.count +
-          prev!.cashin +
-          prev!.cashout +
-          prev!.remittance +
-          prev!.concern +
-          prev!.task,
+          (data.count ?? 0) +
+          (prev?.cashin ?? 0) +
+          (prev?.cashout ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.concern ?? 0) +
+          (prev?.task ?? 0) +
+          (prev?.customerSupport ?? 0),
       }),
       false
     );
@@ -79,14 +80,15 @@ export default function NavCasinoGroup({
     mutate(
       (prev) => ({
         ...prev!,
-        cashin: data.count,
+        cashin: data.count ?? 0,
         total:
-          prev!.transaction +
-          data.count +
-          prev!.cashout +
-          prev!.remittance +
-          prev!.concern +
-          prev!.task,
+          (prev?.transaction ?? 0) +
+          (data.count ?? 0) +
+          (prev?.cashout ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.concern ?? 0) +
+          (prev?.task ?? 0) +
+          (prev?.customerSupport ?? 0),
       }),
       false
     );
@@ -96,31 +98,35 @@ export default function NavCasinoGroup({
     mutate(
       (prev) => ({
         ...prev!,
-        cashout: data.count,
+        cashout: data.count ?? 0,
         total:
-          prev!.transaction +
-          prev!.cashin +
-          data.count +
-          prev!.remittance +
-          prev!.concern +
-          prev!.task,
+          (prev?.transaction ?? 0) +
+          (prev?.cashin ?? 0) +
+          (data.count ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.concern ?? 0) +
+          (prev?.task ?? 0) +
+          (prev?.customerSupport ?? 0),
       }),
       false
     );
   };
 
+  console.log("NavCasinoGroup:", counts.total);
+
   const handleRemittanceUpdate = (data: { count: number }) => {
     mutate(
       (prev) => ({
         ...prev!,
-        remittance: data.count,
+        remittance: data.count ?? 0,
         total:
-          prev!.transaction +
-          prev!.cashin +
-          prev!.cashout +
-          data.count +
-          prev!.concern +
-          prev!.task,
+          (prev?.transaction ?? 0) +
+          (prev?.cashin ?? 0) +
+          (prev?.cashout ?? 0) +
+          (data.count ?? 0) +
+          (prev?.concern ?? 0) +
+          (prev?.task ?? 0) +
+          (prev?.customerSupport ?? 0),
       }),
       false
     );
@@ -130,14 +136,15 @@ export default function NavCasinoGroup({
     mutate(
       (prev) => ({
         ...prev!,
-        concern: data.count,
+        concern: data.count ?? 0,
         total:
-          prev!.transaction +
-          prev!.cashin +
-          prev!.cashout +
-          data.count +
-          prev!.remittance +
-          prev!.task,
+          (prev?.transaction ?? 0) +
+          (prev?.cashin ?? 0) +
+          (prev?.cashout ?? 0) +
+          (data.count ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.task ?? 0) +
+          (prev?.customerSupport ?? 0),
       }),
       false
     );
@@ -146,14 +153,32 @@ export default function NavCasinoGroup({
     mutate(
       (prev) => ({
         ...prev!,
-        task: data.count,
+        task: data.count ?? 0,
         total:
-          prev!.transaction +
-          prev!.cashin +
-          prev!.cashout +
-          prev!.remittance +
-          prev!.concern +
-          data.count,
+          (prev?.transaction ?? 0) +
+          (prev?.cashin ?? 0) +
+          (prev?.cashout ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.concern ?? 0) +
+          (data.count ?? 0) +
+          (prev?.customerSupport ?? 0),
+      }),
+      false
+    );
+  };
+  const handleCustomerSupportUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        customerSupport: data.count ?? 0,
+        total:
+          (prev?.transaction ?? 0) +
+          (prev?.cashin ?? 0) +
+          (prev?.cashout ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.concern ?? 0) +
+          (prev?.task ?? 0) +
+          (data.count ?? 0),
       }),
       false
     );
@@ -183,6 +208,10 @@ export default function NavCasinoGroup({
   );
   const taskChannel = React.useMemo(
     () => [`task-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
+  const customerSupportChannel = React.useMemo(
+    () => [`customerSupport-${casinoGroupLower}`],
     [casinoGroupLower]
   );
 
@@ -224,8 +253,45 @@ export default function NavCasinoGroup({
     onEvent: handleTaskUpdate,
   });
 
-  const links: MenuLink[] = React.useMemo(
-    () => [
+  usePusher({
+    channels: customerSupportChannel,
+    eventName: "customerSupport-pending-count",
+    onEvent: handleCustomerSupportUpdate,
+  });
+
+  const links: MenuLink[] = React.useMemo(() => {
+    const thirdPartyLinks: MenuLink[] = [
+      {
+        href: `/${casinoGroupLower}/transaction-requests`,
+        text: "Gateway",
+        icon: ArrowLeftRight,
+        disable: false,
+        pendingCount: counts.transaction,
+      },
+      {
+        href: `/${casinoGroupLower}/cash-ins`,
+        text: "Cashin",
+        icon: BanknoteArrowDown,
+        disable: false,
+        pendingCount: counts.cashin,
+      },
+      {
+        href: `/${casinoGroupLower}/cash-outs`,
+        text: "Cashout",
+        icon: BanknoteArrowUp,
+        disable: false,
+        pendingCount: counts.cashout,
+      },
+      {
+        href: `/${casinoGroupLower}/customer-support`,
+        text: "Customer Supp.",
+        icon: MessageCircle,
+        disable: false,
+        pendingCount: counts.customerSupport,
+      },
+    ];
+
+    const regularLinks: MenuLink[] = [
       {
         href: `/${casinoGroupLower}/transaction-requests`,
         text: "Gateway",
@@ -239,12 +305,6 @@ export default function NavCasinoGroup({
         icon: Users,
         disable: false,
       },
-      // {
-      //   href: `/${casinoGroupLower}/network`,
-      //   text: "Network",
-      //   icon: Share2,
-      //   disable: false,
-      // },
       {
         href: `/${casinoGroupLower}/cash-ins`,
         text: "Cash Ins",
@@ -280,17 +340,20 @@ export default function NavCasinoGroup({
         disable: false,
         pendingCount: counts.task,
       },
-    ],
-    [
-      casinoGroupLower,
-      counts.transaction,
-      counts.cashin,
-      counts.cashout,
-      counts.remittance,
-      counts.concern,
-      counts.task,
-    ]
-  );
+    ];
+
+    return casinoGroup.is3rdParty ? thirdPartyLinks : regularLinks;
+  }, [
+    casinoGroupLower,
+    counts.transaction,
+    counts.cashin,
+    counts.cashout,
+    counts.customerSupport,
+    counts.remittance,
+    counts.concern,
+    counts.task,
+    casinoGroup.is3rdParty,
+  ]);
 
   // ✅ Helper function to get total badge color classes
   const getTotalBadgeColorClass = React.useCallback(() => {

@@ -8,6 +8,7 @@ import { Prisma } from "@prisma/client"; // Make sure to import Prisma
 const CasinoGroupSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  is3rdParty: z.boolean(),
   users: z.array(z.string()).optional(), // array of user IDs
 });
 
@@ -118,6 +119,7 @@ export async function POST(req: Request) {
         data: {
           name: values.name,
           description: values.description,
+          is3rdParty: values.is3rdParty,
           superAdminId: superAdminId.id,
           users: uniqueUserIds.length
             ? { connect: uniqueUserIds.map((id: string) => ({ id })) }

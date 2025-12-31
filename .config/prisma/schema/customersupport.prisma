@@ -1,0 +1,60 @@
+// Cashout: attributed to a User (admin, superadmin, regular user)
+model CustomerSupport {
+  id              String       @id @default(uuid())
+  status          Statuses   @default(PENDING)
+
+  subject         String
+  details         String
+  attachments     CustomerSupportAttachment[]
+
+  // creator
+  userId          String?           // who created it
+  user            User?             @relation("CustomerSupportCreator", fields: [userId], references: [id])
+
+  // tagged users (many-to-many)
+  tagUsers        User[]            @relation("CustomerSupportTags")
+
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+
+  customerSupportThreads  CustomerSupportThread[]
+  customerSupportLogs     CustomerSupportLogs[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model CustomerSupportLogs{
+  id           String     @id @default(uuid())
+  action       String
+  customerSupportId    String
+  customerSupport      CustomerSupport    @relation(fields: [customerSupportId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model CustomerSupportThread {
+  id           String     @id @default(uuid())
+  message      String
+  customerSupportId    String
+  customerSupport      CustomerSupport    @relation(fields: [customerSupportId], references: [id])
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  mentions     User[]     @relation("CustomerSupportThreadMentions")
+  attachments  CustomerSupportAttachment[] // <-- NEW!
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model CustomerSupportAttachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  customerSupportId         String?      // <-- Make optional
+  customerSupport           CustomerSupport?     @relation(fields: [customerSupportId], references: [id])
+  customerSupportThreadId   String?      // <-- NEW
+  customerSupportThread     CustomerSupportThread? @relation(fields: [customerSupportThreadId], references: [id])
+  createdAt         DateTime @default(now())
+}

@@ -34,11 +34,14 @@ import {
   avoidDefaultDomBehavior,
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 // Validation schema (now include users as array!)
 export const CasinoGroupFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  is3rdParty: z.boolean(),
   users: z.array(z.string()).optional(), // array of user IDs
 });
 
@@ -63,6 +66,7 @@ export function CasinoGroupFormDialog({
     resolver: zodResolver(CasinoGroupFormSchema),
     defaultValues: {
       name: "",
+      is3rdParty: false,
       description: "",
       users: [],
     },
@@ -130,6 +134,26 @@ export function CasinoGroupFormDialog({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="is3rdParty"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-start">
+                  <FormLabel>3rd Party</FormLabel>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <Label className="text-muted-foreground">
+                    {field.value ? "Yes" : "No"}
+                  </Label>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="description"

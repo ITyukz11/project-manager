@@ -62,7 +62,12 @@ model User {
   mentionedInConcernThreads ConcernThread[] @relation("ConcernThreadMentions")
   concernLogs      ConcernLogs[]
 
-
+  customerSupports         CustomerSupport[]         @relation("CustomerSupportCreator")
+  taggedCustomerSupports   CustomerSupport[]         @relation("CustomerSupportTags") // tagged in customer supports
+  customerSupportThreads   CustomerSupportThread[]
+  mentionedInCustomerSupportThreads CustomerSupportThread[] @relation("CustomerSupportThreadMentions")
+  customerSupportLogs      CustomerSupportLogs[]
+  
   tasks         Task[]         @relation("TaskCreator")
   taggedTasks   Task[]         @relation("TaskTags") // tagged in tasks
   taskThreads   TaskThread[]
