@@ -3,8 +3,6 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { DataTableColumnHeader } from "../data-table-column-header";
-import { Label } from "@/components/ui/label";
-import { formatAmountWithDecimals } from "@/components/formatAmount";
 import {
   getStatusColorClass,
   getStatusIcon,
@@ -100,7 +98,7 @@ export const concernColumn: ColumnDef<ConcernForTable>[] = [
     ),
   },
   {
-    accessorKey: "cashoutThreads",
+    accessorKey: "concernThreads",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Threads" />
     ),
