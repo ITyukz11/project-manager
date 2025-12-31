@@ -65,12 +65,12 @@ export function CashinFormDialog({
     const today = new Date();
 
     if (typeof window === "undefined") {
-      return { from: today, to: today };
+      return undefined;
     }
 
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      return { from: today, to: today };
+      return undefined;
     }
 
     try {
@@ -80,7 +80,7 @@ export function CashinFormDialog({
         to: parsed.to ? new Date(parsed.to) : today,
       };
     } catch {
-      return { from: today, to: today };
+      return undefined;
     }
   }, [STORAGE_KEY]);
 

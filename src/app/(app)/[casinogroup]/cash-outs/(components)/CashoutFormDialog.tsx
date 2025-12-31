@@ -64,12 +64,14 @@ export function CashoutFormDialog({
     const today = new Date();
 
     if (typeof window === "undefined") {
-      return { from: today, to: today };
+      console.log("[cashout] Window is undefined");
+      return undefined;
     }
 
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) {
-      return { from: today, to: today };
+      console.log("[cashout] No stored date range found");
+      return undefined;
     }
 
     try {
@@ -79,7 +81,8 @@ export function CashoutFormDialog({
         to: parsed.to ? new Date(parsed.to) : today,
       };
     } catch {
-      return { from: today, to: today };
+      console.log("[cashout] Failed to parse stored date range");
+      return undefined;
     }
   }, [STORAGE_KEY]);
 
@@ -137,9 +140,9 @@ export function CashoutFormDialog({
       toast.success("Cashout request submitted successfully!");
       form.reset();
       setPastedImages([]);
-      onOpenChange(false);
       refetch();
       onSubmitted?.();
+      onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message || "Something went wrong!");
     } finally {
