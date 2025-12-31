@@ -1,6 +1,5 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/table/data-table";
 import { useAttendanceLogs } from "@/lib/hooks/swr/attendance/useAttendanceLogs";
