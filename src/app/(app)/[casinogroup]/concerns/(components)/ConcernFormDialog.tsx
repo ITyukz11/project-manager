@@ -32,6 +32,7 @@ import {
 import { useParams } from "next/navigation";
 import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import { DateRange } from "react-day-picker";
 
 // Zod schema for Concern form
 const ConcernFormSchema = z.object({
@@ -55,7 +56,33 @@ export function ConcernFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { refetch: mutate } = useConcerns(casinoGroup);
+
+  const STORAGE_KEY = `concerns-date-range:${casinoGroup}`;
+
+  const dateRange: DateRange | undefined = React.useMemo(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
+  }, [STORAGE_KEY]);
+
+  const { refetch: mutate } = useConcerns(casinoGroup, dateRange);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 

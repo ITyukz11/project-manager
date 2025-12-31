@@ -32,6 +32,7 @@ import {
 import { useParams } from "next/navigation";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { useTask } from "@/lib/hooks/swr/task/useTask";
+import { DateRange } from "react-day-picker";
 
 // Zod schema for Task form
 const TaskFormSchema = z.object({
@@ -55,7 +56,33 @@ export function TaskFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { refetch: mutate } = useTask(casinoGroup);
+
+  const STORAGE_KEY = `tasks-date-range:${casinoGroup}`;
+
+  const dateRange: DateRange | undefined = React.useMemo(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
+  }, [STORAGE_KEY]);
+
+  const { refetch: mutate } = useTask(casinoGroup, dateRange);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 

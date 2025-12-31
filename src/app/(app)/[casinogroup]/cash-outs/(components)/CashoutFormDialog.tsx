@@ -32,6 +32,7 @@ import {
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { useParams } from "next/navigation";
 import { PasteImageTextarea } from "@/lib/common/paste-image-textarea";
+import { DateRange } from "react-day-picker";
 
 // Zod schema for Cashout form
 const CashoutFormSchema = z.object({
@@ -57,7 +58,32 @@ export function CashoutFormDialog({
 
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { refetch } = useCashouts(casinoGroup);
+  const STORAGE_KEY = `cashouts-date-range:${casinoGroup}`;
+
+  const dateRange: DateRange | undefined = React.useMemo(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
+  }, [STORAGE_KEY]);
+
+  const { refetch } = useCashouts(casinoGroup, dateRange);
 
   const form = useForm<CashoutFormValues>({
     resolver: zodResolver(CashoutFormSchema),

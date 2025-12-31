@@ -32,6 +32,7 @@ import {
 import { useParams } from "next/navigation";
 import { useCustomerSupports } from "@/lib/hooks/swr/customer-support/useCustomerSupports";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
+import { DateRange } from "react-day-picker";
 
 // Zod schema for CustomerSupport form
 const CustomerSupportFormSchema = z.object({
@@ -57,7 +58,33 @@ export function CustomerSupportFormDialog({
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { refetch: mutate } = useCustomerSupports(casinoGroup);
+
+  const STORAGE_KEY = `customerSupports-date-range:${casinoGroup}`;
+
+  const dateRange: DateRange | undefined = React.useMemo(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
+  }, [STORAGE_KEY]);
+
+  const { refetch: mutate } = useCustomerSupports(casinoGroup, dateRange);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 
@@ -93,18 +120,18 @@ export function CustomerSupportFormDialog({
         });
       }
 
-      const res = await fetch("/api/customerSupport", {
+      const res = await fetch("/api/customer-support", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data?.error || "CustomerSupport failed!");
+        toast.error(data?.error || "Customer support request failed!");
         return;
       }
 
-      toast.success("CustomerSupport request submitted successfully!");
+      toast.success("Customer support request submitted successfully!");
       // Optionally, reset form or close dialog
       form.reset();
       onOpenChange(false);
