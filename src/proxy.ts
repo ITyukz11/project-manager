@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { ADMINROLES } from "./lib/types/role";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -37,7 +38,7 @@ export async function proxy(request: NextRequest) {
   // If logged in and tries to access /login or /, redirect to accounts
   if (token && (pathname === "/login" || pathname === "/")) {
     return NextResponse.redirect(
-      new URL(`/${casinoGroup}/accounts`, request.url)
+      new URL(`/${casinoGroup}/cash-outs`, request.url)
     );
   }
 
@@ -46,6 +47,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(
       new URL(`${casinoGroup}/network/accounts`, request.url)
     );
+  }
+
+  // Redirect /network exactly to /network/accounts
+  if (
+    pathname.startsWith("/accounts") &&
+    token?.role !== ADMINROLES.ADMIN &&
+    token?.role !== ADMINROLES.SUPERADMIN
+  ) {
+    // Not an admin, redirect to unauthorized or home or custom page
+    return NextResponse.redirect(new URL("/", request.url));
+    // or e.g. new URL("/unauthorized", request.url)
   }
 
   // If not logged in and not on login, redirect to login
