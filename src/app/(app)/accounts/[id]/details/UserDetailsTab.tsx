@@ -19,6 +19,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { UserWithCasinoGroups } from "@/components/table/users/userColumn";
 import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
 import { Input } from "@/components/ui/input";
+import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 const EditAccountSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -46,7 +47,7 @@ export function UserDetailsTab({
   mutateUser,
 }: UserDetailsTabProps) {
   const [loading, setLoading] = useState(false);
-
+  const { refetchUsers } = useUsers();
   const userCasinoGroupIds = user?.casinoGroups?.map((g) => g.id) ?? [];
   const { casinoGroupData, casinoGroupLoading, casinoGroupError } =
     useCasinoGroup();
@@ -99,7 +100,8 @@ export function UserDetailsTab({
       }
 
       toast.success("Account updated successfully!");
-      mutateUser?.();
+      mutateUser?.(); //refresh this user details
+      refetchUsers(); // refetch all user list
     } catch (err: any) {
       toast.error(err.message || "Something went wrong.");
     } finally {

@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDate } from "date-fns";
 import { User } from "@prisma/client";
-import { UserActionMenu } from "../users/UserActionMenu";
 
 export const userNetworkColumns: ColumnDef<
   User & { _count?: { groupChats?: number; referrals?: number } }
@@ -96,14 +95,5 @@ export const userNetworkColumns: ColumnDef<
         </Badge>
       );
     },
-  },
-  {
-    id: "action",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Actions" />
-    ),
-    cell: ({ row }) => (
-      <UserActionMenu userId={row.original.id} isUserNetwork={true} />
-    ),
   },
 ];

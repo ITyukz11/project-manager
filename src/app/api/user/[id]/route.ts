@@ -50,7 +50,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
-  // Extract only updatable user fields and relationships
   const {
     name,
     username,
@@ -59,39 +58,36 @@ export async function PATCH(
     role,
     casinoGroupId, // array of IDs
     password,
-    // ...add any other possible updatable fields (but not password here!)
+    // other fields...
   } = data;
 
-  let hashedPassword;
-  if (password && password.length > 0) {
-    // Only hash if password is supplied and non-empty
+  let hashedPassword: string | undefined = undefined;
+  if (typeof password === "string" && password.length > 0) {
     hashedPassword = await bcrypt.hash(password, 10);
   }
 
-  // You can add field checks here as desired
+  const updateData: any = {
+    name,
+    username,
+    email,
+    messengerLink,
+    role,
+    ...(hashedPassword ? { password: hashedPassword } : {}),
+  };
+
+  // Only update casinoGroups if the field is present (undefined/null will be ignored)
+  if (Array.isArray(casinoGroupId)) {
+    updateData.casinoGroups = {
+      set: casinoGroupId.map((id: string) => ({ id })),
+    };
+  }
+
   try {
-    // Prisma update
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: {
-        name,
-        username,
-        email,
-        messengerLink,
-        role,
-        ...(hashedPassword ? { password: hashedPassword } : {}),
-        ...(Array.isArray(casinoGroupId)
-          ? {
-              casinoGroups: {
-                set: casinoGroupId.map((id: string) => ({ id })),
-              },
-            }
-          : {}),
-      },
+      data: updateData,
       include: {
-        casinoGroups: {
-          select: { id: true, name: true },
-        },
+        casinoGroups: { select: { id: true, name: true } },
         attendances: true,
       },
     });

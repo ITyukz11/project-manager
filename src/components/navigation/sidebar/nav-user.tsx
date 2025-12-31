@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -16,8 +17,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Bell, Ellipsis, LogOut } from "lucide-react";
+import { Bell, Ellipsis, LogOut, Pencil, KeyRound } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { EditAccountDialog } from "@/components/EditUserDialog";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog"; // <-- Add this import
 
 export function NavUser({
   user,
@@ -31,6 +34,8 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const [editOpen, setEditOpen] = useState(false);
+  const [changePwdOpen, setChangePwdOpen] = useState(false); // <-- State for password dialog
 
   return (
     <SidebarMenu>
@@ -76,6 +81,14 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                <Pencil />
+                Edit Info
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setChangePwdOpen(true)}>
+                <KeyRound />
+                Change Password
+              </DropdownMenuItem>
               <DropdownMenuItem disabled>
                 <Bell />
                 Notifications
@@ -88,6 +101,16 @@ export function NavUser({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <EditAccountDialog
+          userId={user.userId}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+        <ChangePasswordDialog
+          userId={user.userId}
+          open={changePwdOpen}
+          onOpenChange={setChangePwdOpen}
+        />
       </SidebarMenuItem>
     </SidebarMenu>
   );

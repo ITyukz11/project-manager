@@ -5,7 +5,6 @@ import { User } from "@prisma/client";
 import { DataTableColumnHeader } from "../data-table-column-header";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { UserActionMenu } from "./UserActionMenu";
 
 export type UserWithCasinoGroups = User & {
   casinoGroups?: { id: string; name: string }[];
