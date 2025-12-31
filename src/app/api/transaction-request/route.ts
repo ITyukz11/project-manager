@@ -642,6 +642,12 @@ export async function POST(req: Request) {
       })
       .then((users) => users.map((user) => user.id));
 
+    await emitTransactionUpdated({
+      transactionId: transaction.id,
+      casinoGroup: casinoGroupName,
+      action: "CREATED",
+    });
+
     // // For each user, create the notification and send via Pusher
     await Promise.all(
       notifiedUsersId.map(async (userId) => {
@@ -680,12 +686,6 @@ export async function POST(req: Request) {
       "transaction-pending-count", // event name
       { count: pendingCount }
     );
-
-    await emitTransactionUpdated({
-      transactionId: transaction.id,
-      casinoGroup: casinoGroupName,
-      action: "CREATED",
-    });
 
     console.log(
       `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`

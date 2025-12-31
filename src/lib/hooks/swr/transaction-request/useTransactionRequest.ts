@@ -32,7 +32,7 @@ export const useTransactionRequest = (
     })[]
   >(swrKey, fetcher, {
     refreshInterval: 0, // ❌ disable polling
-    revalidateOnFocus: true,
+    revalidateOnFocus: false,
     revalidateOnReconnect: true,
     dedupingInterval: 3000,
     shouldRetryOnError: true,
