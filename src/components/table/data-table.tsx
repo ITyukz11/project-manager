@@ -252,7 +252,7 @@ export function DataTable<TData extends { id: string }, TValue>({
                     key={row.id}
                     data-state={row.getIsSelected() && "selected"}
                     onClick={() => handleRowClick(row.original.id)}
-                    className={cn(cursorRowSelect && "*:cursor-pointer")}
+                    className={cn(cursorRowSelect && "**:cursor-pointer")}
                   >
                     {row.getVisibleCells().map((cell, index) => {
                       if (cell.column.id === "actions") {
