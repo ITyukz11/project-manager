@@ -21,9 +21,14 @@ export const userColumns: ColumnDef<UserWithCasinoGroups>[] = [
       return (
         <div className="max-w-[500px] truncate font-medium cursor-default flex flex-row items-center">
           <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{row.original.name}</p>
+            <p className="text-bold text-sm capitalize">
+              {row.original.username}{" "}
+              {/* <span className="font-light lowercase">
+                ({row.original.email})
+              </span> */}
+            </p>
             <p className="text-bold text-xs text-gray-500">
-              {row.original.email}
+              {row.original.name}
             </p>
           </div>
         </div>
@@ -132,11 +137,6 @@ export const userColumns: ColumnDef<UserWithCasinoGroups>[] = [
           >
             {isActive ? "Yes" : "No"}
           </Badge>
-          {!isActive && (
-            <span className="text-xs text-muted-foreground mt-1">
-              Inactive users cannot access the system.
-            </span>
-          )}
         </div>
       );
     },
@@ -158,11 +158,13 @@ export const userColumns: ColumnDef<UserWithCasinoGroups>[] = [
     },
   },
 
-  {
-    id: "action",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Actions" />
-    ),
-    cell: ({ row }) => <UserActionMenu userId={row.original.id} />,
-  },
+  // {
+  //   id: "action",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Actions" />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <UserActionMenu userId={row.original.id} userInfo={row.original} />
+  //   ),
+  // },
 ];

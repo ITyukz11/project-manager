@@ -43,7 +43,9 @@ export const NavMain = () => {
   // If superadmin show all items, otherwise hide the Casino item.
   const visibleItems = isSuperAdmin
     ? items
-    : items.filter((item) => item.title !== "Casino");
+    : items.filter(
+        (item) => item.title !== "Casino" && item.title !== "Accounts"
+      );
 
   return (
     <SidebarGroup>

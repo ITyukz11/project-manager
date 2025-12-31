@@ -75,8 +75,10 @@ export const AppSidebar = () => {
       <SidebarFooter>
         <NavUser
           user={{
+            userId: currentUser?.user?.id || "",
             name: currentUser?.user?.username || "",
             email: currentUser?.user?.email || "",
+            role: currentUser?.user?.role || "",
             avatar: "",
           }}
         />
