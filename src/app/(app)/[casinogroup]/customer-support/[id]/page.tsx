@@ -17,18 +17,20 @@ import { useSession } from "next-auth/react";
 import { UpdateStatusDialog } from "../(components)/UpdateStatusDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { useConcernById } from "@/lib/hooks/swr/concern/useConcernById";
 import { StatusHistorySheet } from "@/components/StatusHistorySheet";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMINROLES } from "@/lib/types/role";
 import { CommentsSection } from "@/components/CommentSection";
+import { useCustomerSupportById } from "@/lib/hooks/swr/customer-support/useCustomerSupportById";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
   const router = useRouter();
-  const { concern, isLoading, error, mutate } = useConcernById(id as string);
+  const { customerSupport, isLoading, error, mutate } = useCustomerSupportById(
+    id as string
+  );
   const [value, setValue] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -90,7 +92,7 @@ export default function Page() {
       }
       attachments.forEach((file) => formData.append("attachment", file));
 
-      const res = await fetch(`/api/concern/${id}/thread`, {
+      const res = await fetch(`/api/customer-support/${id}/thread`, {
         method: "POST",
         body: formData,
       });
@@ -113,9 +115,9 @@ export default function Page() {
   }
 
   const isAllowed =
-    session?.user.id === concern?.userId ||
+    session?.user.id === customerSupport?.userId ||
     (session?.user?.id &&
-      concern?.tagUsers.some((user) => user.id === session.user.id)) ||
+      customerSupport?.tagUsers.some((user) => user.id === session.user.id)) ||
     session?.user?.role === ADMINROLES.ADMIN ||
     session?.user?.role === ADMINROLES.SUPERADMIN;
 
@@ -132,14 +134,18 @@ export default function Page() {
         </div>
       ) : error ? (
         <div className="text-sm text-red-600">Error: {error.message}</div>
-      ) : concern ? (
+      ) : customerSupport ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-y-4 md:gap-x-8">
           {/* Subject */}
           <div>
             <Label className="text-muted-foreground text-xs mb-1 block">
               Subject
             </Label>
-            <Input readOnly value={concern.subject} className="text-sm" />
+            <Input
+              readOnly
+              value={customerSupport.subject}
+              className="text-sm"
+            />
           </div>
 
           {/* Entry By */}
@@ -147,7 +153,11 @@ export default function Page() {
             <Label className="text-muted-foreground text-xs mb-1 block">
               Entry By
             </Label>
-            <Input readOnly value={concern.user?.name} className="text-sm" />
+            <Input
+              readOnly
+              value={customerSupport.user?.name}
+              className="text-sm"
+            />
           </div>
 
           {/* Details */}
@@ -157,7 +167,7 @@ export default function Page() {
             </Label>
             <Textarea
               readOnly
-              value={concern.details}
+              value={customerSupport.details}
               className="text-sm min-h-20"
             />
           </div>
@@ -170,8 +180,11 @@ export default function Page() {
             <Input
               readOnly
               value={
-                concern.createdAt
-                  ? formatDate(concern.createdAt, "M/dd/yyyy 'at' hh:mm a")
+                customerSupport.createdAt
+                  ? formatDate(
+                      customerSupport.createdAt,
+                      "M/dd/yyyy 'at' hh:mm a"
+                    )
                   : "—"
               }
               className="text-sm"
@@ -185,14 +198,14 @@ export default function Page() {
             </Label>
             <div className="border rounded-md p-2 min-h-20 bg-muted/20">
               <ul className="space-y-1">
-                {Array.isArray(concern.attachments) &&
-                  concern.attachments.length === 0 && (
+                {Array.isArray(customerSupport.attachments) &&
+                  customerSupport.attachments.length === 0 && (
                     <li className="text-xs text-muted-foreground italic">
                       No attachments
                     </li>
                   )}
-                {Array.isArray(concern.attachments) &&
-                  concern.attachments.map((att) => (
+                {Array.isArray(customerSupport.attachments) &&
+                  customerSupport.attachments.map((att) => (
                     <li key={att.id} className="flex items-center gap-1">
                       <Paperclip size={14} className="text-muted-foreground" />
                       <a
@@ -211,14 +224,14 @@ export default function Page() {
 
           {/* Tagged Users */}
           <div className="md:col-span-1">
-            {concern.tagUsers.length > 0 && (
+            {customerSupport.tagUsers.length > 0 && (
               <>
                 <Label className="text-muted-foreground text-xs mb-1 block">
                   Tagged Users
                 </Label>
                 <div className="border rounded-md p-2 bg-muted/20">
                   <ul className="space-y-1">
-                    {concern.tagUsers.map((user) => (
+                    {customerSupport.tagUsers.map((user) => (
                       <li key={user.id} className="text-xs text-foreground">
                         <span className="font-medium">{user.username}</span>
                         <span className="text-muted-foreground ml-1">
@@ -239,14 +252,14 @@ export default function Page() {
             </Label>
             <Badge
               className={`capitalize text-xs cursor-pointer ${
-                concern.status === "PENDING"
+                customerSupport.status === "PENDING"
                   ? "bg-yellow-400 text-black"
-                  : concern.status === "COMPLETED"
+                  : customerSupport.status === "COMPLETED"
                   ? "bg-green-600 text-white"
                   : "bg-red-600 text-white"
               }`}
             >
-              {concern.status}
+              {customerSupport.status}
             </Badge>
           </div>
 
@@ -255,7 +268,7 @@ export default function Page() {
             {isAllowed && (
               <UpdateStatusDialog
                 customerSupportId={id}
-                currentStatus={concern?.status}
+                currentStatus={customerSupport?.status}
               />
             )}
             <Button
@@ -268,7 +281,9 @@ export default function Page() {
           </div>
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground">No concern found.</div>
+        <div className="text-sm text-muted-foreground">
+          No customerSupport found.
+        </div>
       )}
     </>
   );
@@ -294,11 +309,12 @@ export default function Page() {
             </TabsTrigger>
             <TabsTrigger value="comments" className="text-sm">
               Comments
-              {concern && concern.concernThreads.length > 0 && (
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {concern.concernThreads.length}
-                </Badge>
-              )}
+              {customerSupport &&
+                customerSupport.customerSupportThreads.length > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {customerSupport.customerSupportThreads.length}
+                  </Badge>
+                )}
             </TabsTrigger>
           </TabsList>
           <TabsContent value="details" className="mt-0">
@@ -309,7 +325,7 @@ export default function Page() {
           <TabsContent value="comments" className="mt-0">
             <div className="px-2 h-[calc(100vh-280px)] flex flex-col">
               <CommentsSection
-                threads={concern?.concernThreads || []}
+                threads={customerSupport?.customerSupportThreads || []}
                 isLoading={isLoading}
                 sessionUserId={session?.user?.id}
                 value={value}
@@ -354,7 +370,7 @@ export default function Page() {
             className="px-6 pb-2 flex flex-col"
           >
             <CommentsSection
-              threads={concern?.concernThreads || []}
+              threads={customerSupport?.customerSupportThreads || []}
               isLoading={isLoading}
               sessionUserId={session?.user?.id}
               value={value}
@@ -376,7 +392,7 @@ export default function Page() {
       <StatusHistorySheet
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
-        data={concern?.concernLogs || []}
+        data={customerSupport?.customerSupportLogs || []}
       />
     </div>
   );
