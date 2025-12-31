@@ -103,6 +103,38 @@ export function CommentsSection({
     );
   }
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== "Enter") return;
+
+    // Alt + Enter → force newline
+    if (e.altKey) {
+      e.preventDefault();
+
+      const textarea = e.currentTarget;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+
+      const newValue =
+        inputValue.slice(0, start) + "\n" + inputValue.slice(end);
+
+      onInputValueChange(newValue);
+
+      // Restore cursor position
+      requestAnimationFrame(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 1;
+      });
+
+      return;
+    }
+
+    // Enter → submit
+    e.preventDefault();
+
+    if (inputValue.trim() === "" && attachments.length === 0) return;
+
+    onSubmit(e as unknown as React.FormEvent);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -160,7 +192,9 @@ export function CommentsSection({
                       )}
                       <div className="flex flex-col gap-1">
                         {/* MESSAGE */}
-                        <Label className="font-normal">{thread.message}</Label>
+                        <Label className="font-normal text-sm whitespace-pre-wrap wrap-break-word">
+                          {thread.message}
+                        </Label>
                         {/* Attachments */}
                         {(thread?.attachments ?? []).length > 0 && (
                           <div className="flex flex-wrap gap-2">
@@ -268,6 +302,7 @@ export function CommentsSection({
                 rows={4}
                 placeholder="Type @ to mention a user…"
                 disabled={submitting}
+                onKeyDown={handleKeyDown}
               />
             </MentionInput>
 
