@@ -750,7 +750,7 @@ export function TransactionDetailsDialog({
                             <p className="text-sm font-medium">
                               {formatDate(
                                 new Date(transaction.processedAt),
-                                "MMM dd, yyyy HH:mm: ss"
+                                "MMM dd, yyyy h:mm:ss aa"
                               )}
                             </p>
                           </div>
@@ -777,7 +777,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.createdAt || ""),
-                            "MMM dd, yyyy - h:mm:aa"
+                            "MMM dd, yyyy - h:mm:ss aa"
                           )}
                       </p>
                     </div>
@@ -789,7 +789,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.updatedAt || ""),
-                            "MMM dd, yyyy - h:mm:aa"
+                            "MMM dd, yyyy - h:mm:ss aa"
                           )}
                       </p>
                     </div>
