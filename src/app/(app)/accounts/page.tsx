@@ -16,12 +16,13 @@ import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { AccountFormDialog } from "./(components)/AccountFormDialog";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 export default function Page() {
   const { data: session } = useSession();
   const params = useParams();
   const casinoGroup = params.casinogroup;
+  const router = useRouter();
 
   console.log("casinoGroup: ", casinoGroup);
   const { usersData, usersLoading, usersError } = useUsers();
@@ -82,7 +83,8 @@ export default function Page() {
             columns={userColumns}
             allowSelectRow={false}
             hiddenColumns={hiddenColumns}
-            cursorRowSelect={false}
+            cursorRowSelect={true}
+            onViewRowId={(id) => router.push(`/accounts/${id}`)}
             allowExportData={true}
           />
         )}
