@@ -9,7 +9,7 @@ import { UserDetailsTab } from "./details/UserDetailsTab";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { UserAttendanceTab } from "./attendance/page";
+import { UserAttendanceTab } from "./attendance/UserAttendanceTab";
 // Import your tab components
 // (Optional) import for userError display
 
