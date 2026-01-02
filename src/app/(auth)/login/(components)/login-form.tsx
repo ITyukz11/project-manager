@@ -59,6 +59,7 @@ export const LoginForm = () => {
           session?.user?.casinoGroups?.[0]?.name || "default";
 
         toast.success("Login successful!");
+        localStorage.clear();
         router.push(`/${firstCasinoGroup}/accounts`); // <-- redirect dynamically!
       } else {
         toast.error(signInResult?.error);
