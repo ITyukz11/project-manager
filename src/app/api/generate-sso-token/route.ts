@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   }
 
   const payload = {
+    userId: session.user.id,
     userName: session.user.username,
     adminId: adminId,
     iss: "partner",
