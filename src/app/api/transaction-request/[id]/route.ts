@@ -183,7 +183,7 @@ export async function PATCH(
 // GET single transaction (optimized)
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const currentUser = await getCurrentUser();
@@ -191,7 +191,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const transaction = await prisma.transactionRequest.findUnique({
       where: { id },
       include: {
