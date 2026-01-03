@@ -155,7 +155,7 @@ export function CommentsSection({
           <ul className="flex flex-col gap-1">
             {(threads ?? []).map((thread) => {
               const isUser = sessionUserId === thread.author?.id;
-              const date = formatDate(thread.createdAt, "MMM dd, yyyy");
+              const date = formatDate(thread.createdAt, "MM/dd/yyyy");
               const time = formatDate(thread.createdAt, "h:mm a");
 
               return (
@@ -240,9 +240,7 @@ export function CommentsSection({
                         >
                           <span className="group relative flex items-center gap-1 cursor-default">
                             {/* Date (only on hover) */}
-                            <span className="hidden group-hover:inline text-[10px] opacity-80 transition-opacity">
-                              {date} -
-                            </span>
+                            <span>{date} -</span>
                             {/* Time (always visible) */}
                             <span>{time}</span>
                           </span>
