@@ -64,11 +64,25 @@ export async function PATCH(
       });
     }
 
+    // 3. Get updated pending count for this casinoGroup
+    const pendingCountTransaction = await prisma.transactionRequest.count({
+      where: {
+        status: { in: ["PENDING", "PROCESSING", "ACCOMMODATING"] },
+        casinoGroupId: cashin.casinoGroupId,
+      },
+    });
+
     // 5. Emit Pusher event for the clients
     await pusher.trigger(
       `cashin-${cashin.casinoGroup.name.toLowerCase()}`,
       "cashin-pending-count",
       { count: pendingCount }
+    );
+
+    await pusher.trigger(
+      `transaction-${cashin.casinoGroup.name.toLowerCase()}`,
+      "transaction-pending-count",
+      { count: pendingCountTransaction }
     );
 
     await emitCashinUpdated({

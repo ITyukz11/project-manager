@@ -30,12 +30,6 @@ export default function CashinLayout({
           }
           live
           error={error}
-          right={
-            <Button onClick={() => setOpen(true)} size={"sm"}>
-              <CreditCard />{" "}
-              <span className="hidden sm:block">Request Cashin</span>
-            </Button>
-          }
         />
         <section>{children}</section>
       </CardContent>

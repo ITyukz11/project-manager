@@ -1,7 +1,7 @@
 export const PAYMENT_METHODS_CASHIN = [
   { id: "QRPH", name: "QRPH", icon: "/logo/qr-logo.png" },
   { id: "GoTyme", name: "GoTyme", icon: "/logo/gotyme-logo.png" },
-  // { id: "Chat-Based", name: "Chat-Based", icon: "/logo/chat-based-logo.png" },
+  { id: "Chat-Based", name: "Chat-Based", icon: "/logo/chat-based-logo.png" },
 ];
 
 export const PAYMENT_METHODS_CASHOUT = [

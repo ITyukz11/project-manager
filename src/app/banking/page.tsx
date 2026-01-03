@@ -12,6 +12,8 @@ import { CashInContent } from "./(tabs)/cashin.tab";
 import { CashOutContent } from "./(tabs)/cashout.tab";
 import { TransactionHistoryContent } from "./(tabs)/history.tab";
 import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
+import Loading from "./Loading";
+import { Button } from "@/components/ui/button";
 
 export type PaymentMethod =
   | "QRPH"
@@ -53,6 +55,7 @@ export default function BankingPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(null);
   const [amount, setAmount] = useState("");
 
+  const [pageLoading, setPageLoading] = useState(true);
   //params
   const [username, setUsername] = useState("");
   const [casino, setCasinoGroup] = useState("");
@@ -83,28 +86,72 @@ export default function BankingPage() {
   const [chatBasedLoading, setChatBasedLoading] = useState(false);
   const [cashinId, setCashinId] = useState<string | null>(null);
 
+  const [casinoExists, setCasinoExists] = useState<boolean | null>(null);
+
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const COOLDOWN_SECONDS = 10;
 
   console.log("balance: ", balance);
+
   // Get username and casino group from URL parameters
+  // 1. Extract params FROM URL
   useEffect(() => {
     const usernameParam = searchParams.get("username");
     const casinoGroupParam = searchParams.get("casino");
     const balanceParam = searchParams.get("balance");
-    if (usernameParam) {
-      setUsername(usernameParam);
-    }
 
-    if (casinoGroupParam) {
-      setCasinoGroup(casinoGroupParam);
-    }
-
-    if (balanceParam) {
-      setBalance(balanceParam);
-    }
+    if (usernameParam) setUsername(usernameParam);
+    if (casinoGroupParam) setCasinoGroup(casinoGroupParam);
+    if (balanceParam) setBalance(balanceParam);
   }, [searchParams]);
+
+  // 2. Check casino existence (triggered by casino name change)
+  useEffect(() => {
+    if (!casino) return;
+
+    const checkCasino = async () => {
+      try {
+        const res = await fetch(`/api/casino-group/${casino}/exists/`);
+
+        if (!res.ok) throw new Error("Server error");
+
+        const data = await res.json();
+        setCasinoExists(data.exists);
+      } catch (err) {
+        setCasinoExists(false);
+      } finally {
+        setPageLoading(false); // ✅ stop loading ONLY after check
+      }
+    };
+
+    checkCasino();
+  }, [casino]);
+
+  useEffect(() => {
+    if (!username || !casino || casinoExists !== true) return;
+
+    const checkExistingCashin = async () => {
+      try {
+        const res = await fetch(
+          `/api/cashin/${username}/accommodating?casino=${casino}`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        if (data.exists) {
+          setEnableChatBased(true);
+          setCashinId(data.cashinId);
+        }
+      } catch (err) {
+        console.error("Failed to check existing cashin", err);
+      }
+    };
+
+    checkExistingCashin();
+  }, [username, casino, casinoExists]);
 
   const fetchTransactionHistory = useCallback(async () => {
     const now = Date.now();
@@ -402,9 +449,52 @@ export default function BankingPage() {
   }, [selectedBank, customBank]);
 
   // Show error if required parameters are missing
+  if (pageLoading) {
+    return <Loading />;
+  }
+
+  if (!casinoExists) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] space-y-6">
+        {/* Icon -- you can swap for another SVG or library icon */}
+        <svg width="60" height="60" fill="none" className="text-red-500">
+          <circle
+            cx="30"
+            cy="30"
+            r="28"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            d="M20 20l20 20M40 20l-20 20"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="text-xl font-bold text-gray-400">
+          Casino Group Not Found
+        </div>
+        <div className="text-gray-500">
+          {casino ? (
+            <>
+              We couldn&apos;t find a casino group named{" "}
+              <span className="font-bold text-white">{casino}</span>.
+            </>
+          ) : (
+            "The casino group you're looking for doesn't exist or has been removed."
+          )}
+        </div>
+        <Button onClick={() => window.history.back()} variant="outline">
+          Go Back
+        </Button>
+      </div>
+    );
+  }
+
   if (!username || !casino || !balance) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4 w-xl justify-self-center">
+      <div className="min-h-screen flex items-center justify-center p-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
@@ -449,12 +539,14 @@ export default function BankingPage() {
             </TabsTrigger>
             <TabsTrigger
               value="cashout"
+              disabled={enableChatBased}
               className="data-[state=active]:bg-white data-[state=active]:text-black"
             >
               Cash out
             </TabsTrigger>
             <TabsTrigger
               value="history"
+              disabled={enableChatBased}
               className="data-[state=active]:bg-white data-[state=active]:text-black"
               onClick={fetchTransactionHistory}
             >
@@ -508,6 +600,7 @@ export default function BankingPage() {
                 cooldownRemaining={cooldownRemaining}
                 casinoLink={casino}
                 fetchTransactionHistory={fetchTransactionHistory}
+                casinoName={casino}
               />
             </TabsContent>
           </TabsContent>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { pusher } from "@/lib/pusher";
 import { ADMINROLES } from "@/lib/types/role";
+import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
 
 function validateApiKey(req: Request): {
   isValid: boolean;
@@ -66,9 +67,7 @@ function getClientIp(req: Request): string {
 // POST handler
 export async function POST(req: Request) {
   try {
-    // ============================================
-    // SECURITY CHECK 0: API Key Authentication
-    // ============================================
+    // ===== SECURITY CHECKS (unchanged) =====
     const authResult = validateApiKey(req);
 
     if (!authResult.isValid) {
@@ -95,31 +94,21 @@ export async function POST(req: Request) {
     const paymentMethod = formData.get("paymentMethod") as string | null;
     const casinoGroupName = formData.get("casinoGroupName") as string;
 
-    // ============================================
-    // SECURITY CHECK 2: Rate Limiting by Username
-    // ============================================
+    // Username checks
     const sanitizedUsername = username?.trim().toLowerCase() || "";
 
     if (!balance || balance.trim() === "") {
       return NextResponse.json(
-        {
-          error: "Balance is required.",
-          field: "balance",
-        },
+        { error: "Balance is required.", field: "balance" },
         { status: 400 }
       );
     }
-
     if (!username || username.trim() === "") {
       return NextResponse.json(
-        {
-          error: "Username is required.",
-          field: "username",
-        },
+        { error: "Username is required.", field: "username" },
         { status: 400 }
       );
     }
-
     if (!/^[a-z0-9_-]{3,30}$/i.test(sanitizedUsername)) {
       return NextResponse.json(
         {
@@ -130,7 +119,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
     if (!amountStr || isNaN(Number(amountStr))) {
       return NextResponse.json(
         {
@@ -142,9 +130,8 @@ export async function POST(req: Request) {
     }
 
     const parsedAmount = parseFloat(amountStr);
-    // ============================================
-    // SECURITY CHECK 3: Validate Casino Group
-    // ============================================
+
+    // Casino group check
     const casinoGroup = await prisma.casinoGroup.findFirst({
       where: {
         name: { equals: casinoGroupName, mode: "insensitive" },
@@ -153,17 +140,12 @@ export async function POST(req: Request) {
 
     if (!casinoGroup) {
       return NextResponse.json(
-        {
-          error: "Invalid casino group specified.",
-          field: "casinoGroupName",
-        },
+        { error: "Invalid casino group specified.", field: "casinoGroupName" },
         { status: 422 }
       );
     }
 
-    // ============================================
-    // CREATE TRANSACTION REQUEST & CASHIN
-    // ============================================
+    // ===== CREATE TRANSACTION AND CASHIN =====
     const { transaction, cashin } = await prisma.$transaction(async (tx) => {
       const transaction = await tx.transactionRequest.create({
         data: {
@@ -194,42 +176,35 @@ export async function POST(req: Request) {
 
       await tx.transactionRequest.update({
         where: { id: transaction.id },
-        data: {
-          cashInId: cashin.id,
-        },
+        data: { cashInId: cashin.id },
       });
 
       return { transaction, cashin };
     });
 
-    // // Get all tagged users for this notification
-    // // ============================================
-    // // TRIGGER REAL-TIME NOTIFICATION
-    // // ============================================
-    const notifiedUsersId = await prisma.user
-      .findMany({
-        where: {
-          role: {
-            in: [
-              ADMINROLES.SUPERADMIN,
-              ADMINROLES.ADMIN,
-              ADMINROLES.ACCOUNTING,
-              ADMINROLES.LOADER,
-              ADMINROLES.TL,
-            ],
-          },
+    // ====== SEND NOTIFICATIONS TO RELEVANT USERS =========
+    const notifiedUsers = await prisma.user.findMany({
+      where: {
+        role: {
+          in: [
+            ADMINROLES.SUPERADMIN,
+            ADMINROLES.ADMIN,
+            ADMINROLES.ACCOUNTING,
+            ADMINROLES.LOADER,
+            ADMINROLES.TL,
+          ],
         },
-        select: { id: true },
-        cacheStrategy: { ttl: 60 * 10 }, // 10 minutes
-      })
-      .then((users) => users.map((user) => user.id));
+      },
+      select: { id: true },
+      cacheStrategy: { ttl: 60 * 10 },
+    });
 
-    // // For each user, create the notification and send via Pusher
-    await Promise.all([
-      notifiedUsersId.map(async (userId) => {
+    // For each user, create the notification and send via Pusher
+    await Promise.all(
+      notifiedUsers.map(async (user) => {
         const notification = await prisma.notifications.create({
           data: {
-            userId,
+            userId: user.id,
             message: `${sanitizedUsername} requested a ${type}: "amounting ${parsedAmount}" in ${casinoGroupName}.`,
             link: `/${casinoGroupName.toLowerCase()}/transaction-requests/${
               transaction.id
@@ -242,22 +217,39 @@ export async function POST(req: Request) {
           },
         });
 
-        //You can use a specific event name for this type
         await pusher.trigger(
-          `user-notify-${userId}`,
-          "notifications-event", // Event name by notification type
+          `user-notify-${user.id}`,
+          "notifications-event",
           notification
         );
 
         await pusher.trigger(
           `chatbased-cashin-${cashin.id}`,
           "cashin:thread-updated",
-          {
-            cashin,
-          }
+          { cashin }
         );
-      }),
-    ]);
+      })
+    );
+
+    const pendingCount = await prisma.transactionRequest.count({
+      where: {
+        status: { in: ["PENDING", "CLAIMED", "ACCOMMODATING"] },
+        casinoGroupId: casinoGroup.id,
+      },
+    });
+    // Pusher event for count
+    await pusher.trigger(
+      `transaction-${casinoGroup.name.toLowerCase()}`,
+      "transaction-pending-count",
+      { count: pendingCount }
+    );
+
+    // ====== EMIT TRANSACTION UPDATED EVENT (ONCE ONLY) ======
+    await emitTransactionUpdated({
+      transactionId: transaction.id,
+      casinoGroup: casinoGroup.name,
+      action: "CREATED",
+    });
 
     console.log(
       `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
@@ -281,7 +273,7 @@ export async function POST(req: Request) {
   } catch (e: any) {
     console.error("❌ Transaction creation error:", e);
 
-    if (e.name === "PrismaClientKnownRequestError") {
+    if (e?.name === "PrismaClientKnownRequestError") {
       return NextResponse.json(
         { error: "Database error. Please try again later." },
         { status: 503 }

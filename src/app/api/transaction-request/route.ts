@@ -9,8 +9,8 @@ import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated"
 
 const STATUS_SORT = {
   PENDING: 1,
-  APPROVED: 2,
-  REJECTED: 3,
+  CLAIMED: 2,
+  ACCOMMODATING: 3,
 };
 
 // In-memory rate limiting (use Redis in production)
@@ -214,10 +214,10 @@ export async function GET(req: Request) {
     // Build business logic filter
     const whereClause: any = {
       OR: [
-        { status: "PENDING" },
+        { status: { in: ["PENDING", "CLAIMED", "ACCOMMODATING"] } },
         {
-          NOT: { status: { in: ["PENDING"] } },
-          ...(fromParam || toParam
+          NOT: { status: { in: ["PENDING", "CLAIMED", "ACCOMMODATING"] } },
+          ...(fromDate || toDate
             ? {
                 createdAt: {
                   ...(fromDate && { gte: fromDate }),
@@ -237,7 +237,7 @@ export async function GET(req: Request) {
     if (type) {
       whereClause.type = type;
     }
-    console.log("whereClause:", whereClause);
+
     const transactions = await prisma.transactionRequest.findMany({
       where: whereClause,
       include: {
@@ -254,7 +254,18 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    transactions.sort((a, b) => STATUS_SORT[a.status] - STATUS_SORT[b.status]);
+    transactions.sort((a, b) => {
+      const aPriority = STATUS_SORT[a.status] ?? 99;
+      const bPriority = STATUS_SORT[b.status] ?? 99;
+
+      // 1️⃣ Status priority
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // 2️⃣ Date (newest first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
     return NextResponse.json(transactions);
   } catch (e: any) {

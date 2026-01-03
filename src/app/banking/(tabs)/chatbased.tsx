@@ -9,13 +9,13 @@ import {
   MessageSquare,
   UserCircle,
   Paperclip,
-  MessageCircle,
   Radio,
   RefreshCcw,
   MoveUpLeft,
+  DoorOpen,
 } from "lucide-react";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CustomFormDialog from "@/components/CustomFormDialog";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -26,6 +26,9 @@ import { usePusher } from "@/lib/hooks/use-pusher";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import Link from "next/link";
 import { Spinner } from "@/components/ui/spinner";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { usePusherPresence } from "@/lib/hooks/usePusherPresence";
 
 interface CashInContentProps {
   amount: string;
@@ -37,9 +40,7 @@ interface CashInContentProps {
 }
 
 export function ChatBasedContent({
-  amount,
   cashinId,
-  usersData,
   playerUsername,
   casinoLink,
   setEnableChatBased,
@@ -59,6 +60,10 @@ export function ChatBasedContent({
   const [previewFilename, setPreviewFilename] = useState<string | null>(null);
   const [value, setValue] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
+
+  const [hasAgentEverBeenOnline, setHasAgentEverBeenOnline] = useState(false);
+
+  const prevAgentCount = useRef(0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -88,7 +93,41 @@ export function ChatBasedContent({
       e.preventDefault();
     }
   }
-  console.log("cashinId:", cashinId);
+
+  const presenceChannel = cashinId
+    ? `presence-chatbased-cashin-${cashinId}`
+    : null;
+
+  const { members, count, authenticatedCount, guestCount } = usePusherPresence(
+    presenceChannel ?? ""
+  );
+
+  useEffect(() => {
+    if (authenticatedCount > prevAgentCount.current) {
+      toast.info("A live agent has joined the chat.");
+    }
+
+    if (authenticatedCount < prevAgentCount.current) {
+      console.log("A live agent has left the chat.");
+    }
+
+    prevAgentCount.current = authenticatedCount;
+  }, [authenticatedCount]);
+
+  const agentMembers = Object.values(members).filter(
+    (m) => m.info.type === "auth"
+  );
+
+  const isAgentOnline = agentMembers.length > 0;
+  const hasThreadContent = (cashin?.cashinThreads?.length ?? 0) > 0;
+  const shouldDisableTextarea =
+    submitting || (!hasAgentEverBeenOnline && !hasThreadContent);
+
+  useEffect(() => {
+    if (isAgentOnline) {
+      setHasAgentEverBeenOnline(true);
+    }
+  }, [isAgentOnline]);
   usePusher({
     channels: [`chatbased-cashin-${cashinId}`],
     eventName: "cashin:thread-updated",
@@ -139,18 +178,31 @@ export function ChatBasedContent({
     try {
       setLoading(true);
 
-      // 🔥 your cleanup logic here
-      // e.g. clear chat state, reset messages, navigate away
-      // await clearChat();
+      const res = await fetch(`/api/cashin/${cashinId}/close-chat`, {
+        method: "PATCH",
+      });
 
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to close chat");
+      }
+
+      // ✅ only after success
       setOpen(false);
       setEnableChatBased(false);
+      toast.success("Chat closed successfully.");
+    } catch (error) {
+      console.error(error);
+      // show toast / alert here
+      // toast.error(error instanceof Error ? error.message : "Something went wrong")
     } finally {
       setLoading(false);
     }
   };
+
   const isWaitingForAdmin =
     !isLoading && cashin && !cashin.cashinThreads.length;
+
   // Comments Section Component (reusable)
   const ChatBox = () => (
     <div className="flex flex-col h-full border-t  p-2 overflow-hidden">
@@ -174,91 +226,96 @@ export function ChatBasedContent({
         )}
 
         {!isLoading && cashin && cashin.cashinThreads.length > 0 && (
-          <ul className="flex flex-col gap-3">
-            {cashin.cashinThreads.map((thread) => {
-              const author = thread.authorName || "Loader";
-              const isUser =
-                (thread.authorId &&
-                  usersData?.some((user) => user.id === thread.authorId)) ||
-                (thread.authorName && thread.authorName === playerUsername);
-              const dateTime = formatDate(
-                thread.createdAt,
-                "MM/dd/yy 'at' hh:mm a"
-              );
+          <ul className="flex flex-col gap-1">
+            {(cashin.cashinThreads ?? []).map((thread) => {
+              const isUser = playerUsername === thread.authorName;
+              const date = formatDate(thread.createdAt, "MMM dd, yyyy");
+              const time = formatDate(thread.createdAt, "h:mm a");
 
               return (
-                <li
-                  key={thread.id}
-                  className="flex flex-col items-start overflow-visible px-1 w-full"
-                >
+                <li key={thread.id}>
                   <div
-                    className={`flex items-end mb-1 w-full ${
-                      isUser ? "justify-end" : "justify-start"
+                    className={`flex mb-1 ${
+                      isUser ? "justify-end " : "justify-start"
                     }`}
                   >
                     {!isUser && (
-                      <UserCircle className="text-gray-400 mr-2 w-5 h-5 shrink-0" />
+                      <UserCircle className="mr-2 h-5 w-5 text-muted-foreground" />
                     )}
+
                     <div
-                      className={`rounded-xl px-3 md:px-4 py-2 text-sm md:text-base max-w-[85%] md:max-w-[75%] ${
+                      className={`rounded-xl px-3 flex flex-col gap-2 py-2 text-sm max-w-[75%] ${
                         isUser
-                          ? "bg-black text-white"
-                          : "bg-gray-100 text-gray-900 dark:bg-neutral-800 dark:text-white"
+                          ? "bg-cyan-700 dark:bg-sky-800 text-white"
+                          : "bg-muted dark:bg-neutral-800"
                       }`}
                     >
-                      {thread.message}
-                      {Array.isArray(thread.attachments) &&
-                        thread.attachments.length > 0 && (
-                          <div className="mt-2 flex flex-row flex-wrap gap-2">
-                            {thread.attachments.map((att) =>
+                      {/* NAME and ROLE */}
+                      {!isUser && (
+                        // authorName
+                        <div className="flex flex-row gap-1">
+                          <Label>
+                            {thread.author?.name ? "LOADER" : thread.authorName}
+                          </Label>
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        {/* MESSAGE */}
+                        <Label className="font-normal">{thread.message}</Label>
+                        {/* Attachments */}
+                        {(thread?.attachments ?? []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {(thread.attachments ?? []).map((att) =>
                               att.mimetype?.startsWith("image/") ? (
                                 <button
-                                  type="button"
                                   key={att.id}
-                                  className="cursor-pointer block border rounded max-w-20 max-h-20 md:max-w-24 md:max-h-24 overflow-hidden focus:ring"
+                                  type="button"
                                   onClick={() => {
                                     setPreviewImg(att.url);
-                                    setPreviewFilename(att.filename);
-                                  }}
-                                  style={{
-                                    padding: 0,
-                                    background: "none",
-                                    border: "none",
+                                    setPreviewFilename(att.filename ?? "");
                                   }}
                                 >
                                   <Image
                                     src={att.url}
-                                    alt={att.filename}
+                                    alt={att.filename ?? ""}
                                     width={100}
-                                    height={200}
-                                    objectFit="cover"
+                                    height={100}
+                                    className="rounded border cursor-pointer"
                                   />
                                 </button>
                               ) : (
                                 <a
+                                  key={att.id}
                                   href={att.url}
                                   target="_blank"
-                                  rel="noopener noreferrer"
-                                  key={att.id}
-                                  className="flex items-center gap-1 text-xs underline text-blue-500 dark:text-blue-400"
+                                  className="flex items-center gap-1 text-xs underline"
                                 >
-                                  <Paperclip size={16} />{" "}
-                                  {att.filename ?? att.url}
+                                  <Paperclip size={14} />
+                                  {att.filename ?? "Download"}
                                 </a>
                               )
                             )}
                           </div>
                         )}
+                        <Label
+                          className={cn(
+                            !isUser
+                              ? "text-muted-foreground "
+                              : "text-white/80",
+                            "font-normal text-xs flex justify-end"
+                          )}
+                        >
+                          <span className="group relative flex items-center gap-1 cursor-default">
+                            {/* Date (only on hover) */}
+                            <span className="hidden group-hover:inline text-[10px] opacity-80 transition-opacity">
+                              {date} -
+                            </span>
+                            {/* Time (always visible) */}
+                            <span>{time}</span>
+                          </span>
+                        </Label>
+                      </div>
                     </div>
-                  </div>
-                  <div
-                    className={`w-full flex items-center ${
-                      isUser ? "justify-end pr-2" : "justify-start pl-7"
-                    }`}
-                  >
-                    <span className="text-xs text-muted-foreground dark:text-gray-400">
-                      {author} &middot; {dateTime}
-                    </span>
                   </div>
                 </li>
               );
@@ -302,14 +359,16 @@ export function ChatBasedContent({
         <div className="flex gap-2 w-full">
           <Textarea
             placeholder={
-              isWaitingForAdmin
+              !hasAgentEverBeenOnline && !hasThreadContent
                 ? "Waiting for a live agent to join…"
                 : "Type your message..."
             }
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            disabled={submitting || isWaitingForAdmin}
+            disabled={shouldDisableTextarea}
             className="resize-none min-h-12 ..."
+            onPaste={handlePasteDrop}
+            onDrop={handlePasteDrop}
           />
 
           <div className="flex flex-col gap-1.5 md:gap-2 shrink-0">
@@ -325,7 +384,7 @@ export function ChatBasedContent({
               type="button"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={submitting}
+              disabled={shouldDisableTextarea}
               className="h-8 w-8 p-0 md:h-10 md:w-10"
             >
               <Upload className="h-4 w-4" />
@@ -334,8 +393,7 @@ export function ChatBasedContent({
               type="submit"
               size="sm"
               disabled={
-                submitting ||
-                isWaitingForAdmin ||
+                shouldDisableTextarea ||
                 (inputValue.trim() === "" && attachments.length === 0)
               }
               className="h-8 w-8 p-0 md:h-10 md:w-10 mt-auto"
@@ -356,45 +414,52 @@ export function ChatBasedContent({
             variant={"destructive"}
             className="mb-4"
             onClick={() => setOpen(true)}
+            size={"sm"}
           >
-            <X /> Close Chat-Based Payment
+            <DoorOpen /> Leave
           </Button>
           <Link href={`https://www.${casinoLink}`}>
-            <Button variant={"outline"}>
+            <Button variant={"outline"} size={"sm"}>
               <MoveUpLeft className="h-4 w-4" />
               Go back to qbet88.vip
             </Button>
           </Link>
         </div>
-        {!isWaitingForAdmin ? (
-          <div className="flex items-center gap-1 h-fit px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800 shrink-0">
-            <Radio className="h-3 w-3 text-green-500 animate-pulse" />
-            <span className="sm:block hidden text-xs font-medium text-green-700 dark:text-green-400">
-              Connected to Live Agent
-            </span>
-            {isLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <RefreshCcw
-                  className={`text-green-600 dark:text-green-400 h-3 w-3 transition-transform duration-500 animate-spin`}
-                />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-1 h-fit px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800 shrink-0">
-            <Spinner className="h-3 w-3 text-blue-500" />
-            <span className="sm:block hidden text-xs font-medium text-blue-700 dark:text-blue-400">
-              Connecting...
-            </span>
-            {isLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <RefreshCcw
-                  className={`text-blue-600 dark:text-blue-400 h-3 w-3 transition-transform duration-500 animate-spin`}
-                />
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex flex-row justify-center items-center gap-2 ">
+          {/* <div>
+            <Badge>
+              <UsersRound />
+              {count}
+            </Badge>
+          </div> */}
+          {isAgentOnline ? (
+            <div className="flex items-center gap-1 h-fit px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800 shrink-0">
+              <Radio className="h-3 w-3 text-green-500 animate-pulse" />
+              <span className="block  text-xs font-medium text-green-700 dark:text-green-400">
+                Connected to Live Agent
+              </span>
+              {isLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <RefreshCcw className="text-green-600 dark:text-green-400 h-3 w-3 transition-transform duration-500 animate-spin" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 h-fit px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800 shrink-0">
+              <Spinner className="h-3 w-3 text-blue-500" />
+              <span className="sm:block hidden text-xs font-medium text-blue-700 dark:text-blue-400">
+                Waiting for a live agent to join...
+              </span>
+              {isLoading && (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <RefreshCcw
+                    className={`text-blue-600 dark:text-blue-400 h-3 w-3 transition-transform duration-500 animate-spin`}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {ChatBox()}
@@ -404,9 +469,9 @@ export function ChatBasedContent({
         open={open}
         onClose={() => setOpen(false)}
         onConfirm={handleCloseChat}
-        title="Close chat?"
-        description="If you close this the chat will be gone."
-        confirmLabel="Close chat"
+        title="Leave chat?"
+        description="If you leave this the chat it will be gone and considered done."
+        confirmLabel="Leave"
         loading={loading}
         className="sm:max-w-md"
         content={

@@ -32,7 +32,7 @@ import {
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTransactionDetails } from "@/lib/hooks/swr/transaction-request/details/useTransactionDetails";
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { useParams, useRouter } from "next/navigation";
@@ -47,6 +47,7 @@ interface TransactionDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   transactionId: string | null;
+  refetch: () => void;
 }
 
 // Skeleton Loading Component
@@ -163,6 +164,7 @@ export function TransactionDetailsDialog({
   open,
   onOpenChange,
   transactionId,
+  refetch,
 }: TransactionDetailsDialogProps) {
   const [showReceipt, setShowReceipt] = useState(true);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
@@ -181,17 +183,12 @@ export function TransactionDetailsDialog({
     null
   );
 
-  const params = useParams();
   const router = useRouter();
-  const casinoGroup = params.casinogroup;
+  const params = useParams();
+  const casinoGroup = params.casinogroup as string;
 
   const { transaction, isLoading, error, mutate } =
     useTransactionDetails(transactionId);
-
-  const { refetch: mutateList } = useTransactionRequest(
-    casinoGroup?.toString() || ""
-  );
-
   // Reset states when dialog opens and refetch data
   useEffect(() => {
     if (open && transactionId) {
@@ -358,8 +355,8 @@ export function TransactionDetailsDialog({
       if (actionType === "ACCOMMODATING") {
         router.push(`/${casinoGroup}/cash-ins/${data.cashInId}`);
       }
+      await refetch();
       await mutate();
-      await mutateList();
 
       setIsActionDialogOpen(false);
       setRemarks("");
