@@ -25,7 +25,7 @@ export default function Home() {
       window.open(
         lottoSsoUrl,
         "_blank",
-        "toolbar=0,location=0,menubar=0,scrollbars=1,status=0,resizable=1,width=1200,height=800"
+        "toolbar=0,location=0,menubar=0,scrollbars=1,status=0,resizable=1,width=380,height=800"
       );
     } else {
       alert("Failed to generate SSO token: " + (data.error || "Unknown error"));
