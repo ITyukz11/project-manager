@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -75,37 +75,39 @@ export const NotificationDropdown = () => {
     fetchNotifications();
   }, [userId]);
 
+  const handleNotification = useCallback((newNotification: Notifications) => {
+    if (newNotification.isRead) {
+      // Move to archives
+      setArchives((prev) => {
+        const exists = prev.some((n) => n.id === newNotification.id);
+        return exists ? prev : [newNotification, ...prev];
+      });
+      setInbox((prev) => prev.filter((n) => n.id !== newNotification.id));
+      setComments((prev) => prev.filter((n) => n.id !== newNotification.id));
+    } else {
+      // Unread: push to correct tab
+      if (
+        newNotification.type === "comment" ||
+        newNotification.type === "mention"
+      ) {
+        setComments((prev) => {
+          const exists = prev.some((n) => n.id === newNotification.id);
+          return exists ? prev : [newNotification, ...prev];
+        });
+      } else {
+        setInbox((prev) => {
+          const exists = prev.some((n) => n.id === newNotification.id);
+          return exists ? prev : [newNotification, ...prev];
+        });
+      }
+    }
+  }, []);
+
   // Real-time updates
   usePusher({
     channels: userId ? [`user-notify-${userId}`] : [],
     eventName: "notifications-event",
-    onEvent: (newNotification: Notifications) => {
-      if (newNotification.isRead) {
-        // Move to archives
-        setArchives((prev) => {
-          const exists = prev.some((n) => n.id === newNotification.id);
-          return exists ? prev : [newNotification, ...prev];
-        });
-        setInbox((prev) => prev.filter((n) => n.id !== newNotification.id));
-        setComments((prev) => prev.filter((n) => n.id !== newNotification.id));
-      } else {
-        // Unread: push to correct tab
-        if (
-          newNotification.type === "comment" ||
-          newNotification.type === "mention"
-        ) {
-          setComments((prev) => {
-            const exists = prev.some((n) => n.id === newNotification.id);
-            return exists ? prev : [newNotification, ...prev];
-          });
-        } else {
-          setInbox((prev) => {
-            const exists = prev.some((n) => n.id === newNotification.id);
-            return exists ? prev : [newNotification, ...prev];
-          });
-        }
-      }
-    },
+    onEvent: handleNotification,
     audioRef: notificationAudioRef,
   });
 
