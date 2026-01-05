@@ -129,29 +129,6 @@ export async function PATCH(
           where: { id: cashinId },
           data: { status: "ACCOMMODATING" },
         }),
-
-        // 2️⃣ Add CashinThread with attachment nested
-        prisma.cashinThread.create({
-          data: {
-            cashinId,
-            authorId: currentUser.id,
-            authorName: currentUser.name,
-            message: `Good day!
-
-I’m here to assist you with your cash-in request.
-
-To send your payment, paki-upload o i-scan ang QR na ibibigay ko gamit ang inyong GCash app.
-
-Paki-send po dito ang resibo pagkatapos.`,
-            attachments: {
-              create: {
-                url: "https://l4qltxdqdozpa9hu.public.blob.vercel-storage.com/Sec-QRPH-qr.png",
-                filename: "Sec-QRPH-qr.png",
-                mimetype: "image/png",
-              },
-            },
-          },
-        }),
       ]);
 
       // 3️⃣ Emit event after transaction succeeds
