@@ -14,33 +14,35 @@ export type PresenceMember = {
   };
 };
 
-export interface Identifiable {
-  id: string;
-}
-
 export interface UsePusherOptions<T = any> {
   channels: string[];
   eventName?: string; // optional for presence-only
   onEvent?: (data: T) => void;
   audioRef?: React.RefObject<HTMLAudioElement | null>;
   presence?: boolean;
+
+  /** optional: used to dedupe audio/events */
+  getEventKey?: (data: T) => string | number | undefined;
 }
 
-export const usePusher = <T extends Identifiable = Identifiable>({
+export const usePusher = <T = any>({
   channels,
   eventName,
   onEvent,
   audioRef,
   presence = false,
+  getEventKey,
 }: UsePusherOptions<T>) => {
+  const handledEventKeys = useRef<Set<string | number>>(new Set());
+
   const subscribedChannels = useRef<string[]>([]);
   const hasInteracted = useRef(false);
   const [membersMap, setMembersMap] = useState<Record<string, PresenceMember>>(
     {}
   );
 
-  const handledNotificationIds = useRef<Set<string>>(new Set());
   useEffect(() => {
+    handledEventKeys.current.clear();
     if (
       !process.env.NEXT_PUBLIC_PUSHER_KEY ||
       !process.env.NEXT_PUBLIC_PUSHER_CLUSTER
@@ -117,15 +119,15 @@ export const usePusher = <T extends Identifiable = Identifiable>({
           });
         }
 
-        // Event binding
         if (eventName && onEvent) {
           channel.bind(eventName, (data: T) => {
-            const wasHandled = handledNotificationIds.current.has(data?.id);
+            const key = getEventKey?.(data);
+            const isNew = key == null || !handledEventKeys.current.has(key);
 
             onEvent(data);
 
-            if (audioRef?.current && hasInteracted.current && !wasHandled) {
-              handledNotificationIds.current.add(data?.id);
+            if (audioRef?.current && hasInteracted.current && isNew) {
+              if (key != null) handledEventKeys.current.add(key);
               audioRef.current.currentTime = 0;
               audioRef.current.play().catch(() => {});
             }
@@ -149,7 +151,7 @@ export const usePusher = <T extends Identifiable = Identifiable>({
         document.removeEventListener("keydown", handleInteraction);
       }
     };
-  }, [channels, eventName, onEvent, audioRef, presence]);
+  }, [channels, eventName, onEvent, audioRef, presence, getEventKey]);
 
   if (presence) {
     return {
