@@ -20,9 +20,6 @@ export interface UsePusherOptions<T = any> {
   onEvent?: (data: T) => void;
   audioRef?: React.RefObject<HTMLAudioElement | null>;
   presence?: boolean;
-
-  /** optional: used to dedupe audio/events */
-  getEventKey?: (data: T) => string | number | undefined;
 }
 
 export const usePusher = <T = any>({
@@ -31,10 +28,7 @@ export const usePusher = <T = any>({
   onEvent,
   audioRef,
   presence = false,
-  getEventKey,
 }: UsePusherOptions<T>) => {
-  const handledEventKeys = useRef<Set<string | number>>(new Set());
-
   const subscribedChannels = useRef<string[]>([]);
   const hasInteracted = useRef(false);
   const [membersMap, setMembersMap] = useState<Record<string, PresenceMember>>(
@@ -42,7 +36,6 @@ export const usePusher = <T = any>({
   );
 
   useEffect(() => {
-    handledEventKeys.current.clear();
     if (
       !process.env.NEXT_PUBLIC_PUSHER_KEY ||
       !process.env.NEXT_PUBLIC_PUSHER_CLUSTER
@@ -119,15 +112,11 @@ export const usePusher = <T = any>({
           });
         }
 
+        // Event binding
         if (eventName && onEvent) {
           channel.bind(eventName, (data: T) => {
-            const key = getEventKey?.(data);
-            const isNew = key == null || !handledEventKeys.current.has(key);
-
             onEvent(data);
-
-            if (audioRef?.current && hasInteracted.current && isNew) {
-              if (key != null) handledEventKeys.current.add(key);
+            if (audioRef?.current && hasInteracted.current) {
               audioRef.current.currentTime = 0;
               audioRef.current.play().catch(() => {});
             }
@@ -151,7 +140,7 @@ export const usePusher = <T = any>({
         document.removeEventListener("keydown", handleInteraction);
       }
     };
-  }, [channels, eventName, onEvent, audioRef, presence, getEventKey]);
+  }, [channels, eventName, onEvent, audioRef, presence]);
 
   if (presence) {
     return {

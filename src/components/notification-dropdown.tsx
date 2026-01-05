@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -23,6 +23,11 @@ export const NotificationDropdown = () => {
   const userId = session?.user?.id;
 
   const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const notificationChannel = useMemo(
+    () => (userId ? [`user-notify-${userId}`] : []),
+    [userId]
+  );
 
   const [inbox, setInbox] = useState<Notifications[]>([]);
   const [comments, setComments] = useState<Notifications[]>([]);
@@ -105,7 +110,7 @@ export const NotificationDropdown = () => {
 
   // Real-time updates
   usePusher({
-    channels: userId ? [`user-notify-${userId}`] : [],
+    channels: notificationChannel,
     eventName: "notifications-event",
     onEvent: handleNotification,
     audioRef: notificationAudioRef,
