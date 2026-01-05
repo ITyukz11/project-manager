@@ -171,6 +171,26 @@ export async function POST(req: Request) {
           details: `Chat-based ${type}`,
           casinoGroupId: casinoGroup.id,
           transactionRequestId: transaction.id,
+          cashinThreads: {
+            create: {
+              authorId: "4694979a-0537-4efd-b1d6-e83e3366c7db",
+              authorName: "Bot",
+              message: `Good day!
+
+I’m here to assist you with your cash-in request.
+
+To send your payment, paki-upload o i-scan ang QR na ibibigay ko gamit ang inyong GCash app.
+
+Paki-send po dito ang resibo pagkatapos.`,
+              attachments: {
+                create: {
+                  url: "https://l4qltxdqdozpa9hu.public.blob.vercel-storage.com/Sec-QRPH-qr.png",
+                  filename: "Sec-QRPH-qr.png",
+                  mimetype: "image/png",
+                },
+              },
+            },
+          },
         },
       });
 
