@@ -6,9 +6,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const username = (await params).id;
+    // ✅ normalize username from URL
+    const username = decodeURIComponent((await params).id).trim();
+
     const { searchParams } = new URL(req.url);
-    const casino = searchParams.get("casino");
+    const casino = searchParams.get("casino")?.trim();
 
     if (!username || !casino) {
       return NextResponse.json(
@@ -20,15 +22,40 @@ export async function GET(
       );
     }
 
+    // ✅ query for only ACCOMMODATING status
     const existingCashin = await prisma.cashin.findFirst({
       where: {
-        userName: username,
+        userName: {
+          equals: username,
+          mode: "insensitive", // casing safe
+        },
         casinoGroup: {
-          name: casino, // 👈 adjust if you use casinoGroupId instead
+          name: {
+            equals: casino,
+            mode: "insensitive", // casing safe
+          },
         },
-        status: {
-          in: ["ACCOMMODATING"], // ✅ valid enum values
+        status: "ACCOMMODATING", // only this status
+      },
+      orderBy: {
+        createdAt: "desc", // deterministic
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const cashinGatewayChatbased = await prisma.transactionRequest.findFirst({
+      where: {
+        username: {
+          equals: username,
+          mode: "insensitive", // casing safe
         },
+        paymentMethod: "Chat-Based",
+        status: "PENDING",
+      },
+      orderBy: {
+        createdAt: "desc", // deterministic
       },
       select: {
         id: true,
@@ -36,8 +63,10 @@ export async function GET(
     });
 
     return NextResponse.json({
-      exists: Boolean(existingCashin),
+      exists: !!existingCashin || !!cashinGatewayChatbased,
       cashinId: existingCashin?.id ?? null,
+      existingCashin: existingCashin,
+      cashinGatewayChatbased: cashinGatewayChatbased,
     });
   } catch (error) {
     console.error("Accommodating check error:", error);

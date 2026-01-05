@@ -120,8 +120,6 @@ export default function BankingPage() {
         setCasinoExists(data.exists);
       } catch (err) {
         setCasinoExists(false);
-      } finally {
-        setPageLoading(false); // ✅ stop loading ONLY after check
       }
     };
 
@@ -140,13 +138,16 @@ export default function BankingPage() {
         if (!res.ok) return;
 
         const data = await res.json();
-
+        console.log("Existing accommodating cashin check:", data);
+        console.log("Data exists:", username, casino);
         if (data.exists) {
           setEnableChatBased(true);
           setCashinId(data.cashinId);
         }
       } catch (err) {
         console.error("Failed to check existing cashin", err);
+      } finally {
+        setPageLoading(false);
       }
     };
 
