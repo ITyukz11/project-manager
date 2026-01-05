@@ -84,7 +84,7 @@ export async function GET(req: Request) {
       // Transaction Request count
       prisma.transactionRequest.count({
         where: {
-          status: "PENDING", // Adjust based on your schema
+          status: { in: ["PENDING", "CLAIMED", "ACCOMMODATING"] }, // Adjust based on your schema
           casinoGroupId: casinoGroup.id,
         },
       }),

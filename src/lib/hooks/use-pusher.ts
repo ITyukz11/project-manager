@@ -1,16 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useRef } from "react";
-import Pusher, { Channel } from "pusher-js";
+import { useEffect, useRef, useState } from "react";
+import Pusher, { Channel, PresenceChannel } from "pusher-js";
 
 let pusherClient: Pusher | null = null;
 
+export type PresenceMember = {
+  id: string;
+  info: {
+    type: "auth" | "guest";
+    username?: string;
+  };
+};
+
 export interface UsePusherOptions<T = any> {
   channels: string[];
-  eventName: string;
-  onEvent: (data: T) => void;
+  eventName?: string; // optional for presence-only
+  onEvent?: (data: T) => void;
   audioRef?: React.RefObject<HTMLAudioElement | null>;
+  presence?: boolean;
 }
 
 export const usePusher = <T = any>({
@@ -18,9 +27,13 @@ export const usePusher = <T = any>({
   eventName,
   onEvent,
   audioRef,
+  presence = false,
 }: UsePusherOptions<T>) => {
   const subscribedChannels = useRef<string[]>([]);
-  const hasInteracted = useRef<boolean>(false);
+  const hasInteracted = useRef(false);
+  const [membersMap, setMembersMap] = useState<Record<string, PresenceMember>>(
+    {}
+  );
 
   useEffect(() => {
     if (
@@ -31,17 +44,17 @@ export const usePusher = <T = any>({
       return;
     }
 
-    if (!pusherClient) {
-      pusherClient = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
-        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+    if (!pusherClient && typeof window !== "undefined") {
+      pusherClient = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+        cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+        authEndpoint: presence ? "/api/pusher/auth" : undefined,
       });
     }
 
-    // Unlock audio on first user interaction
+    // Unlock audio on first interaction
     const handleInteraction = () => {
       if (!hasInteracted.current && audioRef?.current) {
         hasInteracted.current = true;
-
         const audio = audioRef.current;
         audio.muted = true;
         audio
@@ -52,7 +65,6 @@ export const usePusher = <T = any>({
             audio.muted = false;
           })
           .catch(() => {});
-
         document.removeEventListener("click", handleInteraction);
         document.removeEventListener("keydown", handleInteraction);
       }
@@ -67,26 +79,49 @@ export const usePusher = <T = any>({
 
     channels.forEach((channelName) => {
       if (!subscribedChannels.current.includes(channelName)) {
-        const channel = pusherClient!.subscribe(channelName);
+        const channel = presence
+          ? (pusherClient!.subscribe(channelName) as PresenceChannel)
+          : pusherClient!.subscribe(channelName);
+
         subscribedChannels.current.push(channelName);
         activeChannels.push(channel);
 
-        console.info(`[Pusher] Subscribing to ${channelName}`);
+        // Presence handling
+        if (presence) {
+          channel.bind("pusher:subscription_succeeded", (presenceData: any) => {
+            const initial: Record<string, PresenceMember> = {};
+            presenceData.each((member: any) => {
+              initial[member.id] = { id: member.id, info: member.info };
+            });
+            setMembersMap(initial);
+          });
 
-        channel.bind("pusher:subscription_succeeded", () => {
-          console.log(`[Pusher] Subscribed to ${channelName}`);
-        });
+          channel.bind("pusher:member_added", (member: any) => {
+            setMembersMap((prev) => ({
+              ...prev,
+              [member.id]: { id: member.id, info: member.info },
+            }));
+          });
 
-        channel.bind(eventName, (data: T) => {
-          console.log(`[Pusher] Event '${eventName}' on ${channelName}`, data);
-          onEvent(data);
+          channel.bind("pusher:member_removed", (member: any) => {
+            setMembersMap((prev) => {
+              const copy = { ...prev };
+              delete copy[member.id];
+              return copy;
+            });
+          });
+        }
 
-          // 🔔 PLAY AUDIO WHEN EVENT HAPPENS
-          if (audioRef?.current && hasInteracted.current) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play().catch(() => {});
-          }
-        });
+        // Event binding
+        if (eventName && onEvent) {
+          channel.bind(eventName, (data: T) => {
+            onEvent(data);
+            if (audioRef?.current && hasInteracted.current) {
+              audioRef.current.currentTime = 0;
+              audioRef.current.play().catch(() => {});
+            }
+          });
+        }
       }
     });
 
@@ -95,9 +130,7 @@ export const usePusher = <T = any>({
         const name = channel.name;
         channel.unbind_all();
         pusherClient?.unsubscribe(name);
-        console.log(`[Pusher] Unsubscribed from ${name}`);
       });
-
       subscribedChannels.current = subscribedChannels.current.filter(
         (ch) => !channels.includes(ch)
       );
@@ -107,5 +140,20 @@ export const usePusher = <T = any>({
         document.removeEventListener("keydown", handleInteraction);
       }
     };
-  }, [audioRef, channels, eventName, onEvent]);
+  }, [channels, eventName, onEvent, audioRef, presence]);
+
+  if (presence) {
+    return {
+      members: membersMap,
+      count: Object.keys(membersMap).length,
+      authenticatedCount: Object.values(membersMap).filter(
+        (m) => m.info.type === "auth"
+      ).length,
+      guestCount: Object.values(membersMap).filter(
+        (m) => m.info.type === "guest"
+      ).length,
+    };
+  }
+
+  return undefined;
 };

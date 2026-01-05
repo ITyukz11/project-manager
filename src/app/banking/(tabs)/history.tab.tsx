@@ -22,6 +22,7 @@ interface TransactionHistoryContentProps {
   historyError: string | null;
   casinoLink: string;
   cooldownRemaining: number;
+  casinoName: string;
   fetchTransactionHistory: () => void;
 }
 
@@ -31,6 +32,7 @@ export function TransactionHistoryContent({
   historyError,
   cooldownRemaining,
   casinoLink,
+  casinoName,
   fetchTransactionHistory,
 }: TransactionHistoryContentProps) {
   return (
@@ -43,7 +45,7 @@ export function TransactionHistoryContent({
             <Link href={`https://www.${casinoLink}`}>
               <Button variant={"outline"}>
                 <MoveUpLeft className="h-4 w-4" />
-                Go back to qbet88.vip
+                Go back to {casinoName}
               </Button>
             </Link>
 

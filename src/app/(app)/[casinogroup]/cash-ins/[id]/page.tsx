@@ -1,7 +1,13 @@
 "use client";
-import { ArrowLeft, Paperclip } from "lucide-react";
+import {
+  ArrowLeft,
+  Paperclip,
+  Radio,
+  RefreshCcw,
+  UsersRound,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +36,7 @@ import { CashinStatusHistorySheet } from "../(components)/CashinStatusHistoryShe
 import { useCashinById } from "@/lib/hooks/swr/cashin/useCashinById";
 import { usePusher } from "@/lib/hooks/use-pusher";
 import { CommentsSection } from "@/components/CommentSection";
+import { usePusherPresence } from "@/lib/hooks/usePusherPresence";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -86,6 +93,7 @@ export default function Page() {
   }
 
   console.log("cashinId:", id);
+
   usePusher({
     channels: [`chatbased-cashin-${id}`],
     eventName: "cashin:thread-updated",
@@ -94,6 +102,18 @@ export default function Page() {
     },
     audioRef: notificationAudioRef,
   });
+
+  const presenceChannel = id ? `presence-chatbased-cashin-${id}` : "";
+
+  const { members, count, authenticatedCount, guestCount } =
+    usePusherPresence(presenceChannel);
+
+  const onlineMembers = Object.values(members);
+
+  const agentMembers = onlineMembers.filter((m) => m.info.type === "auth");
+
+  const guestMembers = onlineMembers.filter((m) => m.info.type === "guest");
+
   async function handleCommentSend(e: React.FormEvent) {
     e.preventDefault();
     if (!inputValue.trim() && attachments.length === 0) return;
@@ -322,6 +342,19 @@ export default function Page() {
     </>
   );
 
+  const hasGuest = guestMembers.length > 0;
+  const prevGuestCount = useRef(0);
+
+  useEffect(() => {
+    if (guestCount > prevGuestCount.current) {
+      toast.info("Player joined the chat");
+    }
+    if (guestCount < prevGuestCount.current) {
+      toast.info("Player left the chat");
+    }
+    prevGuestCount.current = guestCount;
+  }, [guestCount]);
+
   return (
     <div>
       <Button
@@ -357,6 +390,31 @@ export default function Page() {
           </TabsContent>
           <TabsContent value="comments" className="mt-0">
             <div className="px-2 h-[calc(100vh-280px)] flex flex-col">
+              <div className="flex flex-row justify-start items-center gap-2 ">
+                {/* <div>
+                  <Badge>
+                    <UsersRound />
+                    {count}
+                  </Badge>
+                </div> */}
+
+                {hasGuest ? (
+                  <div className="flex items-center gap-1 h-fit px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800 shrink-0">
+                    <Radio className="h-3 w-3 text-green-500 animate-pulse" />
+                    <span className="block text-xs font-medium text-green-700 dark:text-green-400">
+                      Player Connected
+                    </span>
+                    {isLoading && (
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <RefreshCcw className="text-green-600 dark:text-green-400 h-3 w-3 transition-transform duration-500 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Badge variant="destructive">Player Disconnected</Badge>
+                )}
+              </div>
+
               <CommentsSection
                 threads={cashin?.cashinThreads || []}
                 isLoading={isLoading}
@@ -402,6 +460,24 @@ export default function Page() {
             minSize={35}
             className="px-6 pb-2 flex flex-col"
           >
+            <div className="flex flex-row justify-start items-center gap-2 ">
+              {hasGuest ? (
+                <div className="flex items-center gap-1 h-fit px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800 shrink-0">
+                  <Radio className="h-3 w-3 text-green-500 animate-pulse" />
+                  <span className="block text-xs font-medium text-green-700 dark:text-green-400">
+                    Player Connected
+                  </span>
+                  {isLoading && (
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <RefreshCcw className="text-green-600 dark:text-green-400 h-3 w-3 transition-transform duration-500 animate-spin" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Badge variant="destructive">Player Disconnected</Badge>
+              )}
+            </div>
+
             <CommentsSection
               threads={cashin?.cashinThreads || []}
               isLoading={isLoading}

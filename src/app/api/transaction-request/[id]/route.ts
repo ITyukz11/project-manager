@@ -4,8 +4,16 @@ import { getCurrentUser } from "@/lib/auth";
 import { put } from "@vercel/blob";
 import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
 import { pusher } from "@/lib/pusher";
+import { emitCashinUpdated } from "@/actions/server/emitCashinUpdated";
 
-// PATCH handler to update transaction status
+const ALLOWED_STATUS = [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "CLAIMED",
+  "ACCOMMODATING",
+];
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +26,7 @@ export async function PATCH(
 
     const { id } = await params;
 
-    // Parse FormData instead of JSON
+    // Parse FormData
     const formData = await req.formData();
     const status = formData.get("status") as string;
     const remarks = formData.get("remarks") as string | null;
@@ -26,32 +34,21 @@ export async function PATCH(
     const casinoGroupName =
       (formData.get("casinoGroup") as string | null) || "";
 
-    // Validation
-    if (
-      !status ||
-      !["PENDING", "APPROVED", "REJECTED", "CLAIMED", "ACCOMMODATING"].includes(
-        status
-      )
-    ) {
+    // Status Validity
+    if (!status || !ALLOWED_STATUS.includes(status)) {
       return NextResponse.json(
         {
-          error:
-            "Invalid status. Must be PENDING, APPROVED, REJECTED, CLAIMED, or ACCOMMODATING.",
+          error: `Invalid status. Must be ${ALLOWED_STATUS.join(", ")}.`,
         },
         { status: 400 }
       );
     }
 
-    // Check if transaction exists
+    // Get transaction
     const existingTransaction = await prisma.transactionRequest.findUnique({
       where: { id },
-      include: {
-        casinoGroup: {
-          select: { name: true, id: true },
-        },
-      },
+      include: { casinoGroup: { select: { name: true, id: true } } },
     });
-
     if (!existingTransaction) {
       return NextResponse.json(
         { error: "Transaction not found." },
@@ -59,7 +56,7 @@ export async function PATCH(
       );
     }
 
-    // Check if cashout approval requires receipt
+    // Cashout approval requires a receipt
     if (
       status === "APPROVED" &&
       existingTransaction.type === "CASHOUT" &&
@@ -72,36 +69,27 @@ export async function PATCH(
       );
     }
 
-    // Handle receipt upload if provided
+    // Upload receipt if provided and valid
     let receiptUrl = existingTransaction.receiptUrl;
     if (receiptFile) {
+      if (!receiptFile.type.startsWith("image/")) {
+        return NextResponse.json(
+          { error: "Receipt must be an image file." },
+          { status: 400 }
+        );
+      }
+      if (receiptFile.size > 5 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: "Receipt file size must be less than 5MB." },
+          { status: 400 }
+        );
+      }
       try {
-        // Validate file type
-        if (!receiptFile.type.startsWith("image/")) {
-          return NextResponse.json(
-            { error: "Receipt must be an image file." },
-            { status: 400 }
-          );
-        }
-
-        // Validate file size (5MB)
-        if (receiptFile.size > 5 * 1024 * 1024) {
-          return NextResponse.json(
-            { error: "Receipt file size must be less than 5MB." },
-            { status: 400 }
-          );
-        }
-
-        // Upload to Vercel Blob
         const blob = await put(
           `receipts/${id}-${Date.now()}-${receiptFile.name}`,
           receiptFile,
-          {
-            access: "public",
-            addRandomSuffix: true,
-          }
+          { access: "public", addRandomSuffix: true }
         );
-
         receiptUrl = blob.url;
       } catch (uploadError: any) {
         console.error("Receipt upload error:", uploadError);
@@ -112,7 +100,7 @@ export async function PATCH(
       }
     }
 
-    // Update transaction with admin who processed it
+    // Update transaction
     const updatedTransaction = await prisma.transactionRequest.update({
       where: { id },
       data: {
@@ -124,61 +112,63 @@ export async function PATCH(
       },
       include: {
         processedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            role: true,
-          },
+          select: { id: true, name: true, username: true, role: true },
         },
         casinoGroup: true,
       },
     });
 
-    // 🔹 If status is ACCOMMODATING, update the linked Cashin
+    // If ACCOMMODATING and has linked Cashin, update cashin status and emit update
     if (status === "ACCOMMODATING" && updatedTransaction.cashInId) {
-      try {
-        await prisma.cashin.update({
+      await Promise.all([
+        prisma.cashin.update({
           where: { id: updatedTransaction.cashInId },
-          data: {
-            status: "ACCOMMODATING",
-          },
-        });
-      } catch (cashinErr: any) {
-        console.error(
-          `Failed to update linked Cashin ${updatedTransaction.cashInId}:`,
-          cashinErr
-        );
-      }
+          data: { status: "ACCOMMODATING" },
+        }),
+        emitCashinUpdated({
+          transactionId: existingTransaction.id,
+          casinoGroup: casinoGroupName.toLocaleLowerCase(),
+          action: "UPDATED",
+        }),
+      ]);
     }
 
-    const pendingCount = await prisma.transactionRequest.count({
-      where: {
-        status: {
-          in: ["PENDING", "CLAIMED", "ACCOMMODATING"],
+    // Count pending and accommodating transactions/cashins in this casinoGroup
+    const [pendingCount, pendingCountCashin] = await Promise.all([
+      prisma.transactionRequest.count({
+        where: {
+          status: { in: ["PENDING", "CLAIMED", "ACCOMMODATING"] },
+          casinoGroupId: existingTransaction.casinoGroup.id,
         },
-        casinoGroupId: existingTransaction.casinoGroup.id,
-      },
-    });
+      }),
+      prisma.cashin.count({
+        where: {
+          status: { in: ["ACCOMMODATING"] },
+          casinoGroupId: existingTransaction.casinoGroup.id,
+        },
+      }),
+    ]);
 
+    // Pusher event for count
     await pusher.trigger(
-      `transaction-${existingTransaction.casinoGroup.name.toLowerCase()}`, // channel name
-      "transaction-pending-count", // event name
+      `transaction-${existingTransaction.casinoGroup.name.toLowerCase()}`,
+      "transaction-pending-count",
       { count: pendingCount }
     );
 
-    // Trigger Pusher notification
-    if (process.env.NEXT_PUBLIC_PUSHER_KEY && process.env.PUSHER_SECRET) {
-      try {
-        await emitTransactionUpdated({
-          transactionId: existingTransaction.id,
-          casinoGroup: existingTransaction.casinoGroup.name.toLowerCase(),
-          action: "UPDATED",
-        });
-      } catch (pusherErr) {
-        console.error("Pusher error:", pusherErr);
-      }
-    }
+    // Pusher event for count
+    await pusher.trigger(
+      `cashin-${existingTransaction.casinoGroup.name.toLowerCase()}`,
+      "cashin-pending-count",
+      { count: pendingCountCashin }
+    );
+
+    // Emit transaction update event
+    await emitTransactionUpdated({
+      transactionId: existingTransaction.id,
+      casinoGroup: casinoGroupName.toLocaleLowerCase(),
+      action: "UPDATED",
+    });
 
     return NextResponse.json(updatedTransaction);
   } catch (e: any) {
@@ -190,9 +180,9 @@ export async function PATCH(
   }
 }
 
-// GET single transaction
+// GET single transaction (optimized)
 export async function GET(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -202,17 +192,11 @@ export async function GET(
     }
 
     const { id } = await params;
-
     const transaction = await prisma.transactionRequest.findUnique({
       where: { id },
       include: {
         processedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            role: true,
-          },
+          select: { id: true, name: true, username: true, role: true },
         },
         casinoGroup: true,
       },

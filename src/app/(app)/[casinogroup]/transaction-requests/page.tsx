@@ -60,7 +60,7 @@ export default function Page() {
     );
   }, [dateRange, STORAGE_KEY]);
 
-  const { transactionRequests, isLoading, error, lastUpdate } =
+  const { transactionRequests, isLoading, error, lastUpdate, refetch } =
     useTransactionRequest(casinoGroup?.toLocaleString() || "", dateRange);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -173,6 +173,7 @@ export default function Page() {
         open={viewRow}
         onOpenChange={setViewRow}
         transactionId={transactionId}
+        refetch={refetch}
       />
     </>
   );
