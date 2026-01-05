@@ -14,20 +14,15 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
-import { usePusher } from "@/lib/hooks/use-pusher";
 import { Spinner } from "./ui/spinner";
 import { Notifications } from "@prisma/client";
+import Pusher from "pusher-js";
 
 export const NotificationDropdown = () => {
   const { data: session } = useSession();
   const userId = session?.user?.id;
 
   const notificationAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  const notificationChannel = useMemo(
-    () => (userId ? [`user-notify-${userId}`] : []),
-    [userId]
-  );
 
   const [inbox, setInbox] = useState<Notifications[]>([]);
   const [comments, setComments] = useState<Notifications[]>([]);
@@ -109,12 +104,35 @@ export const NotificationDropdown = () => {
   }, []);
 
   // Real-time updates
-  usePusher({
-    channels: notificationChannel,
-    eventName: "notifications-event",
-    onEvent: handleNotification,
-    audioRef: notificationAudioRef,
-  });
+  useEffect(() => {
+    if (!userId) return;
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    });
+    const channelName = `user-notify-${userId}`;
+    const channel = pusher.subscribe(channelName);
+
+    const notificationHandler = (data: Notifications) => {
+      handleNotification(data);
+      if (
+        notificationAudioRef.current &&
+        typeof window !== "undefined" &&
+        data &&
+        !data.isRead
+      ) {
+        notificationAudioRef.current.currentTime = 0;
+        notificationAudioRef.current.play().catch(() => {});
+      }
+    };
+    channel.bind("notifications-event", notificationHandler);
+
+    return () => {
+      channel.unbind("notifications-event", notificationHandler);
+      pusher.unsubscribe(channelName);
+      pusher.disconnect();
+    };
+  }, [userId, handleNotification]);
 
   // Inside NotificationDropdown component
   const markAllAsRead = async () => {
