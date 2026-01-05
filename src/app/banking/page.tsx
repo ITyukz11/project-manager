@@ -14,6 +14,7 @@ import { TransactionHistoryContent } from "./(tabs)/history.tab";
 import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
 import Loading from "./Loading";
 import { Button } from "@/components/ui/button";
+import { signOut } from "next-auth/react";
 
 export type PaymentMethod =
   | "QRPH"
@@ -147,6 +148,7 @@ export default function BankingPage() {
       } catch (err) {
         console.error("Failed to check existing cashin", err);
       } finally {
+        await signOut({ redirect: false });
         setPageLoading(false);
       }
     };
