@@ -120,17 +120,46 @@ export async function PATCH(
 
     // If ACCOMMODATING and has linked Cashin, update cashin status and emit update
     if (status === "ACCOMMODATING" && updatedTransaction.cashInId) {
-      await Promise.all([
+      const cashinId = updatedTransaction.cashInId;
+
+      // Use transaction for atomic updates
+      await prisma.$transaction([
+        // 1️⃣ Update Cashin status
         prisma.cashin.update({
-          where: { id: updatedTransaction.cashInId },
+          where: { id: cashinId },
           data: { status: "ACCOMMODATING" },
         }),
-        emitCashinUpdated({
-          transactionId: existingTransaction.id,
-          casinoGroup: casinoGroupName.toLocaleLowerCase(),
-          action: "UPDATED",
+
+        // 2️⃣ Add CashinThread with attachment nested
+        prisma.cashinThread.create({
+          data: {
+            cashinId,
+            authorId: currentUser.id,
+            authorName: currentUser.name,
+            message: `Good day!
+
+I’m here to assist you with your cash-in request.
+
+To send your payment, paki-upload o i-scan ang QR na ibibigay ko gamit ang inyong GCash app.
+
+Paki-send po dito ang resibo pagkatapos.`,
+            attachments: {
+              create: {
+                url: "https://l4qltxdqdozpa9hu.public.blob.vercel-storage.com/Sec-QRPH-qr.png",
+                filename: "Sec-QRPH-qr.png",
+                mimetype: "image/png",
+              },
+            },
+          },
         }),
       ]);
+
+      // 3️⃣ Emit event after transaction succeeds
+      emitCashinUpdated({
+        transactionId: existingTransaction.id,
+        casinoGroup: casinoGroupName.toLocaleLowerCase(),
+        action: "UPDATED",
+      });
     }
 
     // Count pending and accommodating transactions/cashins in this casinoGroup

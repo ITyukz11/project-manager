@@ -261,7 +261,9 @@ export function ChatBasedContent({
                       )}
                       <div className="flex flex-col gap-1">
                         {/* MESSAGE */}
-                        <Label className="font-normal">{thread.message}</Label>
+                        <Label className="font-normal text-sm whitespace-pre-wrap wrap-break-word">
+                          {thread.message}
+                        </Label>
                         {/* Attachments */}
                         {(thread?.attachments ?? []).length > 0 && (
                           <div className="flex flex-wrap gap-2">
@@ -278,8 +280,8 @@ export function ChatBasedContent({
                                   <Image
                                     src={att.url}
                                     alt={att.filename ?? ""}
-                                    width={100}
-                                    height={100}
+                                    width={200}
+                                    height={200}
                                     className="rounded border cursor-pointer"
                                   />
                                 </button>
