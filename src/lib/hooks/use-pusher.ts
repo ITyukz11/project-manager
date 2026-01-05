@@ -14,6 +14,10 @@ export type PresenceMember = {
   };
 };
 
+export interface Identifiable {
+  id: string;
+}
+
 export interface UsePusherOptions<T = any> {
   channels: string[];
   eventName?: string; // optional for presence-only
@@ -22,7 +26,7 @@ export interface UsePusherOptions<T = any> {
   presence?: boolean;
 }
 
-export const usePusher = <T = any>({
+export const usePusher = <T extends Identifiable = Identifiable>({
   channels,
   eventName,
   onEvent,
@@ -35,6 +39,7 @@ export const usePusher = <T = any>({
     {}
   );
 
+  const handledNotificationIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (
       !process.env.NEXT_PUBLIC_PUSHER_KEY ||
@@ -115,8 +120,12 @@ export const usePusher = <T = any>({
         // Event binding
         if (eventName && onEvent) {
           channel.bind(eventName, (data: T) => {
+            const wasHandled = handledNotificationIds.current.has(data?.id);
+
             onEvent(data);
-            if (audioRef?.current && hasInteracted.current) {
+
+            if (audioRef?.current && hasInteracted.current && !wasHandled) {
+              handledNotificationIds.current.add(data?.id);
               audioRef.current.currentTime = 0;
               audioRef.current.play().catch(() => {});
             }
