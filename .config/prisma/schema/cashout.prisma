@@ -3,6 +3,7 @@ model Cashout {
   id              String       @id @default(uuid())
   amount          Float
   userName        String  //Player Username
+  externalUserId String?   // Player's external ID from gaming system
   status          CashoutStatus   @default(PENDING)
 
  

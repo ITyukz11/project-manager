@@ -14,6 +14,7 @@ model CasinoGroup {
   tasks         Task[]        // NEW: tasks for this casino group
   groupChats    GroupChat[]   // NEW: group chats associated with this casino group
   customerSupports CustomerSupport[] // NEW: customer support tickets for this casino group
+  gateway       Gateway[]
   active        Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

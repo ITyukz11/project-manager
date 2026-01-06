@@ -2,6 +2,7 @@ model TransactionRequest {
   id            String   @id @default(cuid())
   type          String   // 'CASHIN' or 'CASHOUT'
   username      String   // Anonymous player username (not a User in system)
+  externalUserId String?   // Player's external ID from gaming system
   amount        Float
   bankDetails   String?  // Required for CASHOUT
 

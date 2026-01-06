@@ -1,0 +1,58 @@
+model Gateway {
+  id              String               @id @default(uuid())
+  casinoGroupId   String               @unique
+  casinoGroup     CasinoGroup          @relation(fields: [casinoGroupId], references: [id])
+  
+  currentBalance  Decimal              @default(0) @db.Decimal(15, 2)
+  transactions    GatewayTransaction[] 
+  configuration   GatewayConfiguration?
+
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+model GatewayConfiguration {
+  id                 String   @id @default(uuid())
+  gatewayId          String   @unique
+  gateway            Gateway  @relation(fields: [gatewayId], references: [id])
+  
+  // Fee config for CASHIN
+  cashinFeeType      FeeType  // 'FLAT' | 'PERCENT'
+  cashinFeeValue     Decimal  @db.Decimal(15, 4) @default(0) // $ or %
+
+  // Fee config for CASHOUT
+  cashoutFeeType     FeeType  // 'FLAT' | 'PERCENT'
+  cashoutFeeValue    Decimal  @db.Decimal(15, 4) @default(0) // $ or %
+  // Add more config options (min/max, active, description) as needed
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// Shared enum for fee type
+enum FeeType {
+  FLAT
+  PERCENT
+}
+
+enum GatewayType {
+  CASHIN
+  CASHOUT
+}
+
+model GatewayTransaction {
+  id            String     @id @default(uuid())
+  gatewayId     String     
+  gateway       Gateway    @relation(fields: [gatewayId], references: [id])
+  type          GatewayType
+
+  grossAmount   Decimal    @db.Decimal(15, 2) // original amount
+  feeAmount     Decimal    @db.Decimal(15, 2) // applied fee
+  netAmount     Decimal    @db.Decimal(15, 2) // effect on balance 
+  balanceBefore Decimal    @db.Decimal(15, 2)
+  balanceAfter  Decimal    @db.Decimal(15, 2)
+  referenceId   String?
+  createdAt     DateTime   @default(now())
+
+  @@index([gatewayId, type, createdAt])
+}
