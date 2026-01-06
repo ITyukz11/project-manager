@@ -89,6 +89,7 @@ export async function POST(req: Request) {
     const type = formData.get("type") as string;
     const balance = formData.get("balance") as string;
     const username = formData.get("username") as string;
+    const externalUserId = formData.get("externalUserId") as string;
     const amountStr = formData.get("amount") as string;
     const bankDetails = formData.get("bankDetails") as string | null;
     const paymentMethod = formData.get("paymentMethod") as string | null;
@@ -167,6 +168,7 @@ export async function POST(req: Request) {
         data: {
           amount: parsedAmount,
           userName: sanitizedUsername,
+          externalUserId: externalUserId,
           status: "PENDING",
           details: `Chat-based ${type}`,
           casinoGroupId: casinoGroup.id,

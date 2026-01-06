@@ -59,6 +59,7 @@ export default function BankingPage() {
   const [pageLoading, setPageLoading] = useState(true);
   //params
   const [username, setUsername] = useState("");
+  const [externalUserId, setExternalUserId] = useState("");
   const [casino, setCasinoGroup] = useState("");
   const [balance, setBalance] = useState("");
 
@@ -99,10 +100,12 @@ export default function BankingPage() {
   // 1. Extract params FROM URL
   useEffect(() => {
     const usernameParam = searchParams.get("username");
+    const externalUserIdParam = searchParams.get("id");
     const casinoGroupParam = searchParams.get("casino");
     const balanceParam = searchParams.get("balance");
 
     if (usernameParam) setUsername(usernameParam);
+    if (externalUserIdParam) setExternalUserId(externalUserIdParam);
     if (casinoGroupParam) setCasinoGroup(casinoGroupParam);
     if (balanceParam) setBalance(balanceParam);
   }, [searchParams]);
@@ -128,7 +131,8 @@ export default function BankingPage() {
   }, [casino]);
 
   useEffect(() => {
-    if (!username || !casino || casinoExists !== true) return;
+    if (!username || !externalUserId || !casino || casinoExists !== true)
+      return;
 
     const checkExistingCashin = async () => {
       try {
@@ -154,7 +158,7 @@ export default function BankingPage() {
     };
 
     checkExistingCashin();
-  }, [username, casino, casinoExists]);
+  }, [username, casino, casinoExists, externalUserId]);
 
   const fetchTransactionHistory = useCallback(async () => {
     const now = Date.now();
@@ -203,6 +207,7 @@ export default function BankingPage() {
     if (activeTab === "history") {
       fetchTransactionHistory();
     }
+    setShowSuccessMessage(false);
     setSelectedPayment(null);
   }, [activeTab, fetchTransactionHistory]);
 
@@ -271,6 +276,7 @@ export default function BankingPage() {
       const formData = new FormData();
       formData.append("type", activeTab === "cashin" ? "CASHIN" : "CASHOUT");
       formData.append("username", username.trim());
+      formData.append("externalUserId", externalUserId);
       formData.append("amount", amount);
       formData.append("balance", balance);
       formData.append("paymentMethod", selectedPayment || "");
@@ -351,13 +357,13 @@ export default function BankingPage() {
     selectedPayment,
     amount,
     activeTab,
+    externalUserId,
+    balance,
+    enableChatBased,
     selectedBank,
     customBank,
     accountName,
     accountNumber,
-    balance,
-    enableChatBased,
-    setEnableChatBased,
   ]);
 
   const handleFinalSubmit = useCallback(async () => {
@@ -378,6 +384,7 @@ export default function BankingPage() {
       const formData = new FormData();
       formData.append("type", activeTab === "cashin" ? "CASHIN" : "CASHOUT");
       formData.append("username", username.trim());
+      formData.append("externalUserId", externalUserId);
       formData.append("amount", amount);
       formData.append("paymentMethod", selectedPayment || "");
       formData.append("casinoGroupName", casino);
@@ -511,7 +518,7 @@ export default function BankingPage() {
       </div>
     );
   }
-
+  console.log("activeTab: ", activeTab);
   return (
     <div className="dark relative min-h-screen bg-[url('/qbet-bg.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="container mx-auto p-4 sm:p-6 max-w-4xl">

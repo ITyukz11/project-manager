@@ -501,10 +501,11 @@ export default function Page() {
 
           {/* Admin Actions */}
           <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
-            {isAllowed && (
+            {isAllowed && cashout?.status !== "COMPLETED" && (
               <UpdateStatusDialog
                 cashoutId={id}
                 currentStatus={cashout?.status}
+                externalUserId={cashout?.externalUserId}
               />
             )}
             <Button

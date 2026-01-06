@@ -20,6 +20,7 @@ export async function POST(
     const { id } = await params;
     const formData = await req.formData();
     const userName = formData.get("userName") as string;
+    const externalUserId = formData.get("externalUserId") as string;
     const amountStr = formData.get("amount");
     const details = formData.get("details") as string;
     const casinoGroupName = formData.get("casinoGroup") as string;
@@ -109,6 +110,7 @@ export async function POST(
         const createdCashout = await tx.cashout.create({
           data: {
             userName,
+            externalUserId,
             amount,
             details,
             casinoGroupId: casinoGroup.id,

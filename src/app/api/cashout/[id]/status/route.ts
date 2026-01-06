@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
+import { CashoutStatus } from "@prisma/client";
+import { createTransaction } from "@/lib/qbet88/createTransaction";
 
 export async function PATCH(
   req: Request,
@@ -12,6 +14,11 @@ export async function PATCH(
 ) {
   const id = (await params).id;
   const session = await getServerSession(authOptions);
+
+  const formData = await req.formData();
+  const status = formData.get("status") as CashoutStatus;
+  const externalUserId = formData.get("externalUserId") as string;
+
   if (
     !session?.user ||
     (session.user.role !== ADMINROLES.ADMIN &&
@@ -24,7 +31,6 @@ export async function PATCH(
     );
   }
 
-  const { status } = await req.json();
   if (!status) {
     return NextResponse.json({ error: "Missing status" }, { status: 400 });
   }
@@ -45,6 +51,31 @@ export async function PATCH(
         performedById: session.user.id,
       },
     });
+
+    console.log("Status:", status);
+    // --- TRANSACTION LOGIC HERE ----
+    // Only call the transaction API when status becomes COMPLETED (or adjust to your needs)
+    if (status === "COMPLETED") {
+      // Assuming cashin has fields: id, amount, and a unique txn (e.g., transactionId, ref etc)
+      // Adjust field names as per your schema
+
+      console.log("Creating transaction for cashout:", cashout);
+      console.log("Status:", status);
+      const transactionRes = await createTransaction({
+        id: externalUserId, //cashin.id,
+        txn: cashout.id, // Adjust to your transaction ref field
+        type: "WITHDRAW", // Since this is a cashin
+        amount: cashout.amount,
+      });
+
+      // Optionally, handle/record transactionRes in your DB, or send errors back
+      if (!transactionRes.ok) {
+        return NextResponse.json(
+          { error: "Failed to post transaction", details: transactionRes },
+          { status: 502 }
+        );
+      }
+    }
 
     // 3. Get updated pending count for this casinoGroup
     const pendingCount = await prisma.cashout.count({

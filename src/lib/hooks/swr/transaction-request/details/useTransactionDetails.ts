@@ -4,6 +4,7 @@ interface TransactionDetails {
   id: string;
   type: string;
   username: string;
+  externalUserId: string | null;
   amount: number;
   bankDetails: string | null;
   bankName: string | null;

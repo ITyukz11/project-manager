@@ -5,6 +5,7 @@ import { put } from "@vercel/blob";
 import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
 import { pusher } from "@/lib/pusher";
 import { emitCashinUpdated } from "@/actions/server/emitCashinUpdated";
+import { createTransaction } from "@/lib/qbet88/createTransaction";
 
 const ALLOWED_STATUS = [
   "PENDING",
@@ -31,10 +32,10 @@ export async function PATCH(
     const status = formData.get("status") as string;
     const remarks = formData.get("remarks") as string | null;
     const receiptFile = formData.get("receipt") as File | null;
+    const externalUserId = formData.get("externalUserId") as string;
     const casinoGroupName =
       (formData.get("casinoGroup") as string | null) || "";
 
-    // Status Validity
     if (!status || !ALLOWED_STATUS.includes(status)) {
       return NextResponse.json(
         {
@@ -118,20 +119,43 @@ export async function PATCH(
       },
     });
 
+    // ⏬⏬⏬ ---- CALL CREATE TRANSACTION IF "APPROVED" AND A DEPOSIT ---- ⏬⏬⏬
+    if (status === "APPROVED" && existingTransaction.type === "CASHIN") {
+      console.log("externalUserId:", externalUserId);
+      // Call createTransaction
+      // you might want to wrap this in a try/catch (optional)
+      const trxnResult = await createTransaction({
+        id: externalUserId, //user.externalId for player,
+        txn: updatedTransaction.id, // use appropriate field for "txn"
+        type: "DEPOSIT",
+        amount: updatedTransaction.amount,
+      });
+
+      // You can customize response or handle errors/logs
+      if (!trxnResult.ok) {
+        console.error("createTransaction failed:", trxnResult);
+        // Optionally: undo approval, mark as error, or return error response
+        // return NextResponse.json({ error: "Transaction API failed.", details: trxnResult }, { status: 502 });
+      } else {
+        console.log("createTransaction success:", trxnResult.data);
+      }
+    }
+    // ⏫⏫⏫ ---- END CREATE TRANSACTION LOGIC ---- ⏫⏫⏫
+
     // If ACCOMMODATING and has linked Cashin, update cashin status and emit update
     if (status === "ACCOMMODATING" && updatedTransaction.cashInId) {
       const cashinId = updatedTransaction.cashInId;
 
       // Use transaction for atomic updates
       await prisma.$transaction([
-        // 1️⃣ Update Cashin status
         prisma.cashin.update({
           where: { id: cashinId },
-          data: { status: "ACCOMMODATING" },
+          data: {
+            status: "ACCOMMODATING",
+            externalUserId: externalUserId || undefined,
+          },
         }),
       ]);
-
-      // 3️⃣ Emit event after transaction succeeds
       emitCashinUpdated({
         transactionId: existingTransaction.id,
         casinoGroup: casinoGroupName.toLocaleLowerCase(),
@@ -155,21 +179,18 @@ export async function PATCH(
       }),
     ]);
 
-    // Pusher event for count
     await pusher.trigger(
       `transaction-${existingTransaction.casinoGroup.name.toLowerCase()}`,
       "transaction-pending-count",
       { count: pendingCount }
     );
 
-    // Pusher event for count
     await pusher.trigger(
       `cashin-${existingTransaction.casinoGroup.name.toLowerCase()}`,
       "cashin-pending-count",
       { count: pendingCountCashin }
     );
 
-    // Emit transaction update event
     await emitTransactionUpdated({
       transactionId: existingTransaction.id,
       casinoGroup: casinoGroupName.toLocaleLowerCase(),
@@ -183,40 +204,5 @@ export async function PATCH(
       { error: e.message || "Failed to update transaction." },
       { status: 500 }
     );
-  }
-}
-
-// GET single transaction (optimized)
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-    const transaction = await prisma.transactionRequest.findUnique({
-      where: { id },
-      include: {
-        processedBy: {
-          select: { id: true, name: true, username: true, role: true },
-        },
-        casinoGroup: true,
-      },
-    });
-
-    if (!transaction) {
-      return NextResponse.json(
-        { error: "Transaction not found." },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(transaction);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

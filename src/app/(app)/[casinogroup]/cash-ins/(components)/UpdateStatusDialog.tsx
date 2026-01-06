@@ -25,7 +25,11 @@ import {
 import { toast } from "sonner";
 import { useCashinById } from "@/lib/hooks/swr/cashin/useCashinById";
 
-export function UpdateStatusDialog({ cashinId, currentStatus }) {
+export function UpdateStatusDialog({
+  cashinId,
+  currentStatus,
+  externalUserId,
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { mutate } = useCashinById(cashinId);
@@ -43,11 +47,24 @@ export function UpdateStatusDialog({ cashinId, currentStatus }) {
   async function onSubmit(values) {
     setLoading(true);
     try {
+      // Use FormData instead of JSON
+      const form = new FormData();
+      form.append("status", values.status);
+
+      if (externalUserId) {
+        form.append("externalUserId", externalUserId);
+      }
+
+      // If you have a file, add that here too
+      // if (values.receipt) {
+      //   form.append("receipt", values.receipt);
+      // }
+
       const res = await fetch(`/api/cashin/${cashinId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: values.status }),
+        body: form, // No need for Content-Type, fetch will set it automatically
       });
+
       const data = await res.json();
       if (res.ok) {
         toast.success("Status updated!");

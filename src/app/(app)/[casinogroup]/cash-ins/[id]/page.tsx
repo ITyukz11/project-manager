@@ -156,6 +156,7 @@ export default function Page() {
     session?.user?.role === ADMINROLES.SUPERADMIN ||
     session?.user?.role === ADMINROLES.ACCOUNTING;
 
+  console.log("session user role:", session?.user?.role === ADMINROLES.ADMIN);
   // Details Section Component
   const DetailsSection = () => (
     <>
@@ -312,10 +313,11 @@ export default function Page() {
 
           {/* Admin Actions */}
           <div className="flex flex-col sm:flex-row gap-2 md:col-span-2">
-            {isAllowed && (
+            {isAllowed && cashin.status !== "COMPLETED" && (
               <UpdateStatusDialog
                 cashinId={id}
                 currentStatus={cashin?.status}
+                externalUserId={cashin.externalUserId ?? ""}
               />
             )}
             <Button
@@ -325,7 +327,7 @@ export default function Page() {
             >
               View Status History
             </Button>
-            {cashin.status !== "PENDING" && (
+            {/* {cashin.status !== "PENDING" && (
               <Button
                 variant="outline"
                 onClick={() => setShowStatusSheet(true)}
@@ -333,7 +335,7 @@ export default function Page() {
               >
                 Edit
               </Button>
-            )}
+            )} */}
           </div>
         </div>
       ) : (

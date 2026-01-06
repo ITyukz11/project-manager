@@ -25,7 +25,11 @@ import {
 import { toast } from "sonner";
 import { useCashoutById } from "@/lib/hooks/swr/cashout/useCashoutById";
 
-export function UpdateStatusDialog({ cashoutId, currentStatus }) {
+export function UpdateStatusDialog({
+  cashoutId,
+  currentStatus,
+  externalUserId,
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { mutate } = useCashoutById(cashoutId);
@@ -42,11 +46,19 @@ export function UpdateStatusDialog({ cashoutId, currentStatus }) {
   // 2. Submission handler (native form submit)
   async function onSubmit(values) {
     setLoading(true);
+
     try {
+      // Use FormData instead of JSON
+      const form = new FormData();
+      form.append("status", values.status);
+
+      if (externalUserId) {
+        form.append("externalUserId", externalUserId);
+      }
+
       const res = await fetch(`/api/cashout/${cashoutId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: values.status }),
+        body: form,
       });
       const data = await res.json();
       if (res.ok) {

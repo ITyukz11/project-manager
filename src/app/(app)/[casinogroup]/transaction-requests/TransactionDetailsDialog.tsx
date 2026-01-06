@@ -291,7 +291,7 @@ export function TransactionDetailsDialog({
       }
     }
   };
-
+  console.log("transaction: ", transaction);
   const handleStatusUpdate = async () => {
     if (!actionType || !transactionId || !transaction) return;
 
@@ -300,6 +300,7 @@ export function TransactionDetailsDialog({
     try {
       const formData = new FormData();
       formData.append("userName", transaction.username);
+      formData.append("externalUserId", transaction.externalUserId || "");
       formData.append("amount", transaction.amount.toString());
       formData.append("casinoGroup", transaction.casinoGroup.name);
       formData.append("status", actionType);
