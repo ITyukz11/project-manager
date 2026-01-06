@@ -6,6 +6,7 @@ import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { put } from "@vercel/blob";
+import { createTransaction } from "@/lib/qbet88/createTransaction";
 
 export async function POST(
   req: Request,
@@ -140,6 +141,26 @@ export async function POST(
             performedById: currentUser.id,
           },
         });
+
+        console.log("externalUserId:", externalUserId);
+        // Call createTransaction
+        // you might want to wrap this in a try/catch (optional)
+        const trxnResult = await createTransaction({
+          id: externalUserId, //user.externalId for player,
+          txn: existingTransaction.id, // use appropriate field for "txn"
+          type: "WITHDRAW",
+          amount: amount,
+        });
+
+        // You can customize response or handle errors/logs
+        if (!trxnResult.ok) {
+          console.error("createTransaction failed:", trxnResult);
+          // Optionally: undo approval, mark as error, or return error response
+          // return NextResponse.json({ error: "Transaction API failed.", details: trxnResult }, { status: 502 });
+        } else {
+          console.log("createTransaction success:", trxnResult.data);
+        }
+
         return createdCashout;
       });
     } catch (dbErr: any) {
