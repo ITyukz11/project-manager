@@ -94,6 +94,7 @@ export async function GET(req: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 1000,
     });
 
     // Business sorting: pending, partial, rest sorted by createdAt desc
