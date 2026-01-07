@@ -88,13 +88,16 @@ export async function GET(req: Request) {
       where: whereClause,
       include: {
         attachments: true,
-        cashoutThreads: true,
+        _count: {
+          select: {
+            cashoutThreads: true,
+          },
+        },
         user: {
           where: { role: { in: allowedRoles } },
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 1000,
     });
 
     // Business sorting: pending, partial, rest sorted by createdAt desc

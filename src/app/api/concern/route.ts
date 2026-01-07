@@ -91,7 +91,11 @@ export async function GET(req: Request) {
       where: whereClause,
       include: {
         attachments: true,
-        concernThreads: true,
+        _count: {
+          select: {
+            concernThreads: true,
+          },
+        },
         user: true,
       },
       orderBy: { createdAt: "desc" },

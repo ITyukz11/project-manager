@@ -19,7 +19,7 @@ export type RemittanceForTable = {
   updatedAt: Date;
   user?: { id: string; name?: string; accName?: string };
   attachments: { id: string; url: string; filename?: string }[];
-  remittanceThreads: { id: string; message: string }[];
+  _count: { remittanceThreads: number };
 };
 
 export const remittanceColumn: ColumnDef<RemittanceForTable>[] = [
@@ -98,13 +98,13 @@ export const remittanceColumn: ColumnDef<RemittanceForTable>[] = [
     ),
   },
   {
-    accessorKey: "remittanceThread",
+    accessorKey: "_count.remittanceThreads",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Threads" />
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {row.original?.remittanceThreads?.length ?? 0} msgs
+        {row.original._count?.remittanceThreads ?? 0} msgs
       </span>
     ),
   },

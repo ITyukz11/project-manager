@@ -22,7 +22,7 @@ export type CashoutForTable = {
   createdByAdmin?: { id: string; name?: string };
   user?: { id: string; name?: string; accName?: string };
   attachments: { id: string; url: string; filename?: string }[];
-  cashoutThreads: { id: string; message: string }[];
+  _count: { cashoutThreads: number };
 };
 
 export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
@@ -137,13 +137,13 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     ),
   },
   {
-    accessorKey: "cashoutThreads",
+    accessorKey: "_count.cashoutThreads",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Threads" />
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {row.original.cashoutThreads.length} msgs
+        {row.original._count.cashoutThreads} msgs
       </span>
     ),
   },

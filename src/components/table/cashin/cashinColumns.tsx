@@ -22,7 +22,7 @@ export type CashinForTable = {
   createdByAdmin?: { id: string; name?: string };
   user?: { id: string; name?: string; accName?: string };
   attachments: { id: string; url: string; filename?: string }[];
-  cashinThreads: { id: string; message: string }[];
+  _count: { cashinThreads: number };
 };
 
 export const CashinColumns: ColumnDef<CashinForTable>[] = [
@@ -137,13 +137,13 @@ export const CashinColumns: ColumnDef<CashinForTable>[] = [
     ),
   },
   {
-    accessorKey: "CashinThreads",
+    accessorKey: "_count.cashinThreads",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Threads" />
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {row.original.cashinThreads.length} msgs
+        {row.original._count.cashinThreads} msgs
       </span>
     ),
   },

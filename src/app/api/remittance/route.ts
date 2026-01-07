@@ -99,7 +99,11 @@ export async function GET(req: Request) {
       where: whereClause,
       include: {
         attachments: true,
-        remittanceThreads: true,
+        _count: {
+          select: {
+            remittanceThreads: true,
+          },
+        },
         user: true,
       },
       orderBy: { createdAt: "desc" },

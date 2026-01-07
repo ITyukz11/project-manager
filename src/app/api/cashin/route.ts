@@ -94,7 +94,11 @@ export async function GET(req: Request) {
       where: whereClause,
       include: {
         attachments: true,
-        cashinThreads: true,
+        _count: {
+          select: {
+            cashinThreads: true,
+          },
+        },
         user: {
           where: { role: { in: allowedRoles } },
         },

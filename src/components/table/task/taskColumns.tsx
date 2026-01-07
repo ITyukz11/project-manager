@@ -19,7 +19,7 @@ export type TaskForTable = {
   updatedAt: Date;
   user?: { id: string; name?: string; accName?: string };
   attachments: { id: string; url: string; filename?: string }[];
-  taskThreads: { id: string; message: string }[];
+  _count: { taskThreads: number };
 };
 
 export const taskColumn: ColumnDef<TaskForTable>[] = [
@@ -98,13 +98,13 @@ export const taskColumn: ColumnDef<TaskForTable>[] = [
     ),
   },
   {
-    accessorKey: "taskThreads",
+    accessorKey: "_count.taskThreads",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Threads" />
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {row.original?.taskThreads?.length ?? 0} msgs
+        {row.original._count?.taskThreads ?? 0} msgs
       </span>
     ),
   },

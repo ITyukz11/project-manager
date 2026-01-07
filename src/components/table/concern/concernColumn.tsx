@@ -19,7 +19,7 @@ export type ConcernForTable = {
   updatedAt: Date;
   user?: { id: string; name?: string; accName?: string };
   attachments: { id: string; url: string; filename?: string }[];
-  concernThreads: { id: string; message: string }[];
+  _count: { concernThreads: number };
 };
 
 export const concernColumn: ColumnDef<ConcernForTable>[] = [
@@ -98,13 +98,13 @@ export const concernColumn: ColumnDef<ConcernForTable>[] = [
     ),
   },
   {
-    accessorKey: "concernThreads",
+    accessorKey: "_count.concernThreads",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Threads" />
     ),
     cell: ({ row }) => (
       <span className="font-mono text-xs">
-        {row.original.concernThreads?.length ?? 0} msgs
+        {row.original._count.concernThreads ?? 0} msgs
       </span>
     ),
   },
