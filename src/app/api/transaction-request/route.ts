@@ -698,6 +698,13 @@ export async function POST(req: Request) {
       { count: pendingCount }
     );
 
+    await pusher.trigger("gateway-alarm", "gateway-alarm-start", {
+      username: sanitizedUsername, // Use the sanitized/processed username variable
+      amount: parsedAmount, // Use the parsed amount value (format/parse as you need)
+      transactionType: type, // Use the type ("cashin", "cashout", "cashin via chatbased", etc)
+      casinoGroup: casinoGroupName,
+    });
+
     console.log(
       `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
     );
