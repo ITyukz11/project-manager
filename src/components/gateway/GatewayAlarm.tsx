@@ -12,28 +12,33 @@ import { usePusher } from "@/lib/hooks/use-pusher";
 import { useSession } from "next-auth/react";
 import { Button } from "../ui/button";
 import { TriangleAlert } from "lucide-react";
+import { useCasinoGroup } from "@/lib/hooks/swr/casino-group/useCasinoGroup";
 
 // Helper to stop audio
 const stopAudio = (audioRef: React.RefObject<HTMLAudioElement | null>) => {
   if (audioRef.current) {
-    audioRef.current.pause();
+    console.log("Ready to play audio; group matches");
     audioRef.current.currentTime = 0;
+    audioRef.current.loop = true;
+    audioRef.current.play().catch((e) => {
+      console.log("Audio play error", e);
+    });
   }
 };
 
 // Send "stop alarm" event
-async function sendStopAlarm(name: string) {
+async function sendStopAlarm(name: string, casinoGroup: string) {
+  if (!name || !casinoGroup) return;
   await fetch("/api/gateway-alarm-stop", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, casinoGroup }),
   });
 }
 
 export function GatewayAlarm() {
   const [open, setOpen] = useState(false);
   const [stoppedBy, setStoppedBy] = useState<string | null>(null);
-  const [casinoGroup, setCasinoGroup] = useState<string | null>(null);
   const [info, setInfo] = useState<{
     username?: string;
     amount?: number | string;
@@ -44,6 +49,10 @@ export function GatewayAlarm() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { data: session } = useSession();
 
+  const userCasinoGroups =
+    session?.user?.casinoGroups?.map((group: any) => group.name) || [];
+
+  console.log("User Casino Groups: ", userCasinoGroups);
   // Only allow closing dialog for "stopped" state
   const handleDialogOpenChange = useCallback(
     (isOpen: boolean) => {
@@ -61,24 +70,35 @@ export function GatewayAlarm() {
   const handleTurnOffAlarm = useCallback(() => {
     setOpen(false);
     stopAudio(audioRef);
-    if (session?.user?.name) {
-      sendStopAlarm(session.user.name);
+    if (session?.user?.name && info?.casinoGroup) {
+      sendStopAlarm(session.user.name, info.casinoGroup);
     }
-  }, [session]);
+  }, [session, info]); // Make sure 'info' is up to date!
 
   // Alarm start
+
   usePusher({
     channels: ["gateway-alarm"],
     eventName: "gateway-alarm-start",
     onEvent: (data) => {
+      const incomingGroup = data?.casinoGroup;
+      if (!userCasinoGroups.length || !incomingGroup) {
+        stopAudio(audioRef);
+        return;
+      }
+      if (!userCasinoGroups.includes(incomingGroup)) {
+        stopAudio(audioRef);
+        return;
+      }
       setInfo(data);
       setStoppedBy(null);
-      setCasinoGroup(data?.casinoGroup || null);
       setOpen(true);
-      if (audioRef.current) {
+      if (audioRef.current && userCasinoGroups.includes(incomingGroup)) {
         audioRef.current.currentTime = 0;
         audioRef.current.loop = true;
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play().catch((e) => {
+          console.log("Audio play error", e);
+        });
       }
     },
     audioRef,
@@ -88,14 +108,24 @@ export function GatewayAlarm() {
   usePusher({
     channels: ["gateway-alarm"],
     eventName: "gateway-alarm-stopped",
-    onEvent: (data: { name: string }) => {
+    // For gateway-alarm-stopped:
+    onEvent: (data: { name: string; casinoGroup?: string }) => {
+      stopAudio(audioRef);
+      const incomingGroup = data?.casinoGroup;
+      // SKIP for users with no groups
+      if (!userCasinoGroups.length || !incomingGroup) return;
+
+      if (!userCasinoGroups.includes(incomingGroup)) {
+        stopAudio(audioRef);
+        return;
+      }
+
       setStoppedBy(data?.name || "Someone");
       setOpen(true);
       stopAudio(audioRef);
     },
     audioRef,
   });
-
   return (
     <div className="absolute">
       <audio
@@ -103,6 +133,7 @@ export function GatewayAlarm() {
         src="/sounds/gateway-alarm.mp3"
         preload="auto"
         loop
+        className="hidden"
       />
       <Dialog open={open} onOpenChange={handleDialogOpenChange}>
         <DialogContent
