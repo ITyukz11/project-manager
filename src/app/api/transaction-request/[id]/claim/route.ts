@@ -107,66 +107,68 @@ export async function POST(
     // --- Prisma Transaction ---
     let cashout;
     try {
-      cashout = await prisma.$transaction(async (tx) => {
-        const createdCashout = await tx.cashout.create({
-          data: {
-            userName,
-            externalUserId,
-            amount,
-            details,
-            casinoGroupId: casinoGroup.id,
-            userId: currentUser.id,
-            transactionRequestId: existingTransaction.id,
-            attachments: {
-              createMany: {
-                data: attachmentData,
+      cashout = await prisma.$transaction(
+        async (tx) => {
+          const createdCashout = await tx.cashout.create({
+            data: {
+              userName,
+              externalUserId,
+              amount,
+              details,
+              casinoGroupId: casinoGroup.id,
+              userId: currentUser.id,
+              transactionRequestId: existingTransaction.id,
+              attachments: {
+                createMany: {
+                  data: attachmentData,
+                },
               },
             },
-          },
-        });
-        await tx.transactionRequest.update({
-          where: { id },
-          data: {
-            status,
-            processedById: currentUser.id,
-            processedAt: new Date(),
-            receiptUrl:
-              attachmentData.length > 0 ? attachmentData[0].url : null,
-          },
-        });
-        await tx.cashoutLogs.create({
-          data: {
-            cashoutId: createdCashout.id,
-            action: "PENDING",
-            performedById: currentUser.id,
-          },
-        });
+          });
+          await tx.transactionRequest.update({
+            where: { id },
+            data: {
+              status,
+              processedById: currentUser.id,
+              processedAt: new Date(),
+              receiptUrl:
+                attachmentData.length > 0 ? attachmentData[0].url : null,
+            },
+          });
+          await tx.cashoutLogs.create({
+            data: {
+              cashoutId: createdCashout.id,
+              action: "PENDING",
+              performedById: currentUser.id,
+            },
+          });
 
-        console.log("externalUserId:", externalUserId);
-        // Call createTransaction
-        // you might want to wrap this in a try/catch (optional)
-        const trxnResult = await createTransaction({
-          id: externalUserId, //user.externalId for player,
-          txn: existingTransaction.id, // use appropriate field for "txn"
-          type: "WITHDRAW",
-          amount: amount,
-        });
+          // --- IMPORTANT FIX ---
+          const trxnResult = await createTransaction({
+            id: externalUserId,
+            txn: existingTransaction.id,
+            type: "WITHDRAW",
+            amount: amount,
+          });
 
-        // You can customize response or handle errors/logs
-        if (!trxnResult.ok) {
-          console.error("createTransaction failed:", trxnResult);
-          // Optionally: undo approval, mark as error, or return error response
-          // return NextResponse.json({ error: "Transaction API failed.", details: trxnResult }, { status: 502 });
-        } else {
-          console.log("createTransaction success:", trxnResult.data);
-        }
+          if (!trxnResult.ok) {
+            console.error("createTransaction failed:", trxnResult);
+            throw new Error(
+              "createTransaction failed: " +
+                (trxnResult?.data || "unknown error")
+            ); // <-- THIS causes a rollback!
+          } else {
+            console.log("createTransaction success:", trxnResult.data);
+          }
 
-        return createdCashout;
-      });
+          return createdCashout;
+        },
+        { timeout: 15000 }
+      );
     } catch (dbErr: any) {
       console.error("DB error during cashout creation:", dbErr);
       return NextResponse.json(
-        { error: "Failed to create cashout." },
+        { error: dbErr.message || "Failed to create cashout." },
         { status: 500 }
       );
     }
