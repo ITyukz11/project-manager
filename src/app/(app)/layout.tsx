@@ -8,7 +8,6 @@ import { SessionProvider } from "next-auth/react";
 import SearchModal from "@/components/SearchModal";
 import { ReadyCheckListener } from "@/components/ready-check/ReadyCheckListener";
 import { ReadyCheckTimerProvider } from "@/lib/context/ReadyCheckTimerContext";
-import { GatewayAlarm } from "@/components/gateway/GatewayAlarm";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [openSearch, setOpenSearch] = useState<boolean>(false);
@@ -40,7 +39,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               onClose={() => setOpenSearch(false)}
             />
             <ReadyCheckListener />
-            <GatewayAlarm />
           </main>
         </SidebarProvider>
       </ReadyCheckTimerProvider>
