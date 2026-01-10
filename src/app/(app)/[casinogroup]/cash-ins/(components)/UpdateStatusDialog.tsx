@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useCashinById } from "@/lib/hooks/swr/cashin/useCashinById";
+import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
 
 export function UpdateStatusDialog({
   cashinId,
@@ -33,7 +34,7 @@ export function UpdateStatusDialog({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { mutate } = useCashinById(cashinId);
-
+  const { refreshBalance } = useBalance("NEFTUAO2A0LHYYXO");
   // 1. Setup react-hook-form
   const form = useForm({
     defaultValues: {
@@ -70,6 +71,7 @@ export function UpdateStatusDialog({
         toast.success("Status updated!");
         setOpen(false);
         mutate();
+        refreshBalance();
       } else {
         toast.error(data.error || "Failed to update status");
       }
