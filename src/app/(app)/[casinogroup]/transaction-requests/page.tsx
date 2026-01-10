@@ -13,14 +13,9 @@ import { Title } from "@/components/Title";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { DateRange } from "react-day-picker";
-import { Label } from "@/components/ui/label";
 import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
-import {
-  formatAmountWithDecimals,
-  formatPhpAmount,
-} from "@/components/formatAmount";
+import { formatPhpAmount } from "@/components/formatAmount";
 import { Spinner } from "@/components/ui/spinner";
-import { MetricCard } from "@/components/MetricCard";
 import {
   Tooltip,
   TooltipContent,
