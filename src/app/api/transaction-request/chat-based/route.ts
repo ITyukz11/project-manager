@@ -174,24 +174,39 @@ export async function POST(req: Request) {
           casinoGroupId: casinoGroup.id,
           transactionRequestId: transaction.id,
           cashinThreads: {
-            create: {
-              authorId: "4694979a-0537-4efd-b1d6-e83e3366c7db",
-              authorName: "Bot",
-              message: `Good day!
+            create: [
+              {
+                authorId: "4694979a-0537-4efd-b1d6-e83e3366c7db",
+                authorName: "Bot",
+                message: `Good day po!
 
-I’m here to assist you with your cash-in request.
+Andito po ako para ma-assist kayo sa pag cash in!
 
-To send your payment, paki-upload o i-scan ang QR na ibibigay ko gamit ang inyong GCash app.
-
-Paki-send po dito ang resibo pagkatapos.`,
-              attachments: {
-                create: {
-                  url: "https://l4qltxdqdozpa9hu.public.blob.vercel-storage.com/Sec-QRPH-qr.png",
-                  filename: "Sec-QRPH-qr.png",
-                  mimetype: "image/png",
+Para maka umpisa, paki scan ng QR na ito gamit ang inyong GCash, Maya, or Banking App. Pwede niyo rin pong i-save or i-screenshot ang QR at i-UPLOAD sa Gcash, Maya, or Banking App.`,
+                attachments: {
+                  create: {
+                    url: "https://l4qltxdqdozpa9hu.public.blob.vercel-storage.com/Sec-QRPH-qr.png",
+                    filename: "Sec-QRPH-qr.png",
+                    mimetype: "image/png",
+                  },
                 },
               },
-            },
+              {
+                authorId: "4694979a-0537-4efd-b1d6-e83e3366c7db",
+                authorName: "Bot",
+                message: `Paki-send po dito ng resibo pagkatapos para ma process naming ang inyong Cash-In.
+
+Pwede niyo rin pong i-check ang instructions sa ibaba para mas madaling ma intindihan.
+`,
+                attachments: {
+                  create: {
+                    url: "https://l4qltxdqdozpa9hu.public.blob.vercel-storage.com/instruction.jpg",
+                    filename: "instruction.jpg",
+                    mimetype: "image/jpeg",
+                  },
+                },
+              },
+            ],
           },
         },
       });
