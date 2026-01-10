@@ -133,7 +133,7 @@ export function UserDetailsTab({
         className="space-y-6"
         autoComplete="off"
       >
-        <div className="flex flex-col gap-4 md:w-[400px]">
+        <div className="flex flex-col gap-4 md:w-[400px] mt-6">
           <GlobalFormField
             form={form}
             fieldName="name"
