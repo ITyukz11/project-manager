@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, RefreshCw, TriangleAlert, Wallet } from "lucide-react";
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { transactionRequestColumns } from "@/components/table/transaction-request/transaction-request-columns";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
@@ -13,6 +13,19 @@ import { Title } from "@/components/Title";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { DateRange } from "react-day-picker";
+import { Label } from "@/components/ui/label";
+import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
+import {
+  formatAmountWithDecimals,
+  formatPhpAmount,
+} from "@/components/formatAmount";
+import { Spinner } from "@/components/ui/spinner";
+import { MetricCard } from "@/components/MetricCard";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function Page() {
   const params = useParams();
@@ -62,6 +75,14 @@ export default function Page() {
 
   const { transactionRequests, isLoading, error, lastUpdate, refetch } =
     useTransactionRequest(casinoGroup?.toLocaleString() || "", dateRange);
+
+  const {
+    balance,
+    isLoading: balanceLoading,
+    refreshBalance,
+    isValidating: balanceValidating,
+    error: balanceError,
+  } = useBalance("NEFTUAO2A0LHYYXO");
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -121,6 +142,67 @@ export default function Page() {
             }
             live
             error={error}
+            right={
+              <div
+                className="
+                xl:absolute right-10
+    flex flex-col gap-1 
+    bg-green-100 dark:bg-green-950 
+    border border-green-300 dark:border-green-800
+    rounded-lg 
+    px-4 py-2
+    max-w-[95vw] sm:max-w-xs
+  "
+              >
+                {/* Title Row */}
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-green-700 dark:text-green-200 font-semibold">
+                  <Wallet className="h-4 w-4 shrink-0 text-green-700 dark:text-green-300" />
+                  <span className="truncate text-xs sm:text-sm">
+                    Gateway Balance
+                  </span>
+                </div>
+
+                {/* Value / State */}
+                <div>
+                  {balanceLoading ? (
+                    <Skeleton className="h-3 w-24 sm:w-32 my-1 sm:my-2 bg-green-200 dark:bg-green-800" />
+                  ) : error ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-red-600 text-xs sm:text-sm">
+                          <TriangleAlert className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
+                          Error
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <span>{error}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <div className="flex flex-row gap-1 font-bold text-base sm:text-lg text-green-700 dark:text-green-200">
+                      {balanceValidating ? (
+                        <Skeleton className="h-3 w-24 my-1 sm:my-2 bg-green-200 dark:bg-green-800" />
+                      ) : (
+                        formatPhpAmount(balance)
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => refreshBalance()}
+                        disabled={balanceLoading}
+                        title="Refresh balance"
+                        className="cursor-pointer flex items-center justify-center"
+                      >
+                        {!balanceLoading && !balanceValidating ? (
+                          <RefreshCw className="w-3.5 h-3.5 text-green-700 dark:text-green-300" />
+                        ) : (
+                          <Spinner className="text-green-700 dark:text-green-300" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            }
           />
 
           {/* Status Metrics */}
