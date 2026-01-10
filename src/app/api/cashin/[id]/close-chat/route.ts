@@ -52,7 +52,7 @@ export async function PATCH(
           status: { in: ["PENDING", "ACCOMMODATING"] },
         },
         data: {
-          status: "LEAVED",
+          status: "LEFT",
         },
       }),
     ]);
