@@ -11,6 +11,7 @@ export function useBalance(member_account?: string) {
     {
       revalidateOnFocus: false,
       shouldRetryOnError: false,
+      refreshInterval: 30000, // auto-refresh every 30s
     }
   );
 

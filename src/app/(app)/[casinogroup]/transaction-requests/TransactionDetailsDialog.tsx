@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
+import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
 
 interface TransactionDetailsDialogProps {
   open: boolean;
@@ -166,6 +167,8 @@ export function TransactionDetailsDialog({
   transactionId,
   refetch,
 }: TransactionDetailsDialogProps) {
+  const { refreshBalance } = useBalance("NEFTUAO2A0LHYYXO");
+
   const [showReceipt, setShowReceipt] = useState(true);
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -358,6 +361,7 @@ export function TransactionDetailsDialog({
       }
       await refetch();
       await mutate();
+      await refreshBalance();
 
       setIsActionDialogOpen(false);
       setRemarks("");
