@@ -154,7 +154,8 @@ export default function Page() {
   const isAllowed =
     session?.user?.role === ADMINROLES.ADMIN ||
     session?.user?.role === ADMINROLES.SUPERADMIN ||
-    session?.user?.role === ADMINROLES.ACCOUNTING;
+    session?.user?.role === ADMINROLES.ACCOUNTING ||
+    session?.user?.role === ADMINROLES.LOADER;
 
   console.log("session user role:", session?.user?.role === ADMINROLES.ADMIN);
   // Details Section Component
