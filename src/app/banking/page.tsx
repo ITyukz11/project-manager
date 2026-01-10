@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCcw, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CashInContent } from "./(tabs)/cashin.tab";
@@ -15,6 +15,9 @@ import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
 import Loading from "./Loading";
 import { Button } from "@/components/ui/button";
 import { signOut } from "next-auth/react";
+import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
+import { Spinner } from "@/components/ui/spinner";
+import { formatAmountWithDecimals } from "@/components/formatAmount";
 
 export type PaymentMethod =
   | "QRPH"
@@ -50,6 +53,7 @@ export type Transaction = {
 
 export default function BankingPage() {
   const searchParams = useSearchParams();
+
   const [activeTab, setActiveTab] = useState<
     "cashin" | "cashout" | "history" | string
   >("cashin");
@@ -61,7 +65,6 @@ export default function BankingPage() {
   const [username, setUsername] = useState("");
   const [externalUserId, setExternalUserId] = useState("");
   const [casino, setCasinoGroup] = useState("");
-  const [balance, setBalance] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,6 +97,14 @@ export default function BankingPage() {
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const COOLDOWN_SECONDS = 10;
 
+  const {
+    balance,
+    isLoading: balanceLoading,
+    refreshBalance,
+    isValidating: balanceValidating,
+    error: balanceError,
+  } = useBalance(externalUserId);
+
   console.log("balance: ", balance);
 
   // Get username and casino group from URL parameters
@@ -102,12 +113,10 @@ export default function BankingPage() {
     const usernameParam = searchParams.get("username");
     const externalUserIdParam = searchParams.get("id");
     const casinoGroupParam = searchParams.get("casino");
-    const balanceParam = searchParams.get("balance");
 
     if (usernameParam) setUsername(usernameParam);
     if (externalUserIdParam) setExternalUserId(externalUserIdParam);
     if (casinoGroupParam) setCasinoGroup(casinoGroupParam);
-    if (balanceParam) setBalance(balanceParam);
   }, [searchParams]);
 
   // 2. Check casino existence (triggered by casino name change)
@@ -444,6 +453,7 @@ export default function BankingPage() {
     activeTab,
     receiptFile,
     username,
+    externalUserId,
     selectedPayment,
     casino,
     balance,
@@ -521,7 +531,7 @@ export default function BankingPage() {
   console.log("activeTab: ", activeTab);
   return (
     <div className="dark relative min-h-screen bg-[url('/qbet-bg.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
-      <div className="container mx-auto p-4 sm:p-6 max-w-4xl">
+      <div className="container mx-auto p-4 sm:p-6 max-w-4xl min-h-dvh flex flex-col">
         <div className="mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Transaction Request
@@ -533,13 +543,30 @@ export default function BankingPage() {
             <p>
               Casino: <span className="font-semibold">{casino}</span>
             </p>
-            <p>
-              Balance: <span className="font-semibold">{balance}</span>
-            </p>
+            <div className="flex flex-row items-center gap-1">
+              Balance:{formatAmountWithDecimals(balance)}
+              <button
+                type="button"
+                onClick={() => refreshBalance()}
+                disabled={balanceLoading}
+                title="Refresh balance"
+                className="cursor-pointer flex items-center justify-center "
+              >
+                {!balanceLoading && !balanceValidating ? (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                ) : (
+                  <Spinner />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full h-full"
+        >
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger
               value="cashin"

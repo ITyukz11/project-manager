@@ -41,11 +41,12 @@ export function TransactionHistoryContent({
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Transaction History</h3>
-          <div className="flex flex-row gap-2">
+          <div className="flex flex-row gap-2 flex-wrap">
             <Link href={`https://www.${casinoLink}`}>
               <Button variant={"outline"}>
                 <MoveUpLeft className="h-4 w-4" />
-                Go back to {casinoName}
+                Go back{" "}
+                <span className="sm:block hidden -ml-1">to {casinoName}</span>
               </Button>
             </Link>
 
@@ -67,7 +68,7 @@ export function TransactionHistoryContent({
               ) : (
                 <>
                   <RefreshCw className="h-4 w-4" />
-                  Refresh History
+                  Refresh<span className="hidden sm:block -ml-1">History</span>
                 </>
               )}
             </Button>
