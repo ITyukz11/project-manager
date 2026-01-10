@@ -138,8 +138,10 @@ export default function Page() {
             live
             error={error}
             right={
-              <div
-                className="
+              casinoGroup?.toLocaleString().toLocaleLowerCase() ===
+              "qbet88.vip" ? (
+                <div
+                  className="
                 xl:absolute right-10
     flex flex-col gap-1 
     bg-green-100 dark:bg-green-950 
@@ -148,55 +150,58 @@ export default function Page() {
     px-4 py-2
     max-w-[95vw] sm:max-w-xs
   "
-              >
-                {/* Title Row */}
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-green-700 dark:text-green-200 font-semibold">
-                  <Wallet className="h-4 w-4 shrink-0 text-green-700 dark:text-green-300" />
-                  <span className="truncate text-xs sm:text-sm">
-                    Gateway Balance
-                  </span>
-                </div>
+                >
+                  {/* Title Row */}
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-green-700 dark:text-green-200 font-semibold">
+                    <Wallet className="h-4 w-4 shrink-0 text-green-700 dark:text-green-300" />
+                    <span className="truncate text-xs sm:text-sm">
+                      Gateway Balance
+                    </span>
+                  </div>
 
-                {/* Value / State */}
-                <div>
-                  {balanceLoading ? (
-                    <Skeleton className="h-3 w-24 sm:w-32 my-1 sm:my-2 bg-green-200 dark:bg-green-800" />
-                  ) : error ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center text-red-600 text-xs sm:text-sm">
-                          <TriangleAlert className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
-                          Error
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <span>{error}</span>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <div className="flex flex-row gap-1 font-bold text-base sm:text-lg text-green-700 dark:text-green-200">
-                      {balanceValidating ? (
-                        <Skeleton className="h-3 w-24 my-1 sm:my-2 bg-green-200 dark:bg-green-800" />
-                      ) : (
-                        formatPhpAmount(balance)
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => refreshBalance()}
-                        disabled={balanceLoading}
-                        title="Refresh balance"
-                        className="cursor-pointer flex items-center justify-center"
-                      >
-                        {!balanceLoading && !balanceValidating ? (
-                          <RefreshCw className="w-3.5 h-3.5 text-green-700 dark:text-green-300" />
+                  {/* Value / State */}
+                  <div>
+                    {balanceLoading ? (
+                      <Skeleton className="h-3 w-24 sm:w-32 my-1 sm:my-2 bg-green-200 dark:bg-green-800" />
+                    ) : error ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center text-red-600 text-xs sm:text-sm">
+                            <TriangleAlert className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
+                            Error
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <span>{error}</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <div className="flex flex-row gap-1 font-bold text-base sm:text-lg text-green-700 dark:text-green-200">
+                        {balanceValidating ? (
+                          <Skeleton className="h-3 w-24 my-1 sm:my-2 bg-green-200 dark:bg-green-800" />
                         ) : (
-                          <Spinner className="text-green-700 dark:text-green-300" />
+                          formatPhpAmount(balance)
                         )}
-                      </button>
-                    </div>
-                  )}
+                        <button
+                          type="button"
+                          onClick={() => refreshBalance()}
+                          disabled={balanceLoading}
+                          title="Refresh balance"
+                          className="cursor-pointer flex items-center justify-center"
+                        >
+                          {!balanceLoading && !balanceValidating ? (
+                            <RefreshCw className="w-3.5 h-3.5 text-green-700 dark:text-green-300" />
+                          ) : (
+                            <Spinner className="text-green-700 dark:text-green-300" />
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <></>
+              )
             }
           />
 
