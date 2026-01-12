@@ -9,6 +9,7 @@ import {
   CheckSquare,
   ChevronRight,
   ClipboardList,
+  Coins,
   MessageCircle,
   Users,
   Wallet,
@@ -102,6 +103,25 @@ export default function NavCasinoGroup({
         total:
           (prev?.transaction ?? 0) +
           (prev?.cashin ?? 0) +
+          (data.count ?? 0) +
+          (prev?.remittance ?? 0) +
+          (prev?.concern ?? 0) +
+          (prev?.task ?? 0) +
+          (prev?.customerSupport ?? 0),
+      }),
+      false
+    );
+  };
+
+  const handleCommissionUpdate = (data: { count: number }) => {
+    mutate(
+      (prev) => ({
+        ...prev!,
+        commission: data.count ?? 0,
+        total:
+          (prev?.transaction ?? 0) +
+          (prev?.cashin ?? 0) +
+          (prev?.cashout ?? 0) +
           (data.count ?? 0) +
           (prev?.remittance ?? 0) +
           (prev?.concern ?? 0) +
@@ -210,6 +230,10 @@ export default function NavCasinoGroup({
     () => [`task-${casinoGroupLower}`],
     [casinoGroupLower]
   );
+  const commissionChannel = React.useMemo(
+    () => [`commission-${casinoGroupLower}`],
+    [casinoGroupLower]
+  );
   const customerSupportChannel = React.useMemo(
     () => [`customerSupport-${casinoGroupLower}`],
     [casinoGroupLower]
@@ -254,6 +278,12 @@ export default function NavCasinoGroup({
   });
 
   usePusher({
+    channels: commissionChannel,
+    eventName: "commission-pending-count",
+    onEvent: handleCommissionUpdate,
+  });
+
+  usePusher({
     channels: customerSupportChannel,
     eventName: "customerSupport-pending-count",
     onEvent: handleCustomerSupportUpdate,
@@ -261,6 +291,13 @@ export default function NavCasinoGroup({
 
   const links: MenuLink[] = React.useMemo(() => {
     const thirdPartyLinks: MenuLink[] = [
+      {
+        href: `/${casinoGroupLower}/wallet`,
+        text: "Wallet",
+        icon: Wallet,
+        disable: false,
+        pendingCount: 0,
+      },
       {
         href: `/${casinoGroupLower}/transaction-requests`,
         text: "Gateway",
@@ -299,11 +336,19 @@ export default function NavCasinoGroup({
         disable: false,
         pendingCount: counts.transaction,
       },
+
       {
         href: `/${casinoGroupLower}/accounts`,
         text: "Accounts",
         icon: Users,
         disable: false,
+      },
+      {
+        href: `/${casinoGroupLower}/commissions`,
+        text: "Commissions",
+        icon: Coins,
+        disable: false,
+        pendingCount: counts.commission,
       },
       {
         href: `/${casinoGroupLower}/cash-ins`,
@@ -349,6 +394,7 @@ export default function NavCasinoGroup({
     counts.cashin,
     counts.cashout,
     counts.customerSupport,
+    counts.commission,
     counts.remittance,
     counts.concern,
     counts.task,

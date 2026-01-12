@@ -1,0 +1,67 @@
+// Commission: attributed to a User (admin, superadmin, regular user)
+model Commission {
+  id              String       @id @default(uuid())
+  amount          Float
+  userName        String  //Player Username
+  externalUserId String?   // Player's external ID from gaming system
+  status          CommissionStatus   @default(PENDING)
+
+ 
+  attachments     CommissionAttachment[]
+
+  details         String
+
+  userId          String?
+  user            User?           @relation(fields: [userId], references: [id])
+  casinoGroupId   String
+  casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+  commissionThreads  CommissionThread[]
+  commissionLogs     CommissionLogs[]
+
+  transactionRequestId String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+model CommissionLogs{
+  id           String     @id @default(uuid())
+  action       String
+  commissionId    String
+  commission      Commission    @relation(fields: [commissionId], references: [id])
+  performedById String
+  performedBy  User       @relation(fields: [performedById], references: [id])
+  createdAt    DateTime   @default(now())
+}
+
+model CommissionThread {
+  id           String     @id @default(uuid())
+  message      String
+  commissionId    String
+  commission      Commission    @relation(fields: [commissionId], references: [id])
+  authorId     String
+  author       User       @relation(fields: [authorId], references: [id])
+  mentions     User[]     @relation("CommissionThreadMentions")
+  attachments  CommissionAttachment[] // <-- NEW!
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model CommissionAttachment {
+  id                String   @id @default(uuid())
+  url               String
+  filename          String
+  mimetype          String
+  commissionId         String?      // <-- Make optional
+  commission           Commission?     @relation(fields: [commissionId], references: [id])
+  commissionThreadId   String?      // <-- NEW
+  commissionThread     CommissionThread? @relation(fields: [commissionThreadId], references: [id])
+  createdAt         DateTime @default(now())
+}
+
+enum CommissionStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  REJECTED
+}

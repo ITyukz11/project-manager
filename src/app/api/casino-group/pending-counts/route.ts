@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { CashinStatus, CashoutStatus } from "@prisma/client";
+import { CashinStatus, CashoutStatus, CommissionStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -30,6 +30,7 @@ export async function GET(req: Request) {
 
     // ✅ Execute all counts in parallel using Promise.all
     const [
+      commissionCount,
       cashinCount,
       cashoutCount,
       remittanceCount,
@@ -38,6 +39,15 @@ export async function GET(req: Request) {
       transactionCount,
       customerSupportCount,
     ] = await Promise.all([
+      // Commission count
+      prisma.commission.count({
+        where: {
+          status: {
+            in: [CommissionStatus.PENDING],
+          },
+          casinoGroupId: casinoGroup.id,
+        },
+      }),
       // Cashin count
       prisma.cashin.count({
         where: {
@@ -98,6 +108,7 @@ export async function GET(req: Request) {
     ]);
 
     return NextResponse.json({
+      commission: commissionCount,
       cashin: cashinCount,
       cashout: cashoutCount,
       remittance: remittanceCount,
@@ -106,6 +117,7 @@ export async function GET(req: Request) {
       transaction: transactionCount,
       customerSupport: customerSupportCount,
       total:
+        commissionCount +
         cashinCount +
         cashoutCount +
         remittanceCount +

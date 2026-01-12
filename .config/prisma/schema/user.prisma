@@ -74,6 +74,11 @@ model User {
   mentionedInTaskThreads TaskThread[] @relation("TaskThreadMentions")
   taskLogs      TaskLogs[]
 
+  commissionThreads   CommissionThread[]
+  mentionedInCommissionThreads CommissionThread[] @relation("CommissionThreadMentions")
+  commissions         Commission[]
+  commissionLogs      CommissionLogs[]
+
   transactionRequests TransactionRequest[]
 
   superAdmin       SuperAdmin? // one-to-one: nullable if not all users are superadmins

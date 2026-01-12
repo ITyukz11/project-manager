@@ -12,6 +12,7 @@ model CasinoGroup {
   remittances   Remittance[]  // NEW: remittances for this casino group
   concerns      Concern[]     // NEW: concerns for this casino group
   tasks         Task[]        // NEW: tasks for this casino group
+  commission    Commission[]     //
   groupChats    GroupChat[]   // NEW: group chats associated with this casino group
   customerSupports CustomerSupport[] // NEW: customer support tickets for this casino group
   gateway       Gateway[]
