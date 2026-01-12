@@ -38,12 +38,12 @@ const navSecondary: {
   showBadge?: boolean;
   adminOnly?: boolean;
 }[] = [
-  {
-    title: "NXTLOTTO (Beta)",
-    url: "/nxtlotto",
-    icon: Receipt,
-    disable: false,
-  },
+  // {
+  //   title: "NXTLOTTO (Beta)",
+  //   url: "/nxtlotto",
+  //   icon: Receipt,
+  //   disable: false,
+  // },
   {
     title: "Online Users",
     url: "/online-users",
