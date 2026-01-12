@@ -629,7 +629,15 @@ export default function Page() {
       <StatusHistorySheet
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
-        data={commission?.commissionLogs || []}
+        data={
+          commission?.commissionLogs
+            ? commission.commissionLogs.map((log) => ({
+                ...log,
+                performedById:
+                  log.performedById === null ? undefined : log.performedById,
+              }))
+            : []
+        }
       />
     </div>
   );
