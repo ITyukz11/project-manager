@@ -4,8 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
-import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
-import { CashoutStatus } from "@prisma/client";
+import { emitCommissionUpdated } from "@/actions/server/emitCommissionUpdated";
+import { CommissionStatus } from "@prisma/client";
 
 export async function PATCH(
   req: Request,
@@ -15,7 +15,7 @@ export async function PATCH(
   const session = await getServerSession(authOptions);
 
   const formData = await req.formData();
-  const status = formData.get("status") as CashoutStatus;
+  const status = formData.get("status") as CommissionStatus;
 
   if (
     !session?.user ||
@@ -34,53 +34,53 @@ export async function PATCH(
   }
 
   try {
-    // 1. Update the cashout status (get casinoGroup for channel)
-    const cashout = await prisma.cashout.update({
+    // 1. Update the commission status (get casinoGroup for channel)
+    const commission = await prisma.commission.update({
       where: { id },
       data: { status },
       include: { casinoGroup: true },
     });
 
-    // 2. Log this status change in CashoutLogs
-    await prisma.cashoutLogs.create({
+    // 2. Log this status change in CommissionLogs
+    await prisma.commissionLogs.create({
       data: {
         action: status,
-        cashoutId: id,
+        commissionId: id,
         performedById: session.user.id,
       },
     });
 
     // 3. Get updated pending count for this casinoGroup
-    const pendingCount = await prisma.cashout.count({
+    const pendingCount = await prisma.commission.count({
       where: {
         status: "PENDING",
-        casinoGroupId: cashout.casinoGroupId,
+        casinoGroupId: commission.casinoGroupId,
       },
     });
 
     // 4. Update transaction status in TransactionRequest table if linked
-    if (cashout.transactionRequestId) {
+    if (commission.transactionRequestId) {
       const transactionStatus = status === "COMPLETED" ? "APPROVED" : status;
       await prisma.transactionRequest.update({
-        where: { id: cashout.transactionRequestId },
+        where: { id: commission.transactionRequestId },
         data: { status: transactionStatus },
       });
     }
 
     // 5. Emit Pusher event for the clients
     await pusher.trigger(
-      `cashout-${cashout.casinoGroup.name.toLowerCase()}`,
-      "cashout-pending-count",
+      `commission-${commission.casinoGroup.name.toLowerCase()}`,
+      "commission-pending-count",
       { count: pendingCount }
     );
 
-    await emitCashoutUpdated({
-      transactionId: cashout.id,
-      casinoGroup: cashout.casinoGroup.name.toLowerCase(),
+    await emitCommissionUpdated({
+      transactionId: commission.id,
+      casinoGroup: commission.casinoGroup.name.toLowerCase(),
       action: "UPDATED",
     });
 
-    return NextResponse.json({ success: true, cashout });
+    return NextResponse.json({ success: true, commission });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "An error occurred" },

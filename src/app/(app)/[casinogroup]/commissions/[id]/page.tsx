@@ -385,7 +385,7 @@ export default function Page() {
           {/* Entry By */}
           <div>
             <Label className="text-muted-foreground text-xs mb-1 block">
-              Entry By
+              Role
             </Label>
             <div
               className={cn(
@@ -395,21 +395,10 @@ export default function Page() {
                 "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
               )}
             >
-              {commission.transactionRequestId && (
-                <span className="relative inline-flex">
-                  {/* Ping layer (only when PENDING) */}
-                  {commission.status === "COMPLETED" && (
-                    <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse">
-                      GATEWAY
-                    </span>
-                  )}
-
-                  {/* Main label */}
-                  <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
-                    GATEWAY
-                  </span>
-                </span>
-              )}
+              {/* Main label */}
+              <span className="uppercase relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
+                {commission.role}
+              </span>
 
               <Label className="font-normal">{commission.user?.name}</Label>
             </div>

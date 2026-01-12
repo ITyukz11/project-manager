@@ -18,7 +18,7 @@ export async function POST(
 
     if (!id) {
       return NextResponse.json(
-        { error: "Missing cashout ID" },
+        { error: "Missing commission ID" },
         { status: 400 }
       );
     }
@@ -54,17 +54,20 @@ export async function POST(
       );
     }
 
-    // Check if cashout exists
-    const cashout = await prisma.cashout.findUnique({ where: { id } });
-    if (!cashout) {
-      return NextResponse.json({ error: "Cashout not found" }, { status: 404 });
+    // Check if commission exists
+    const commission = await prisma.commission.findUnique({ where: { id } });
+    if (!commission) {
+      return NextResponse.json(
+        { error: "commission not found" },
+        { status: 404 }
+      );
     }
 
     // Create thread
-    const thread = await prisma.cashoutThread.create({
+    const thread = await prisma.commissionThread.create({
       data: {
         message: hasMessage ? (message as string).trim() : "",
-        cashoutId: id,
+        commissionId: id,
         authorId: currentUser.id,
       },
     });
@@ -81,7 +84,7 @@ export async function POST(
             url: blob.url,
             filename: file.name,
             mimetype: file.type || "",
-            cashoutThreadId: thread.id,
+            commissionThreadId: thread.id,
           };
         })
       );
@@ -103,11 +106,11 @@ export async function POST(
           const notification = await prisma.notifications.create({
             data: {
               userId: user.id,
-              message: `${currentUser.username} mentioned you in a cashout comment.`,
-              link: `/${casinoGroup}/cash-outs/${cashout.id}`, // adjust front-end link
+              message: `${currentUser.username} mentioned you in a commission comment.`,
+              link: `/${casinoGroup}/cash-outs/${commission.id}`, // adjust front-end link
               type: "mention",
               actor: currentUser.username,
-              subject: "Cashout Thread",
+              subject: "commission Thread",
               casinoGroup: casinoGroup ?? "", // adjust if needed
               isRead: false,
             },
@@ -124,14 +127,14 @@ export async function POST(
     }
 
     // Return thread including attachments
-    const createdThread = await prisma.cashoutThread.findUnique({
+    const createdThread = await prisma.commissionThread.findUnique({
       where: { id: thread.id },
       include: { attachments: true, author: true },
     });
 
     return NextResponse.json({ success: true, thread: createdThread });
   } catch (e: any) {
-    console.error("Error posting cashout thread:", e);
+    console.error("Error posting commission thread:", e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

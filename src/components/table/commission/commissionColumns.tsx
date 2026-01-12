@@ -14,6 +14,7 @@ export type CommissionForTable = {
   id: string;
   amount: number;
   userName: string;
+  role: string;
   details: string;
   status: string;
   transactionRequestId?: string;
@@ -27,50 +28,20 @@ export type CommissionForTable = {
 
 export const commissionColumns: ColumnDef<CommissionForTable>[] = [
   {
-    id: "entryBy",
-    accessorFn: (row) => {
-      if (row.transactionRequestId) return "gateway";
-
-      return row.createdByAdmin?.name || row.user?.name || "";
-    },
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Entry By" />
-    ),
-    cell: ({ row }) => {
-      const commission = row.original;
-      const isGateway = !!commission.transactionRequestId;
-
-      const entry =
-        commission.createdByAdmin?.name || commission.user?.name || "—";
-
-      return (
-        <span className="font-medium flex items-center gap-1">
-          {isGateway && (
-            <span className="relative inline-flex">
-              {commission.status === "COMPLETED" && (
-                <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse" />
-              )}
-
-              <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
-                GATEWAY
-              </span>
-            </span>
-          )}
-
-          <span>{entry}</span>
-        </span>
-      );
-    },
-  },
-
-  {
     accessorKey: "userName",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Username" />
+      <DataTableColumnHeader column={column} title="Role/Username" />
     ),
     cell: ({ row }) => {
       // Show Admin's name if present, else NetworkUser name
-      return <span className="font-medium">{row.original.userName}</span>;
+      return (
+        <span className="relative inline-flex gap-1">
+          <span className="uppercase font-bold relative z-10 rounded-lg bg-sky-100 border border-sky-300 px-2 py-0.5 text-xs text-sky-900">
+            {row.original.role}
+          </span>
+          {row.original.userName}
+        </span>
+      );
     },
   },
   {

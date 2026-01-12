@@ -134,7 +134,7 @@ const Page = () => {
           columns={commissionColumns}
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
-          onViewRowId={(id) => router.push(`/${casinoGroup}/cash-outs/${id}`)}
+          onViewRowId={(id) => router.push(`/${casinoGroup}/commissions/${id}`)}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}

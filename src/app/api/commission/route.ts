@@ -3,8 +3,8 @@ import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
-import { pusher } from "@/lib/pusher";
 import { emitCommissionUpdated } from "@/actions/server/emitCommissionUpdated";
+import { verifyExternalJwt } from "@/lib/auth/verifyExternalJwt";
 
 // --- GET handler to fetch all commissions with attachments and threads ---
 export async function GET(req: Request) {
@@ -93,9 +93,6 @@ export async function GET(req: Request) {
             commissionThreads: true,
           },
         },
-        user: {
-          where: { role: { in: allowedRoles } },
-        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -117,35 +114,57 @@ export async function GET(req: Request) {
 // --- POST handler to create a new commission ---
 export async function POST(req: Request) {
   try {
-    const currentUser = await getCurrentUser();
-    if (!currentUser) {
+    /* -------------------------------------------
+       1. JWT AUTH (replaces getCurrentUser)
+    -------------------------------------------- */
+    const authHeader = req.headers.get("authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: "Unauthorized. Please log in." },
+        { error: "Unauthorized. Missing JWT token." },
         { status: 401 }
       );
     }
 
-    // Accept fields
+    const token = authHeader.replace("Bearer ", "");
+
+    let currentUser: {
+      id: string;
+      username: string;
+      role?: string;
+    };
+
+    try {
+      const payload = verifyExternalJwt(token);
+
+      currentUser = {
+        id: payload.userId,
+        username: payload.username,
+        role: payload.role,
+      };
+    } catch (err) {
+      console.error("JWT verification failed:", err);
+      return NextResponse.json(
+        { error: "Unauthorized. Invalid or expired token." },
+        { status: 401 }
+      );
+    }
+
+    /* -------------------------------------------
+       2. FORM DATA (payload stays the same)
+    -------------------------------------------- */
     const formData = await req.formData();
 
     const userName = formData.get("userName") as string;
+    const role = formData.get("role") as string;
     const amountStr = formData.get("amount");
     const details = formData.get("details") as string;
     const casinoGroupName = formData.get("casinoGroup") as string;
 
-    const casinoGroup = await prisma.casinoGroup.findFirst({
-      where: {
-        name: { equals: casinoGroupName, mode: "insensitive" },
-      },
-    });
-    if (!casinoGroup) {
-      return NextResponse.json(
-        { error: "Invalid casino group specified." },
-        { status: 400 }
-      );
-    }
-    // --- Validation ---
-    if (!userName || typeof userName !== "string" || userName.trim() === "") {
+    /* -------------------------------------------
+       3. VALIDATION
+    -------------------------------------------- */
+    if (!userName?.trim()) {
       return NextResponse.json(
         { error: "Username is required." },
         { status: 400 }
@@ -154,11 +173,12 @@ export async function POST(req: Request) {
 
     if (!amountStr || isNaN(Number(amountStr))) {
       return NextResponse.json(
-        { error: "Amount is required and must be a valid number." },
+        { error: "Amount must be a valid number." },
         { status: 400 }
       );
     }
-    const amount = parseFloat(amountStr as string);
+
+    const amount = Number(amountStr);
     if (amount <= 0) {
       return NextResponse.json(
         { error: "Amount must be greater than zero." },
@@ -166,166 +186,89 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!details || typeof details !== "string" || details.trim() === "") {
+    if (!details?.trim()) {
       return NextResponse.json(
         { error: "Commission details are required." },
         { status: 400 }
       );
     }
 
-    // Upload attachments
-    const attachments: File[] = formData.getAll("attachment") as File[];
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: {
+        name: { equals: casinoGroupName, mode: "insensitive" },
+      },
+    });
+
+    if (!casinoGroup) {
+      return NextResponse.json(
+        { error: "Invalid casino group specified." },
+        { status: 400 }
+      );
+    }
+
+    /* -------------------------------------------
+       4. ATTACHMENTS
+    -------------------------------------------- */
+    const attachments = formData.getAll("attachment") as File[];
     const attachmentData: {
       url: string;
       filename: string;
       mimetype: string;
     }[] = [];
+
     for (const file of attachments) {
-      if (file && typeof file === "object" && file.size > 0) {
-        try {
-          const blob = await put(file.name, file, {
-            access: "public",
-            addRandomSuffix: true,
-          });
-          attachmentData.push({
-            url: blob.url,
-            filename: file.name,
-            mimetype: file.type || "",
-          });
-        } catch (err) {
-          console.error("Attachment upload error:", err);
-          return NextResponse.json(
-            { error: "Attachment upload failed." },
-            { status: 500 }
-          );
-        }
+      if (file?.size > 0) {
+        const blob = await put(file.name, file, {
+          access: "public",
+          addRandomSuffix: true,
+        });
+
+        attachmentData.push({
+          url: blob.url,
+          filename: file.name,
+          mimetype: file.type || "",
+        });
       }
     }
 
-    // Construct the data based on role
-    const commissionData: any = {
-      userName,
-      amount,
-      details,
-      casinoGroupId: casinoGroup.id,
-      userId: currentUser.id,
-      attachments: {
-        createMany: {
-          data: attachmentData,
+    /* -------------------------------------------
+       5. CREATE COMMISSION
+    -------------------------------------------- */
+    const result = await prisma.$transaction(async (prisma) => {
+      const commission = await prisma.commission.create({
+        data: {
+          userName,
+          role,
+          amount,
+          details,
+          casinoGroupId: casinoGroup.id,
+          attachments: {
+            createMany: { data: attachmentData },
+          },
         },
-      },
-    };
-
-    // --- Main transaction ---
-    try {
-      const result = await prisma.$transaction(async (prisma) => {
-        // Save to DB
-        const commission = await prisma.commission.create({
-          data: commissionData,
-          include: {
-            attachments: true,
-          },
-        });
-
-        await prisma.commissionLogs.create({
-          data: {
-            commissionId: commission.id,
-            action: "PENDING",
-            performedById: currentUser.id,
-          },
-        });
-        const pendingCount = await prisma.commission.count({
-          where: {
-            status: "PENDING",
-            casinoGroupId: casinoGroup.id, // or use casinoGroupName if you join by name
-          },
-        });
-
-        await pusher.trigger(
-          `commission-${casinoGroupName.toLowerCase()}`, // channel name
-          "commission-pending-count", // event name
-          { count: pendingCount }
-        );
-
-        // Get all tagged users for this notification
-        const taggedUserIds = await prisma.user
-          .findMany({
-            where: {
-              role: {
-                in: [
-                  ADMINROLES.SUPERADMIN,
-                  ADMINROLES.ADMIN,
-                  ADMINROLES.ACCOUNTING,
-                  ADMINROLES.LOADER,
-                  ADMINROLES.TL,
-                ],
-              },
-              casinoGroups: {
-                some: {
-                  id: casinoGroup.id, // 🔥 only users in this casino group
-                },
-              },
-              active: true,
-            },
-            select: {
-              id: true,
-            },
-          })
-          .then((users) => users.map((user) => user.id));
-
-        // For each user, create the notification and send via Pusher
-        await Promise.all(
-          taggedUserIds.map(async (userId) => {
-            const notification = await prisma.notifications.create({
-              data: {
-                userId,
-                message: `${currentUser.username} requested a Commission: "${commission.amount}" in ${casinoGroupName}.`,
-                link: `/${casinoGroupName.toLowerCase()}/cash-outs/${
-                  commission.id
-                }`,
-                isRead: false,
-                type: "commission",
-                actor: currentUser.username,
-                subject: commission.amount.toLocaleString(),
-                casinoGroup: casinoGroupName,
-              },
-            });
-
-            // You can use a specific event name for this type
-            await pusher.trigger(
-              `user-notify-${userId}`,
-              "notifications-event", // Event name by notification type
-              notification
-            );
-          })
-        );
-
-        await emitCommissionUpdated({
-          transactionId: commission.id,
-          casinoGroup: casinoGroupName,
-          action: "CREATED",
-        });
-
-        return commission;
+        include: { attachments: true },
       });
 
-      return NextResponse.json({ success: true, result });
-    } catch (dbErr: any) {
-      // Prisma error messages can be cryptic, so give a generic error and log:
-      console.error("Database error during commission creation:", dbErr);
-      return NextResponse.json(
-        {
-          error:
-            "Failed to create commission. Please check your data and try again.",
+      await prisma.commissionLogs.create({
+        data: {
+          commissionId: commission.id,
+          action: "PENDING",
         },
-        { status: 500 }
-      );
-    }
-  } catch (e: any) {
-    // Catch-all for unexpected errors
-    console.error("Unexpected error creating commission:", e);
+      });
+      await emitCommissionUpdated({
+        transactionId: commission.id,
+        casinoGroup: casinoGroupName,
+        action: "CREATED",
+      });
+
+      return commission;
+    });
+
+    return NextResponse.json({ success: true, result });
+  } catch (err) {
+    console.error("Commission POST error:", err);
     return NextResponse.json(
-      { error: "Unexpected server error. Please try again later." },
+      { error: "Unexpected server error." },
       { status: 500 }
     );
   }

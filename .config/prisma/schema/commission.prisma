@@ -3,16 +3,14 @@ model Commission {
   id              String       @id @default(uuid())
   amount          Float
   userName        String  //Player Username
+  role            String?  //Player Role
   externalUserId String?   // Player's external ID from gaming system
   status          CommissionStatus   @default(PENDING)
 
- 
   attachments     CommissionAttachment[]
 
   details         String
 
-  userId          String?
-  user            User?           @relation(fields: [userId], references: [id])
   casinoGroupId   String
   casinoGroup     CasinoGroup @relation(fields: [casinoGroupId], references: [id])
   commissionThreads  CommissionThread[]
@@ -29,8 +27,8 @@ model CommissionLogs{
   action       String
   commissionId    String
   commission      Commission    @relation(fields: [commissionId], references: [id])
-  performedById String
-  performedBy  User       @relation(fields: [performedById], references: [id])
+  performedById String?
+  performedBy  User?       @relation(fields: [performedById], references: [id])
   createdAt    DateTime   @default(now())
 }
 

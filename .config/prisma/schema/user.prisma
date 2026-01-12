@@ -75,9 +75,8 @@ model User {
   taskLogs      TaskLogs[]
 
   commissionThreads   CommissionThread[]
+  commisionLogs     CommissionLogs[]
   mentionedInCommissionThreads CommissionThread[] @relation("CommissionThreadMentions")
-  commissions         Commission[]
-  commissionLogs      CommissionLogs[]
 
   transactionRequests TransactionRequest[]
 

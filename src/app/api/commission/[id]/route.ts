@@ -18,25 +18,27 @@ export async function GET(
       return NextResponse.json({ error: "No ID provided" }, { status: 400 });
     }
 
-    // Find the specific cashout by primary key
-    const cashout = await prisma.cashout.findUnique({
+    // Find the specific Commission by primary key
+    const Commission = await prisma.commission.findUnique({
       where: { id },
       include: {
-        user: true,
         attachments: true,
-        cashoutLogs: { include: { performedBy: true } },
-        cashoutThreads: {
+        commissionLogs: { include: { performedBy: true } },
+        commissionThreads: {
           include: { author: true, attachments: true },
           orderBy: { createdAt: "asc" },
         },
       },
     });
 
-    if (!cashout) {
-      return NextResponse.json({ error: "Cashout not found" }, { status: 404 });
+    if (!Commission) {
+      return NextResponse.json(
+        { error: "Commission not found" },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json(cashout);
+    return NextResponse.json(Commission);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
