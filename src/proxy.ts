@@ -17,6 +17,8 @@ export async function proxy(request: NextRequest) {
     pathname === "/robots.txt" ||
     // allow files with common static extensions
     pathname.startsWith("/nxtlottotest") ||
+    pathname.startsWith("/droplet") ||
+    pathname.startsWith("/payment") ||
     pathname.match(/\.(jpg|jpeg|png|svg|gif|webp|ico|css|js|json|txt|pdf)$/i)
   ) {
     return NextResponse.next();

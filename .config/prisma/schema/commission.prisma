@@ -61,5 +61,6 @@ enum CommissionStatus {
   PENDING
   PARTIAL
   COMPLETED
+  APPROVED
   REJECTED
 }

@@ -1,0 +1,17 @@
+model DpayTransaction {
+  id                String   @id @default(cuid())
+  userId            String              // Your internal user ID
+  userName          String              // Your internal user name
+  referenceUserId   String              // Gateway's user/ref ID
+  transactionNumber String?             // Set after gateway responds
+  type              String              // "CASHIN" or "CASHOUT"
+  amount            Float               // Transaction amount
+  channel           String              // Payment method/channel used
+  status            String              // "INITIATED", "PENDING", "COMPLETED", "REJECTED", "CANCELLED", etc
+  paymentUrl        String?             // If gateway returns a payment URL (for CASHIN)
+  rawRequest        Json                // The payload you sent to your droplet/gateway
+  rawGatewayResponse Json?              // The payment gateway's create response
+  rawWebhook        Json?               // Full webhook JSON from NotificationUrl callback
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
