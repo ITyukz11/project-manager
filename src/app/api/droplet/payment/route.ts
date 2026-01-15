@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Base URL of your DigitalOcean proxy
-const PROXY_BASE_URL = "http://167.99.31.96:3001";
+const PROXY_BASE_URL = process.env.PROXY_BASE_URL;
 
 // ------------------------
 // GET Endpoints

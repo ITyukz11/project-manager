@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const res = await fetch(`${process.env.DROPLET_BASE}/api/cashin-merchants`);
+    const res = await fetch(
+      `${process.env.PROXY_BASE_URL}/api/cashin-merchants`
+    );
     const data = await res.json();
     return NextResponse.json(data);
   } catch (err) {

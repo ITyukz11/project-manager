@@ -11,9 +11,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const resp = await fetch(
-      `${process.env.DROPLET_BASE}/api/cashin-transaction/${encodeURIComponent(
-        transactionNumber
-      )}`
+      `${
+        process.env.PROXY_BASE_URL
+      }/api/cashin-transaction/${encodeURIComponent(transactionNumber)}`
     );
     const data = await resp.json();
     return NextResponse.json(data, { status: resp.status });
