@@ -205,6 +205,7 @@ export default function BankingPage() {
             <CashInContent
               externalUserId={externalUserId}
               userName={username}
+              casino={casino}
             />
           </TabsContent>
 
