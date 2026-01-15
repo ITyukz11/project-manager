@@ -10,53 +10,121 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Upload, AlertCircle, X, CheckCircle2, Loader2 } from "lucide-react";
-import { PaymentMethod } from "../page";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { PaymentMethod } from "@/app/banking/page";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
 
 interface PaymentQRCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-
   activeTab: "cashin" | "cashout" | "history" | string;
-  amount: string | number;
+  amount: string;
   selectedPayment: PaymentMethod;
-  QR_CODE_MAP?: Record<string, string>;
+  username: string;
+  externalUserId: string;
 
   displayBankName?: string;
-  accountName?: string;
-  accountNumber?: string;
-
-  receiptPreview: string | null;
-  receiptFile?: File | null;
-  handleReceiptChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  removeReceipt?: () => void;
-
-  isSubmitting: boolean;
-  handleFinalSubmit: () => void;
-
-  showSuccessMessage?: boolean;
+  accountName: string;
+  accountNumber: string;
+  casino: string;
+  balance: string;
+  selectedBank?: string;
+  customBank: string;
+  setActiveTab: (tab: "cashin" | "cashout" | "history" | string) => void;
 }
 
 export function PaymentQRCodeDialog({
   open,
   onOpenChange,
   activeTab,
+  username,
+  externalUserId,
   amount,
   selectedPayment,
-  QR_CODE_MAP,
   displayBankName,
   accountName,
   accountNumber,
-  receiptPreview,
-  receiptFile,
-  handleReceiptChange,
-  removeReceipt,
-  isSubmitting,
-  handleFinalSubmit,
-  showSuccessMessage,
+  casino,
+  balance,
+  selectedBank,
+  customBank,
+  setActiveTab,
 }: PaymentQRCodeDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  const handleFinalSubmit = useCallback(async () => {
+    const minAmount = 100;
+    if (parseFloat(amount) < minAmount) {
+      toast.error(`Cashout minimum amount is ${minAmount}`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    if (Number(amount) >= Number(balance)) {
+      return toast.error(
+        `Insufficient Balance. You only have ${Number(balance)}`
+      );
+    }
+
+    try {
+      const payload = {
+        Channel: selectedPayment,
+        Amount: parseFloat(amount),
+        ReferenceUserId: externalUserId,
+        UserName: username,
+        NotificationUrl:
+          "https://www.nxtlink.xyz/api/dpay/receive-payment-callback",
+        SuccessRedirectUrl: "http://nxtlink.xyz/payment/success",
+        CancelRedirectUrl: "https://qbet88.vip/",
+        Type: "CASHOUT",
+        AccountNumber: accountNumber,
+        HolderName: accountName,
+        Bank: selectedBank === "Other" ? customBank.trim() : selectedBank,
+        BankCode: "", // Add real code if your e-wallet/bank system uses it
+        BankAccountType: "PERSONAL", // Or "BUSINESS"
+        RecipientMobileNumber: accountNumber, // Use for e-wallets
+      };
+
+      const res = await fetch("/api/dpay/payment/new-dpay-transaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to store transaction");
+      }
+
+      setShowSuccessMessage(true);
+
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+      }, 5000);
+      setActiveTab("history");
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit transaction");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    amount,
+    username,
+    externalUserId,
+    selectedPayment,
+    setActiveTab,
+    onOpenChange,
+    balance,
+    selectedBank,
+    customBank,
+    accountName,
+    accountNumber,
+  ]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg overflow-y-auto max-h-[95vh] dark">
@@ -72,129 +140,6 @@ export function PaymentQRCodeDialog({
             </DialogHeader>
 
             <div className="space-y-4">
-              {/* Instructions Alert for Cash In */}
-              {activeTab === "cashin" && (
-                <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                  <AlertDescription className="text-sm text-blue-900 dark:text-blue-100">
-                    <ol className="list-none space-y-2">
-                      <li className="flex gap-2">
-                        <span className="font-semibold shrink-0">Step 1:</span>
-                        <span>Save or screenshot the QR code below</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-semibold shrink-0">Step 2:</span>
-                        <span>
-                          Upload QR to your GCash, Maya or Other Banks and send
-                          ₱{amount}
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-semibold shrink-0">Step 3:</span>
-                        <span>
-                          Take a screenshot of your payment confirmation
-                        </span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-semibold shrink-0">Step 4:</span>
-                        <span>Upload the receipt screenshot below</span>
-                      </li>
-                      <li className="flex gap-2">
-                        <span className="font-semibold shrink-0">Step 5:</span>
-                        <span>
-                          Go back to your dashboard or transaction history to
-                          verify your payment. Good luck!
-                        </span>
-                      </li>
-                    </ol>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* QR Code Display */}
-              {activeTab === "cashin" && selectedPayment && QR_CODE_MAP && (
-                <div className="flex flex-col items-center space-y-3">
-                  <div className="text-center">
-                    <p className="text-sm font-semibold text-foreground">
-                      {selectedPayment} Payment QR Code
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Scan or screenshot this code to make payment
-                    </p>
-                  </div>
-                  <div className="relative w-64 h-64 bg-muted rounded-lg flex items-center justify-center border-2 border-border">
-                    <Image
-                      src={QR_CODE_MAP[selectedPayment]}
-                      alt={`${selectedPayment} QR Code`}
-                      fill
-                      className="object-contain p-4 rounded-lg"
-                    />
-                  </div>
-                  <div className="bg-primary/10 px-4 py-2 rounded-md">
-                    <p className="text-sm text-foreground">
-                      Amount to Send:{" "}
-                      <span className="font-bold text-lg">₱{amount}</span>
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Receipt Upload */}
-              {activeTab === "cashin" && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="receipt-upload"
-                    className="text-sm font-semibold"
-                  >
-                    Upload Payment Receipt
-                  </Label>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Please upload a clear screenshot of your payment
-                    confirmation
-                  </p>
-
-                  {!receiptPreview ? (
-                    <Label htmlFor="receipt-upload" className="cursor-pointer">
-                      <div className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center hover:border-primary/50 hover:bg-primary/5 transition-colors">
-                        <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-xs text-muted-foreground">
-                          PNG, JPG up to 5MB
-                        </p>
-                      </div>
-                      <Input
-                        id="receipt-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleReceiptChange}
-                      />
-                    </Label>
-                  ) : (
-                    <div className="relative">
-                      <div className="relative w-full h-48 bg-muted rounded-lg border-2 border-green-500">
-                        <Image
-                          src={receiptPreview}
-                          alt="Receipt preview"
-                          fill
-                          className="object-contain rounded-lg"
-                        />
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={removeReceipt}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> Receipt uploaded
-                        successfully
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Cash Out Summary */}
               {activeTab === "cashout" && (
                 <>
@@ -260,9 +205,7 @@ export function PaymentQRCodeDialog({
               {/* Submit Button */}
               <Button
                 onClick={handleFinalSubmit}
-                disabled={
-                  isSubmitting || (activeTab === "cashin" && !receiptFile)
-                }
+                disabled={isSubmitting}
                 className="w-full h-11"
               >
                 {isSubmitting ? (

@@ -15,14 +15,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
 import { TransactionHistoryContent } from "./(tabs)/history.tab";
 
-export type PaymentMethod =
-  | "QRPH"
-  | "GCash"
-  | "GoTyme"
-  | "Bank"
-  | "Chat-Based"
-  | null;
-
 // Transaction type
 export type Transaction = {
   id: string;
@@ -55,6 +47,7 @@ export default function BankingPage() {
   const [casino, setCasinoGroup] = useState("");
 
   const [casinoExists, setCasinoExists] = useState<boolean | null>(null);
+  const [casinoExistsLoading, setCasinoExistsLoading] = useState(true);
 
   const {
     balance,
@@ -83,6 +76,7 @@ export default function BankingPage() {
     if (!casino) return;
 
     const checkCasino = async () => {
+      setCasinoExistsLoading(true);
       try {
         const res = await fetch(`/api/casino-group/${casino}/exists/`);
 
@@ -90,6 +84,7 @@ export default function BankingPage() {
 
         const data = await res.json();
         setCasinoExists(data.exists);
+        setCasinoExistsLoading(false);
       } catch (err) {
         setCasinoExists(false);
       }
@@ -98,7 +93,7 @@ export default function BankingPage() {
     checkCasino();
   }, [casino]);
 
-  if (!casinoExists) {
+  if (!casinoExists && !casinoExistsLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[300px] space-y-6">
         {/* Icon -- you can swap for another SVG or library icon */}
@@ -137,7 +132,7 @@ export default function BankingPage() {
     );
   }
 
-  if (!username || !casino || !balance) {
+  if ((!username || !casino || !balance) && !casinoExistsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Alert variant="destructive">
@@ -161,7 +156,7 @@ export default function BankingPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
             Transaction Request
           </h1>
-          <div className="flex flex-row items-center gap-1">
+          <div className="flex flex-row text-muted-foreground items-center gap-1">
             Balance: {formatAmountWithDecimals(balance)}
             <button
               type="button"
@@ -217,7 +212,10 @@ export default function BankingPage() {
           <TabsContent value="cashout">
             <CashOutContent
               externalUserId={externalUserId}
-              userName={username}
+              username={username}
+              balance={balance}
+              casino={casino}
+              setActiveTab={setActiveTab}
             />
           </TabsContent>
 

@@ -13,113 +13,101 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import {
-  DPAY_BANK_CASHOUTS,
+  BANK_ONLY,
+  E_WALLET_BANK,
   PAYMENT_METHODS_CASHOUT,
   QUICK_AMOUNTS,
 } from "@/lib/constants/data";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { PaymentMethod, QR_CODE_MAP } from "@/app/banking/page";
+import { PaymentQRCodeDialog } from "./PaymentQRCodeDialog";
 
 interface CashOutContentProps {
-  externalUserId?: string;
-  userName?: string;
+  username: string;
+  externalUserId: string;
+  balance: string;
+  casino: string;
+  setActiveTab: (tab: "cashin" | "cashout" | "history" | string) => void;
 }
 
 export function CashOutContent({
+  username,
   externalUserId,
-  userName,
+  balance,
+  casino,
+  setActiveTab,
 }: CashOutContentProps) {
-  const [selectedPayment, setSelectedPayment] = useState<
-    "BankTransfer" | "E-Wallet" | null
-  >(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(
+    null
+  );
   const [amount, setAmount] = useState("");
-  const [selectedBank, setSelectedBank] = useState("");
+  const [selectedBank, setSelectedBank] = useState<string>("");
   const [customBank, setCustomBank] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [bankCode, setBankCode] = useState("");
   const [accountName, setAccountName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
 
-  const handleProceedToCashoutGateway = async () => {
+  // Memoize the bank display name
+  const displayBankName = useMemo(() => {
+    return selectedBank === "Other" ? customBank : selectedBank;
+  }, [selectedBank, customBank]);
+
+  const handleProceedToQR = useCallback(async () => {
+    if (!username.trim()) {
+      toast.error("Username is required");
+      return;
+    }
+
+    if (!casino.trim()) {
+      toast.error("Casino group is required");
+      return;
+    }
+
     if (!selectedPayment) {
       toast.error("Please select a payment method");
       return;
     }
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-    if (!accountName || !accountNumber) {
-      toast.error("Please enter valid account holder info");
-      return;
-    }
+
     const minAmount = 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
       return;
     }
 
-    if (!bankName) {
-      toast.error("Please select or enter your bank name");
+    if (!selectedBank) {
+      toast.error("Please select a bank");
+      return;
+    }
+    if (selectedBank === "Other" && !customBank.trim()) {
+      toast.error("Please enter your bank name");
+      return;
+    }
+    if (!accountName.trim()) {
+      toast.error("Please enter account name");
+      return;
+    }
+    if (!accountNumber.trim()) {
+      toast.error("Please enter account number");
       return;
     }
 
-    setSubmitting(true);
-
-    try {
-      const payload = {
-        Channel: selectedPayment,
-        Amount: parseFloat(amount),
-        ReferenceUserId: externalUserId,
-        UserName: userName,
-        NotificationUrl:
-          "https://www.nxtlink.xyz/api/dpay/receive-payment-callback",
-        SuccessRedirectUrl: "http://nxtlink.xyz/payment/success",
-        CancelRedirectUrl: "https://qbet88.vip/",
-        Type: "CASHOUT",
-        AccountNumber: accountNumber,
-        HolderName: accountName,
-        Bank: bankName,
-        BankCode: "", // Add real code if your e-wallet/bank system uses it
-        BankAccountType: "PERSONAL", // Or "BUSINESS"
-        RecipientMobileNumber: accountNumber, // Use for e-wallets
-      };
-
-      const res = await fetch("/api/dpay/payment/new-dpay-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(
-          data?.error || data?.message || "Failed to create cashout request."
-        );
-        setSubmitting(false);
-        return;
-      }
-
-      const paymentUrl =
-        data.PaymentUrl ||
-        data.createCashout?.PaymentUrl ||
-        data.createCashin?.PaymentUrl ||
-        null;
-
-      if (paymentUrl) {
-        window.location.href = paymentUrl;
-      } else {
-        toast.success("Cashout request submitted, awaiting processing.");
-        setSubmitting(false);
-        // Optionally show a modal/status page here!
-      }
-    } catch (err) {
-      toast.error("Network error. Try again!");
-      setSubmitting(false);
-      console.error(err);
-    }
-  };
+    setShowQRDialog(true);
+  }, [
+    username,
+    casino,
+    selectedPayment,
+    amount,
+    selectedBank,
+    customBank,
+    accountName,
+    accountNumber,
+  ]);
 
   return (
     <Card>
@@ -129,6 +117,7 @@ export function CashOutContent({
           <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
             Step 1. Select Payment Method
           </Label>
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
             {PAYMENT_METHODS_CASHOUT.map((method) => (
               <Card
@@ -138,9 +127,7 @@ export function CashOutContent({
                     ? "ring-2 ring-primary shadow-lg"
                     : ""
                 }`}
-                onClick={() =>
-                  setSelectedPayment(method.id as "BankTransfer" | "E-Wallet")
-                }
+                onClick={() => setSelectedPayment(method.id as PaymentMethod)}
               >
                 <CardContent className="p-0 flex items-center justify-center">
                   <Image
@@ -161,6 +148,7 @@ export function CashOutContent({
           <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
             Step 2. Enter Amount & Bank Details
           </Label>
+
           <div className="space-y-3 sm:space-y-4">
             {/* Amount */}
             <div>
@@ -174,9 +162,9 @@ export function CashOutContent({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="h-12"
-                min={100}
               />
             </div>
+
             {/* Quick Amounts */}
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {QUICK_AMOUNTS.map((amt) => (
@@ -190,18 +178,18 @@ export function CashOutContent({
                 </Button>
               ))}
             </div>
+
             {/* Bank Selection */}
             <div>
               <Label htmlFor="bank-select" className="text-sm mb-2 block">
                 Bank Name
               </Label>
-              <Select
-                value={bankCode}
-                onValueChange={(value) => {
-                  const bank = DPAY_BANK_CASHOUTS.find((b) => b.Code === value);
 
-                  setBankCode(value); // ✅ Store code
-                  setBankName(bank?.Name || ""); // ✅ Store name
+              <Select
+                value={selectedBank}
+                onValueChange={(value) => {
+                  setSelectedBank(value);
+                  if (value !== "Other") setCustomBank("");
                 }}
               >
                 <SelectTrigger className="w-full" size="lg">
@@ -209,18 +197,39 @@ export function CashOutContent({
                 </SelectTrigger>
 
                 <SelectContent>
-                  {DPAY_BANK_CASHOUTS.filter((bank) =>
-                    selectedPayment === "BankTransfer"
-                      ? !bank.IsEWallet
-                      : bank.IsEWallet
-                  ).map((bank, index) => (
-                    <SelectItem key={index} value={bank.Code}>
-                      {bank.Name}
-                    </SelectItem>
-                  ))}
+                  {selectedPayment === "GCash/Maya"
+                    ? E_WALLET_BANK.map((bank) => (
+                        <SelectItem key={bank} value={bank}>
+                          {bank}
+                        </SelectItem>
+                      ))
+                    : BANK_ONLY.map((bank) => (
+                        <SelectItem key={bank} value={bank}>
+                          {bank}
+                        </SelectItem>
+                      ))}
+
+                  <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Custom Bank */}
+            {selectedBank === "Other" && (
+              <div>
+                <Label htmlFor="custom-bank" className="text-sm mb-2 block">
+                  Enter Bank Name
+                </Label>
+                <Input
+                  id="custom-bank"
+                  type="text"
+                  placeholder="Enter your bank name"
+                  value={customBank}
+                  onChange={(e) => setCustomBank(e.target.value)}
+                  className="h-12"
+                />
+              </div>
+            )}
 
             {/* Account Name */}
             <div>
@@ -236,6 +245,7 @@ export function CashOutContent({
                 className="h-12"
               />
             </div>
+
             {/* Account Number */}
             <div>
               <Label htmlFor="account-number" className="text-sm mb-2 block">
@@ -252,15 +262,34 @@ export function CashOutContent({
             </div>
           </div>
         </div>
+
         {/* Submit */}
         <Button
-          onClick={handleProceedToCashoutGateway}
-          disabled={submitting}
+          onClick={handleProceedToQR}
           className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90"
         >
-          {submitting ? "Please wait..." : "Submit Cash Out Request"}
+          Submit Cash Out Request
         </Button>
       </CardContent>
+
+      {/* QR Code & Receipt Upload Dialog */}
+      <PaymentQRCodeDialog
+        open={showQRDialog}
+        onOpenChange={setShowQRDialog}
+        activeTab={"cashout"}
+        amount={amount}
+        selectedPayment={selectedPayment}
+        displayBankName={displayBankName}
+        accountName={accountName}
+        accountNumber={accountNumber}
+        balance={balance}
+        username={username}
+        externalUserId={externalUserId}
+        casino={casino}
+        selectedBank={selectedBank}
+        customBank={customBank}
+        setActiveTab={setActiveTab}
+      />
     </Card>
   );
 }

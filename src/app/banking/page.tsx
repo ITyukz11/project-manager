@@ -27,7 +27,7 @@ export type PaymentMethod =
   | "Chat-Based"
   | null;
 
-const QR_CODE_MAP: Record<string, string> = {
+export const QR_CODE_MAP: Record<string, string> = {
   QRPH: "/Sec-QRPH-qr.png",
   GoTyme: "/gotyme-qr1.png",
 };

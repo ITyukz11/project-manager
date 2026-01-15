@@ -1,5 +1,5 @@
 export const PAYMENTGATEWAY_METHODS_CASHIN = [
-  { id: "QRPH", name: "QRPH", icon: "/payment-gateway/qrph.png" },
+  // { id: "QRPH", name: "QRPH", icon: "/payment-gateway/qrph.png" },
   { id: "GCash", name: "GCash", icon: "/payment-gateway/gcash.png" },
   { id: "Maya", name: "Maya", icon: "/payment-gateway/maya.png" },
 ];

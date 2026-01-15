@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-export type PaymentGatewayMethod = "QRPH" | "GCash" | "Maya" | null;
+export type PaymentGatewayMethod = "GCash" | "Maya" | "Chat-Based" | null;
 
 interface CashInContentProps {
   externalUserId?: string;
