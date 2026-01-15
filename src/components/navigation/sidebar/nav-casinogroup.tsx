@@ -330,9 +330,16 @@ export default function NavCasinoGroup({
 
     const regularLinks: MenuLink[] = [
       {
+        href: `/${casinoGroupLower}/dpay`,
+        text: "DPay",
+        icon: Wallet,
+        disable: false,
+        pendingCount: counts.transaction,
+      },
+      {
         href: `/${casinoGroupLower}/transaction-requests`,
-        text: "Gateway",
-        icon: ArrowLeftRight,
+        text: "NXTPay",
+        icon: Coins,
         disable: false,
         pendingCount: counts.transaction,
       },
