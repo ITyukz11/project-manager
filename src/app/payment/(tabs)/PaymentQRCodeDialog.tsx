@@ -79,6 +79,7 @@ export function PaymentQRCodeDialog({
         SuccessRedirectUrl: "http://nxtlink.xyz/payment/success",
         CancelRedirectUrl: "https://qbet88.vip/",
         Type: "CASHOUT",
+        AccountName: accountName,
         AccountNumber: accountNumber,
         HolderName: accountName,
         Bank: selectedBank === "Other" ? customBank.trim() : selectedBank,
