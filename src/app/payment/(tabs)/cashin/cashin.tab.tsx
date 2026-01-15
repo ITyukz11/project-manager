@@ -17,10 +17,12 @@ export type PaymentGatewayMethod = "GCash" | "Maya" | "Chat-Based" | null;
 interface CashInContentProps {
   externalUserId?: string;
   userName?: string;
+  casino: string;
 }
 export function CashInContent({
   externalUserId,
   userName,
+  casino,
 }: CashInContentProps) {
   const [selectedPayment, setSelectedPayment] =
     useState<PaymentGatewayMethod | null>(null);
@@ -49,6 +51,7 @@ export function CashInContent({
     try {
       // Prepare payload for the backend (generic for all payment types)
       const payload = {
+        casinoGroupName: casino,
         UserName: userName || "",
         Channel: selectedPayment,
         Amount: parseFloat(amount),

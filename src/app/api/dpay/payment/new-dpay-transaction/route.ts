@@ -10,15 +10,29 @@ export async function POST(req: NextRequest) {
       Channel,
       Amount,
       ReferenceUserId,
+      casinoGroupName,
       NotificationUrl,
       SuccessRedirectUrl,
       CancelRedirectUrl,
       Type, // "CASHIN" or "CASHOUT" from frontend
     } = body;
 
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: {
+        name: { equals: casinoGroupName, mode: "insensitive" },
+      },
+    });
+    if (!casinoGroup) {
+      return NextResponse.json(
+        { error: "Invalid casino group specified." },
+        { status: 400 }
+      );
+    }
+
     // Save initial transaction to your DB
     const txn = await prisma.dpayTransaction.create({
       data: {
+        casinoGroupId: casinoGroup.id,
         userId: ReferenceUserId,
         userName: UserName, // Add userName if available
         referenceUserId: ReferenceUserId,

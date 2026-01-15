@@ -16,6 +16,7 @@ model CasinoGroup {
   groupChats    GroupChat[]   // NEW: group chats associated with this casino group
   customerSupports CustomerSupport[] // NEW: customer support tickets for this casino group
   gateway       Gateway[]
+  dpayTransactions   DpayTransaction[]
   active        Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
