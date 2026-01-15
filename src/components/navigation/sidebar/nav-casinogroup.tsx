@@ -334,7 +334,7 @@ export default function NavCasinoGroup({
         text: "DPay",
         icon: Wallet,
         disable: false,
-        pendingCount: counts.transaction,
+        pendingCount: 0,
       },
       {
         href: `/${casinoGroupLower}/transaction-requests`,
