@@ -2,6 +2,8 @@
 
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { createTransaction } from "@/lib/qbet88/createTransaction";
+import { NextResponse } from "next/server";
 import { useState } from "react";
 
 const Page = () => {
@@ -56,19 +58,33 @@ const Page = () => {
     setResult(null);
 
     try {
-      const res = await fetch("/api/droplet/qbet88/transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: memberAccount,
-          txn,
-          type,
-          amount,
-        }),
+      //   const res = await fetch("/api/droplet/qbet88/transaction", {
+      //     method: "POST",
+      //     headers: { "Content-Type": "application/json" },
+      //     body: JSON.stringify({
+      //       id: memberAccount,
+      //       txn,
+      //       type,
+      //       amount,
+      //     }),
+      //   });
+
+      const transactionRes = await createTransaction({
+        id: memberAccount, //cashin.id,
+        txn, // Adjust to your transaction ref field
+        type: "DEPOSIT", // Since this is a cashin
+        amount: amount,
       });
 
-      const data = await res.json();
-      setResult({ transaction: data });
+      // Optionally, handle/record transactionRes in your DB, or send errors back
+      if (!transactionRes.ok) {
+        return NextResponse.json(
+          { error: "Failed to post transaction", details: transactionRes },
+          { status: 502 }
+        );
+      }
+
+      setResult({ transaction: transactionRes.data });
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to submit transaction");
