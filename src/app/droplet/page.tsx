@@ -1,10 +1,15 @@
 "use client";
 
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 
 const Page = () => {
   const [result, setResult] = useState<any>(null);
-
+  const [memberAccount, setMemberAccount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [balanceResult, setBalanceResult] = useState<any>(null);
+  const [error, setError] = useState("");
   // Individual test handler for each endpoint
   const handleTestDroplet = async () => {
     try {
@@ -140,6 +145,52 @@ const Page = () => {
     }
   };
 
+  // QBET88
+
+  // Individual test handler for each endpoint
+  const handleTestQBetDroplet = async () => {
+    try {
+      const res = await fetch("/api/droplet/qbet88/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 100, userId: "demoUser" }),
+      });
+      const data = await res.json();
+      setResult({ dropletTest: data });
+    } catch (err) {
+      console.error(err);
+      alert("Failed to fetch droplet endpoint");
+    }
+  };
+
+  const fetchBalance = async () => {
+    if (!memberAccount) return setError("Please enter a member account");
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+    //C:\Users\Hi\source\repos\project-manager\src\app\api\droplet\qbet88\balance\route.ts
+    try {
+      const res = await fetch("/api/droplet/qbet88/balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_account: memberAccount }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong");
+      } else {
+        setBalanceResult(data);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch balance");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-4">
       <div className="space-x-2 space-y-2">
@@ -197,6 +248,47 @@ const Page = () => {
           {JSON.stringify(result, null, 2)}
         </pre>
       )}
+
+      <Separator />
+
+      <Label>QBET88</Label>
+      <div className="p-8 max-w-md mx-auto space-y-4">
+        <h1 className="text-2xl font-bold">Test QBET88 Balance API</h1>
+
+        <input
+          type="text"
+          placeholder="Enter member account"
+          value={memberAccount}
+          onChange={(e) => setMemberAccount(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded"
+        />
+
+        <button
+          onClick={handleTestQBetDroplet}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+        >
+          {loading ? "Fetching..." : "Test QBET"}
+        </button>
+
+        <button
+          onClick={fetchBalance}
+          disabled={loading}
+          className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
+        >
+          {loading ? "Fetching..." : "Check Balance"}
+        </button>
+
+        {error && <div className="text-red-500">{error}</div>}
+
+        {balanceResult && (
+          <div className="bg-gray-100 p-4 rounded">
+            <pre className="text-sm">
+              {JSON.stringify(balanceResult, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

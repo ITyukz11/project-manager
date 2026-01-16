@@ -1,6 +1,5 @@
 import md5 from "crypto-js/md5";
 
-const API_URL = process.env.QBET88_API_URL_TRANSACTION!;
 const OP_CODE = process.env.QBET88_OP_CODE!;
 const SECRET_KEY = process.env.QBET88_API_KEY!;
 
@@ -45,10 +44,13 @@ export async function createTransaction({
     "createTransaction - Request body:",
     JSON.stringify(body, null, 2)
   );
-  console.log("createTransaction - Sending API request to:", API_URL);
+  console.log(
+    "createTransaction - Sending API request to:",
+    "/api/droplet/qbet88/transaction"
+  );
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch("/api/droplet/qbet88/transaction", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

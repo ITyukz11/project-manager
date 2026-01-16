@@ -2,7 +2,7 @@ export async function fetchQBetBalance(
   member_account: string
 ): Promise<string> {
   if (!member_account) throw new Error("No member_account provided");
-  const res = await fetch("/api/qbet88/balance", {
+  const res = await fetch("/api/droplet/qbet88/balance", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ member_account }),
