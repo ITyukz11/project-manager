@@ -4,13 +4,6 @@ const API_URL = process.env.QBET88_API_URL_TRANSACTION!;
 const OP_CODE = process.env.QBET88_OP_CODE!;
 const SECRET_KEY = process.env.QBET88_API_KEY!;
 
-function getManilaUnixTimestamp() {
-  const now = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" })
-  );
-  return Math.floor(now.getTime() / 1000).toString();
-}
-
 export async function createTransaction({
   id,
   txn,
@@ -22,7 +15,7 @@ export async function createTransaction({
   type: "DEPOSIT" | "WITHDRAW";
   amount: string | number;
 }) {
-  const request_time = getManilaUnixTimestamp();
+  const request_time = Math.floor(Date.now() / 1000).toString();
 
   const sign = md5(OP_CODE + request_time + "gateway" + SECRET_KEY).toString();
 
