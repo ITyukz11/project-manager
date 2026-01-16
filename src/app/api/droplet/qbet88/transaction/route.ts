@@ -6,8 +6,12 @@ const PROXY_URL = process.env.QBET88_PROXY_URL!;
 
 export async function POST(req: NextRequest) {
   try {
-    const { id, txn, type, amount } = await req.json();
+    const { batch_requests } = await req.json();
 
+    // Extract first request
+    const { id, txn, type, amount } = batch_requests?.[0] || {};
+
+    console.log("Received transaction request:", { id, txn, type, amount });
     // Basic validation
     if (!id || !txn || !type || !amount) {
       return NextResponse.json(
