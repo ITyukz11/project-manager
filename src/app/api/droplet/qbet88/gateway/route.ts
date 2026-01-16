@@ -6,21 +6,22 @@ const PROXY_URL = process.env.QBET88_PROXY_URL!;
 
 export async function POST(req: NextRequest) {
   try {
-    const { batch_requests } = await req.json();
+    const body = await req.json();
 
-    // Extract first request
-    const { id, txn, type, amount } = batch_requests?.[0] || {};
-
-    console.log("Received transaction request:", { id, txn, type, amount });
+    console.log("body:", body);
     // Basic validation
-    if (!id || !txn || !type || !amount) {
+    if (!body.batch_requests) {
       return NextResponse.json(
         { error: "Missing parameters: id, txn, type, or amount" },
         { status: 400 }
       );
     }
 
-    if (!["DEPOSIT", "WITHDRAW"].includes(type.toUpperCase())) {
+    if (
+      !["DEPOSIT", "WITHDRAW"].includes(
+        body.batch_requests[0].type.toUpperCase()
+      )
+    ) {
       return NextResponse.json(
         { error: "Invalid type. Must be DEPOSIT or WITHDRAW" },
         { status: 400 }
@@ -28,15 +29,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Call your Droplet proxy
-    const proxyRes = await fetch(`${PROXY_URL}/api/qbet88/transaction`, {
+    const proxyRes = await fetch(`${PROXY_URL}/api/qbet88/gateway`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id,
-        txn,
-        type: type.toUpperCase(),
-        amount,
-      }),
+      body: JSON.stringify(body),
     });
 
     const text = await proxyRes.text();
