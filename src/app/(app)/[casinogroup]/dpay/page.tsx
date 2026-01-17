@@ -63,7 +63,7 @@ const Page = () => {
       JSON.stringify({
         from: dateRange.from?.toISOString(),
         to: dateRange.to?.toISOString(),
-      })
+      }),
     );
   }, [dateRange, STORAGE_KEY]);
 
@@ -72,7 +72,7 @@ const Page = () => {
    */
   const { transactionLogs, error, isLoading } = useDPayTransactionLogs(
     casinoGroup,
-    dateRange
+    dateRange,
   );
 
   const typeCounts = useMemo(() => {
@@ -161,7 +161,7 @@ const Page = () => {
         <DataTable
           data={transactionLogs}
           columns={getDpayTransactionColumns({ handleCopy, copiedId })}
-          hiddenColumns={["updatedAt"]}
+          hiddenColumns={["updatedAt", "transactionNumber"]}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}

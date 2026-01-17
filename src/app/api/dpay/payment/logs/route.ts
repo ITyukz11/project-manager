@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       23,
       59,
       59,
-      999
+      999,
     );
   }
 
@@ -65,7 +65,12 @@ export async function GET(req: NextRequest) {
   try {
     // You can add more filters/orderBy/limit as needed
     const txns = await prisma.dpayTransaction.findMany({
-      where: whereClause,
+      where: {
+        ...whereClause,
+        transactionNumber: {
+          not: null,
+        },
+      },
       select: {
         id: true,
         userName: true,
@@ -87,7 +92,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching transactions:", err);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

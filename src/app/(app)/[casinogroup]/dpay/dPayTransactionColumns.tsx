@@ -1,3 +1,10 @@
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +35,24 @@ function formatDurationObj(dur: {
     .join(" ");
 }
 
+function getEffectiveStatus(
+  status: string,
+  createdAt: Date,
+  thresholdMinutes = 10,
+) {
+  if (status !== "PENDING") return status;
+
+  const now = Date.now();
+  const diffMs = now - createdAt.getTime();
+  const diffMinutes = diffMs / (1000 * 60);
+
+  if (diffMinutes >= thresholdMinutes) {
+    return "DNPT";
+  }
+
+  return status;
+}
+
 // This function returns your column definitions, injected with your handleCopy/copy state
 export function getDpayTransactionColumns({
   handleCopy,
@@ -37,6 +62,17 @@ export function getDpayTransactionColumns({
   copiedId: string | null;
 }): ColumnDef<DpayTransaction>[] {
   return [
+    {
+      accessorKey: "transactionNumber",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="TXN" />
+      ),
+      cell: ({ row }) => (
+        <span className=" text-black dark:text-green-500 font-mono">
+          {row.original.transactionNumber}
+        </span>
+      ),
+    },
     {
       accessorKey: "userName",
       header: ({ column }) => (
@@ -100,21 +136,41 @@ export function getDpayTransactionColumns({
         <DataTableColumnHeader column={column} title="Status" />
       ),
       cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+        const originalStatus = row.original.status;
+        const createdAt = new Date(row.original.createdAt);
+
+        const effectiveStatus = getEffectiveStatus(originalStatus, createdAt);
+
+        const badge = (
+          <Badge className={`w-fit ${getStatusColorClass(effectiveStatus)}`}>
+            {getStatusIcon(effectiveStatus)}
+            {effectiveStatus}
+          </Badge>
+        );
 
         return (
           <div className="flex flex-col">
-            <Badge className={`w-fit ${getStatusColorClass(status)}`}>
-              {getStatusIcon(status)}
-              {status}
-            </Badge>
-            {row.original.updatedAt && row.original.status !== "PENDING" && (
+            {effectiveStatus === "DNPT" ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                  <TooltipContent>
+                    <p>Did Not Push Through (Pending &gt; 10 minutes)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              badge
+            )}
+
+            {/* Show duration only if resolved */}
+            {effectiveStatus !== "DNPT" && row.original.updatedAt && (
               <span className="text-xs text-muted-foreground">
                 {formatDurationObj(
                   intervalToDuration({
                     start: new Date(row.original.createdAt),
                     end: new Date(row.original.updatedAt),
-                  })
+                  }),
                 ) || "0secs"}
               </span>
             )}
@@ -127,9 +183,21 @@ export function getDpayTransactionColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Channel" />
       ),
-      cell: ({ getValue }) => (
-        <Badge variant={"default"}>{String(getValue())}</Badge>
-      ),
+      cell: ({ getValue }) => {
+        const value = String(getValue());
+
+        return (
+          <Badge
+            className={
+              value === "GCash"
+                ? "bg-[#0057DD] text-white hover:bg-[#0041AA]"
+                : ""
+            }
+          >
+            {value}
+          </Badge>
+        );
+      },
     },
 
     {
