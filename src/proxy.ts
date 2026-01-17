@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
     pathname === "/robots.txt" ||
     // allow files with common static extensions
     pathname.startsWith("/nxtlottotest") ||
-    pathname.startsWith("/droplet") ||
+    // pathname.startsWith("/droplet") ||
     pathname.startsWith("/payment") ||
     pathname.match(/\.(jpg|jpeg|png|svg|gif|webp|ico|css|js|json|txt|pdf)$/i)
   ) {
@@ -40,14 +40,14 @@ export async function proxy(request: NextRequest) {
   // If logged in and tries to access /login or /, redirect to accounts
   if (token && (pathname === "/login" || pathname === "/")) {
     return NextResponse.redirect(
-      new URL(`/${casinoGroup}/cash-outs`, request.url)
+      new URL(`/${casinoGroup}/cash-outs`, request.url),
     );
   }
 
   // Redirect /network exactly to /network/accounts
   if (pathname === "/network") {
     return NextResponse.redirect(
-      new URL(`${casinoGroup}/network/accounts`, request.url)
+      new URL(`${casinoGroup}/network/accounts`, request.url),
     );
   }
 
