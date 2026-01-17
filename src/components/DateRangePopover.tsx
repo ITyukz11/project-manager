@@ -21,13 +21,37 @@ interface DateRangePopoverProps {
 export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
   const [isSmall, setIsSmall] = useState(false);
 
-  const today = new Date();
+  const startOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+
+  const endOfDay = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+
+  const now = new Date();
+  const today = startOfDay(now);
 
   // ---- PRESETS ----
-  const yesterday = { from: subDays(today, 1), to: subDays(today, 1) };
-  const last7Days = { from: subDays(today, 6), to: today };
-  const last30Days = { from: subDays(today, 29), to: today };
-  const monthToDate = { from: startOfMonth(today), to: today };
+  const yesterdayDate = subDays(today, 1);
+
+  const yesterday = {
+    from: startOfDay(yesterdayDate),
+    to: endOfDay(yesterdayDate),
+  };
+
+  const last7Days = {
+    from: startOfDay(subDays(today, 6)),
+    to: endOfDay(today),
+  };
+
+  const last30Days = {
+    from: startOfDay(subDays(today, 29)),
+    to: endOfDay(today),
+  };
+
+  const monthToDate = {
+    from: startOfDay(startOfMonth(today)),
+    to: endOfDay(today),
+  };
 
   const [month, setMonth] = useState<Date>(today);
 
@@ -62,7 +86,7 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
         ? `${format(value.from, "MMM dd")} – ${format(value.to, "MMM dd")}`
         : `${format(value.from, "MMM dd, yyyy")} – ${format(
             value.to,
-            "MMM dd, yyyy"
+            "MMM dd, yyyy",
           )}`;
     return isSmall
       ? format(value.from, "MMM dd")
@@ -87,7 +111,7 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
 
     setTempRange(range);
     setShowApply(
-      !!(range.from && range.to && !isSameDay(range.from, range.to))
+      !!(range.from && range.to && !isSameDay(range.from, range.to)),
     );
     // Always show Apply; allow single day select + apply for simpler logic
     setShowApply(true);
