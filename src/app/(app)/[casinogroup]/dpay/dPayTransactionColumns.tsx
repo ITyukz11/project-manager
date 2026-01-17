@@ -184,19 +184,16 @@ export function getDpayTransactionColumns({
         <DataTableColumnHeader column={column} title="Channel" />
       ),
       cell: ({ getValue }) => {
-        const value = String(getValue());
+        const value = getValue() as string;
 
-        return (
-          <Badge
-            className={
-              value === "GCash"
-                ? "bg-[#0057DD] text-white hover:bg-[#0041AA]"
-                : ""
-            }
-          >
-            {value}
-          </Badge>
-        );
+        const channelClass =
+          value === "GCash"
+            ? "bg-blue-600 text-white hover:bg-blue-600"
+            : value === "Maya"
+              ? "bg-black text-[#50B16B] font-bold"
+              : "";
+
+        return <Badge className={`${channelClass} uppercase`}>{value}</Badge>;
       },
     },
 
