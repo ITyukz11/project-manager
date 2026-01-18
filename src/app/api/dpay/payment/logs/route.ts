@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // Adjust import path as needed!
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -24,21 +23,11 @@ export async function GET(req: NextRequest) {
   let toDate: Date | undefined;
 
   if (fromParam) {
-    const f = new Date(fromParam);
-    fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0, 0, 0, 0);
+    fromDate = new Date(fromParam);
   }
 
   if (toParam) {
-    const t = new Date(toParam);
-    toDate = new Date(
-      t.getFullYear(),
-      t.getMonth(),
-      t.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
+    toDate = new Date(toParam);
   }
 
   // Build "where" clause to match cashout/cashout logic, but adapted for cashin statuses
