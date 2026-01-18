@@ -13,8 +13,8 @@ import { useTask } from "@/lib/hooks/swr/task/useTask";
 import { taskColumn } from "@/components/table/task/taskColumns";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
-import { useMemo, useState, useEffect } from "react";
-import type { DateRange } from "react-day-picker";
+import { useMemo } from "react";
+import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 // Adjust the order and labels as needed
 const STATUS_ORDER = ["PENDING", "COMPLETED"];
@@ -29,47 +29,7 @@ const Page = () => {
    */
   const STORAGE_KEY = `tasks-date-range:${casinoGroup}`;
 
-  /**
-   * ✅ Lazy initialize dateRange from localStorage
-   */
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    const today = new Date();
-
-    if (typeof window === "undefined") {
-      return { from: today, to: today };
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return { from: today, to: today };
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      return { from: today, to: today };
-    }
-  });
-
-  /**
-   * ✅ Persist dateRange to localStorage
-   */
-  useEffect(() => {
-    if (!dateRange) return;
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        from: dateRange.from?.toISOString(),
-        to: dateRange.to?.toISOString(),
-      })
-    );
-  }, [dateRange, STORAGE_KEY]);
-
+  const { dateRange, setDateRange } = useStoredDateRange(STORAGE_KEY);
   /**
    * ✅ Fetch tasks using dateRange
    */

@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
+import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 const Page = () => {
   const params = useParams();
@@ -26,48 +27,7 @@ const Page = () => {
    */
   const STORAGE_KEY = `cashouts-date-range:${casinoGroup}`;
 
-  /**
-   * ✅ Lazy initialize dateRange from localStorage
-   * (No useEffect, no cascading renders)
-   */
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    const today = new Date();
-
-    if (typeof window === "undefined") {
-      return { from: today, to: today };
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return { from: today, to: today };
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      return { from: today, to: today };
-    }
-  });
-
-  /**
-   * ✅ Persist dateRange to localStorage
-   */
-  useEffect(() => {
-    if (!dateRange) return;
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        from: dateRange.from?.toISOString(),
-        to: dateRange.to?.toISOString(),
-      })
-    );
-  }, [dateRange, STORAGE_KEY]);
-
+  const { dateRange, setDateRange } = useStoredDateRange(STORAGE_KEY);
   /**
    * ✅ Fetch cashouts using dateRange
    */

@@ -1,14 +1,15 @@
 "use client";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { TaskFormDialog } from "./(components)/TaskFormDialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Clipboard, MessageCircleWarning } from "lucide-react";
+import { Clipboard } from "lucide-react";
 import { Title } from "@/components/Title";
 import { useTask } from "@/lib/hooks/swr/task/useTask";
 import { useParams } from "next/navigation";
+import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
-export default function RemittanceLayout({
+export default function TasksLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -16,7 +17,12 @@ export default function RemittanceLayout({
   const [open, setOpen] = useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { lastUpdate, isLoading, error } = useTask(casinoGroup);
+
+  const STORAGE_KEY = `tasks-date-range:${casinoGroup}`;
+
+  const { dateRange } = useStoredDateRange(STORAGE_KEY);
+
+  const { lastUpdate, isLoading, error } = useTask(casinoGroup, dateRange);
   return (
     <Card>
       <CardContent>

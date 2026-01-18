@@ -7,6 +7,7 @@ import { MessageCircleWarning } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useCustomerSupports } from "@/lib/hooks/swr/customer-support/useCustomerSupports";
 import { CustomerSupportFormDialog } from "./(components)/CustomerSupportFormDialog";
+import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function ConcernLayout({
   children,
@@ -16,7 +17,15 @@ export default function ConcernLayout({
   const [open, setOpen] = useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const { lastUpdate, isLoading, error } = useCustomerSupports(casinoGroup);
+
+  const STORAGE_KEY = `customerSupports-date-range:${casinoGroup}`;
+
+  const { dateRange } = useStoredDateRange(STORAGE_KEY);
+
+  const { lastUpdate, isLoading, error } = useCustomerSupports(
+    casinoGroup,
+    dateRange,
+  );
   return (
     <Card>
       <CardContent>

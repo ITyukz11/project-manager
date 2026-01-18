@@ -12,7 +12,6 @@ import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
 import { Title } from "@/components/Title";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
-import { DateRange } from "react-day-picker";
 import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
 import { formatPhpAmount } from "@/components/formatAmount";
 import { Spinner } from "@/components/ui/spinner";
@@ -21,6 +20,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function Page() {
   const params = useParams();
@@ -29,44 +29,8 @@ export default function Page() {
 
   const [viewRow, setViewRow] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
-  const today = new Date();
 
-  // ✅ Lazy initialize dateRange from localStorage
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    if (typeof window === "undefined") {
-      return { from: today, to: today };
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return { from: today, to: today };
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      return { from: today, to: today };
-    }
-  });
-
-  /**
-   * ✅ Persist dateRange to localStorage
-   */
-  useEffect(() => {
-    if (!dateRange) return;
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        from: dateRange.from?.toISOString(),
-        to: dateRange.to?.toISOString(),
-      })
-    );
-  }, [dateRange, STORAGE_KEY]);
+  const { dateRange, setDateRange } = useStoredDateRange(STORAGE_KEY);
 
   const { transactionRequests, isLoading, error, lastUpdate, refetch } =
     useTransactionRequest(casinoGroup?.toLocaleString() || "", dateRange);
