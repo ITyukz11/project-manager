@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import type { DateRange } from "react-day-picker";
+import { useMemo } from "react";
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { DataTable } from "@/components/table/data-table";
 import { cashoutColumns } from "@/components/table/cashout/cashoutColumns";

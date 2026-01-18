@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import type { DateRange } from "react-day-picker";
+import { useMemo } from "react";
 import { useCommissions } from "@/lib/hooks/swr/commission/useCommissions";
 import { DataTable } from "@/components/table/data-table";
 import { commissionColumns } from "@/components/table/commission/commissionColumns";

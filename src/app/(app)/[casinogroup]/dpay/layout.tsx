@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RefreshCw, TriangleAlert, Wallet } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Title } from "@/components/Title";
-import { useCashins } from "@/lib/hooks/swr/cashin/useCashins";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -15,8 +14,6 @@ import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
 import { Spinner } from "@/components/ui/spinner";
 import { useDPayBalance } from "@/lib/hooks/swr/dpay/balance/useDPayBalance";
 import { useDPayTransactionLogs } from "@/lib/hooks/swr/dpay/useDPayTransactionLogs";
-import { useEffect, useState } from "react";
-import { DateRange } from "react-day-picker";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function CashinLayout({
@@ -32,7 +29,7 @@ export default function CashinLayout({
    */
   const STORAGE_KEY = `dpay-date-range:${casinoGroup}`;
 
-  const { dateRange, setDateRange } = useStoredDateRange(STORAGE_KEY);
+  const { dateRange } = useStoredDateRange(STORAGE_KEY);
 
   /**
    * ✅ Fetch cashins using dateRange

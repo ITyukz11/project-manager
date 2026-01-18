@@ -40,7 +40,6 @@ export default function Page() {
     isLoading: balanceLoading,
     refreshBalance,
     isValidating: balanceValidating,
-    error: balanceError,
   } = useBalance("NEFTUAO2A0LHYYXO");
 
   const [isRefreshing, setIsRefreshing] = useState(false);

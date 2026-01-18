@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import type { DateRange } from "react-day-picker";
+import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { useCashins } from "@/lib/hooks/swr/cashin/useCashins";

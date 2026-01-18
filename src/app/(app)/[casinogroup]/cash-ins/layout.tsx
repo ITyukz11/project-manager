@@ -1,12 +1,11 @@
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
 import { CashinFormDialog } from "./(components)/CashinFormDialog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BanknoteArrowDown } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Title } from "@/components/Title";
 import { useCashins } from "@/lib/hooks/swr/cashin/useCashins";
-import { DateRange } from "react-day-picker";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function CashinLayout({

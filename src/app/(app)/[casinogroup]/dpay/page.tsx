@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import type { DateRange } from "react-day-picker";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import {
   Tooltip,
@@ -20,7 +19,6 @@ import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const router = useRouter();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   /**
    * 🔑 Per-casinoGroup storage key

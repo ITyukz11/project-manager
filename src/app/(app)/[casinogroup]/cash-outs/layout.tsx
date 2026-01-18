@@ -2,12 +2,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { CashoutFormDialog } from "./(components)/CashoutFormDialog";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BanknoteArrowUp, CreditCard } from "lucide-react";
 import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { useParams } from "next/navigation";
 import { Title } from "@/components/Title";
-import { DateRange } from "react-day-picker";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function CashoutLayout({

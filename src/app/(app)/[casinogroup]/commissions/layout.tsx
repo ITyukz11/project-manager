@@ -4,8 +4,6 @@ import { BanknoteArrowUp } from "lucide-react";
 import { useCommissions } from "@/lib/hooks/swr/commission/useCommissions";
 import { useParams } from "next/navigation";
 import { Title } from "@/components/Title";
-import { useEffect, useState } from "react";
-import { DateRange } from "react-day-picker";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function CommissionLayout({

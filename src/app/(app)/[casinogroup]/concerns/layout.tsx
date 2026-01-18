@@ -2,12 +2,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { ConcernFormDialog } from "./(components)/ConcernFormDialog";
 import { Button } from "@/components/ui/button";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Title } from "@/components/Title";
 import { useConcerns } from "@/lib/hooks/swr/concern/useConcerns";
 import { MessageCircleWarning } from "lucide-react";
 import { useParams } from "next/navigation";
-import { DateRange } from "react-day-picker";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 
 export default function ConcernLayout({
