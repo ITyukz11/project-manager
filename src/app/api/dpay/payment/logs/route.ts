@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
     }),
   };
 
+  console.log("WHERE CLAUSE:", JSON.stringify(whereClause, null, 2));
   try {
     // You can add more filters/orderBy/limit as needed
     const txns = await prisma.dpayTransaction.findMany({
