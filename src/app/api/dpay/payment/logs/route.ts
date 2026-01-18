@@ -18,16 +18,21 @@ export async function GET(req: NextRequest) {
   const fromParam = url.searchParams.get("from");
   const toParam = url.searchParams.get("to");
 
-  // Convert fromParam and toParam to start/end of day if only date is given
   let fromDate: Date | undefined;
   let toDate: Date | undefined;
 
   if (fromParam) {
-    fromDate = new Date(fromParam);
+    fromDate = new Date(fromParam); // already UTC
   }
 
   if (toParam) {
-    toDate = new Date(toParam);
+    toDate = new Date(toParam); // already UTC
+  }
+
+  // 🔧 If only one date is selected, expand to full PHT day
+  if (fromDate && toDate && fromDate.getTime() === toDate.getTime()) {
+    // add 23:59:59.999 in PHT
+    toDate = new Date(fromDate.getTime() + 24 * 60 * 60 * 1000 - 1);
   }
 
   // Build "where" clause to match cashout/cashout logic, but adapted for cashin statuses
