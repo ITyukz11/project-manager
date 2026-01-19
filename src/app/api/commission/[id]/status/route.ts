@@ -9,7 +9,7 @@ import { CommissionStatus } from "@prisma/client";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const id = (await params).id;
   const session = await getServerSession(authOptions);
@@ -25,7 +25,7 @@ export async function PATCH(
   ) {
     return NextResponse.json(
       { error: "Unauthorized only ADMINS and ACCOUNTING can update status" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -71,7 +71,7 @@ export async function PATCH(
     await pusher.trigger(
       `commission-${commission.casinoGroup.name.toLowerCase()}`,
       "commission-pending-count",
-      { count: pendingCount }
+      { count: pendingCount },
     );
 
     await emitCommissionUpdated({
@@ -80,11 +80,46 @@ export async function PATCH(
       action: "UPDATED",
     });
 
+    // 6. PATCH to qbet88.vip's commission status API
+    // Adjust BASE_URL if needed (be careful with localhost/dev/prod environment)
+    const QBET88_BASE = process.env.QBET88_BASE_URL;
+    // You may need your local/prod base (http://localhost:3000, etc.) for development
+
+    const qbetPatchRes = await fetch(
+      `${QBET88_BASE}/api/nxtlink/commission/${commission.id}/status`,
+      {
+        method: "PATCH",
+        // use same cookie/session headers if authentication is required by qbet88.vip
+        // (for now, send as formData for compatibility)
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({ status }),
+      },
+    );
+    // Optionally, you can check for qbetPatchRes.ok and log or handle errors for the sync
+
+    if (!qbetPatchRes.ok) {
+      const errMsg = await qbetPatchRes.text();
+      // Optionally, notify someone or log error if sync fails!
+      console.error(
+        "Failed to update commission status on qbet88.vip:",
+        errMsg,
+      );
+      // Don't fail the main request, but you can include a warning in response.
+      return NextResponse.json({
+        success: true,
+        commission,
+        warning: "Local update succeeded but failed to update qbet88.vip",
+        qbet88Response: errMsg,
+      });
+    }
+
     return NextResponse.json({ success: true, commission });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "An error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
