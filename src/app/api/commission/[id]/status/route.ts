@@ -89,12 +89,12 @@ export async function PATCH(
       `${QBET88_BASE}/api/nxtlink/commission/${commission.id}/status`,
       {
         method: "PATCH",
-        // use same cookie/session headers if authentication is required by qbet88.vip
+        // use same cookie/session headers if authentication is required by qbet88.vercel
         // (for now, send as formData for compatibility)
+        body: JSON.stringify({ status }),
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
         },
-        body: new URLSearchParams({ status }),
       },
     );
     // Optionally, you can check for qbetPatchRes.ok and log or handle errors for the sync
@@ -103,14 +103,14 @@ export async function PATCH(
       const errMsg = await qbetPatchRes.text();
       // Optionally, notify someone or log error if sync fails!
       console.error(
-        "Failed to update commission status on qbet88.vip:",
+        "Failed to update commission status on qbet88.vercel:",
         errMsg,
       );
       // Don't fail the main request, but you can include a warning in response.
       return NextResponse.json({
         success: true,
         commission,
-        warning: "Local update succeeded but failed to update qbet88.vip",
+        warning: "Local update succeeded but failed to update qbet88.vercel",
         qbet88Response: errMsg,
       });
     }
