@@ -6,7 +6,7 @@ import { pusher } from "@/lib/pusher"; // optional: for real-time notifications
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const id = (await params).id;
 
@@ -19,7 +19,7 @@ export async function POST(
     if (!id) {
       return NextResponse.json(
         { error: "Missing commission ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,14 +43,14 @@ export async function POST(
     // Validate input
     const hasMessage = message && typeof message === "string" && message.trim();
     const validAttachments = attachmentFiles.filter(
-      (file) => file && typeof file === "object" && file.size > 0
+      (file) => file && typeof file === "object" && file.size > 0,
     );
     const hasAttachments = validAttachments.length > 0;
 
     if (!hasMessage && !hasAttachments) {
       return NextResponse.json(
         { error: "Message or attachment is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(
     if (!commission) {
       return NextResponse.json(
         { error: "commission not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -86,10 +86,10 @@ export async function POST(
             mimetype: file.type || "",
             commissionThreadId: thread.id,
           };
-        })
+        }),
       );
 
-      await prisma.attachment.createMany({
+      await prisma.commissionAttachment.createMany({
         data: attachmentData,
       });
     }
@@ -120,9 +120,9 @@ export async function POST(
           await pusher.trigger(
             `user-notify-${user.id}`,
             "notifications-event",
-            notification
+            notification,
           );
-        })
+        }),
       );
     }
 
