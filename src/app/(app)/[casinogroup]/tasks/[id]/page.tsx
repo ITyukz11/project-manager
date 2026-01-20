@@ -25,6 +25,7 @@ import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ADMINROLES } from "@/lib/types/role";
 import { CommentsSection } from "@/components/CommentSection";
+import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -36,6 +37,9 @@ export default function Page() {
   const { usersData } = useUsers(casinogroup?.toLocaleString());
   const { data: session } = useSession();
   const [showStatusSheet, setShowStatusSheet] = useState(false);
+
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [previewFilename, setPreviewFilename] = useState<string | null>(null);
 
   // Attachments state
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -196,14 +200,15 @@ export default function Page() {
                   task.attachments.map((att) => (
                     <li key={att.id} className="flex items-center gap-1">
                       <Paperclip size={14} className="text-muted-foreground" />
-                      <a
-                        href={att.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 dark:text-blue-400 hover:underline text-xs truncate"
+                      <button
+                        onClick={() => {
+                          setPreviewImg(att.url);
+                          setPreviewFilename(att.filename ?? att.url);
+                        }}
+                        className="cursor-pointer text-sm text-primary underline hover:text-primary/80"
                       >
-                        {att.filename ?? att.url}
-                      </a>
+                        {att.filename || att.url}
+                      </button>
                     </li>
                   ))}
               </ul>
@@ -243,8 +248,8 @@ export default function Page() {
                 task.status === "PENDING"
                   ? "bg-yellow-400 text-black"
                   : task.status === "COMPLETED"
-                  ? "bg-green-600 text-white"
-                  : "bg-red-600 text-white"
+                    ? "bg-green-600 text-white"
+                    : "bg-red-600 text-white"
               }`}
             >
               {task.status}
@@ -375,6 +380,13 @@ export default function Page() {
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
         data={task?.taskLogs || []}
+      />
+      {/* Image Preview Dialog */}
+      <ImagePreviewDialog
+        open={!!previewImg}
+        imageUrl={previewImg}
+        filename={previewFilename}
+        onClose={() => setPreviewImg(null)}
       />
     </div>
   );

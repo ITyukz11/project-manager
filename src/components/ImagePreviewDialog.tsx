@@ -67,8 +67,8 @@ export function ImagePreviewDialog({
           <Image
             src={imageUrl}
             alt={filename || "preview"}
-            width={1200}
-            height={1200}
+            width={3000}
+            height={3000}
             onLoad={() => setIsLoading(false)}
             onError={() => setIsLoading(false)}
             className={`mx-auto block max-h-[60vh] md:max-h-[75vh] w-auto object-contain rounded shadow transition-opacity ${

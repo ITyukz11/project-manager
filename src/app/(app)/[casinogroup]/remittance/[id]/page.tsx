@@ -31,7 +31,7 @@ export default function Page() {
   const { id, casinogroup } = useParams();
   const router = useRouter();
   const { remittance, isLoading, error, mutate } = useRemittanceById(
-    id as string
+    id as string,
   );
   const [value, setValue] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -118,7 +118,7 @@ export default function Page() {
         setSubmitting(false);
       }
     },
-    [inputValue, attachments, id, mutate]
+    [inputValue, attachments, id, mutate],
   );
 
   const isAllowed =
@@ -203,14 +203,15 @@ export default function Page() {
                   remittance.attachments.map((att) => (
                     <li key={att.id} className="flex items-center gap-1">
                       <Paperclip size={14} className="text-muted-foreground" />
-                      <a
-                        href={att.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 dark:text-blue-400 hover:underline text-xs truncate"
+                      <button
+                        onClick={() => {
+                          setPreviewImg(att.url);
+                          setPreviewFilename(att.filename ?? att.url);
+                        }}
+                        className="cursor-pointer text-sm text-primary underline hover:text-primary/80"
                       >
-                        {att.filename ?? att.url}
-                      </a>
+                        {att.filename || att.url}
+                      </button>
                     </li>
                   ))}
               </ul>
@@ -227,8 +228,8 @@ export default function Page() {
                 remittance.status === "PENDING"
                   ? "bg-yellow-400 text-black"
                   : remittance.status === "COMPLETED"
-                  ? "bg-green-600 text-white"
-                  : "bg-red-600 text-white"
+                    ? "bg-green-600 text-white"
+                    : "bg-red-600 text-white"
               }`}
             >
               {remittance.status}
@@ -365,6 +366,14 @@ export default function Page() {
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
         data={remittance?.remittanceLogs || []}
+      />
+
+      {/* Image Preview Dialog */}
+      <ImagePreviewDialog
+        open={!!previewImg}
+        imageUrl={previewImg}
+        filename={previewFilename}
+        onClose={() => setPreviewImg(null)}
       />
     </div>
   );

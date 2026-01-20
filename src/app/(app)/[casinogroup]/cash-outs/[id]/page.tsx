@@ -30,6 +30,7 @@ import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { CommentsSection } from "@/components/CommentSection";
+import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 
 export default function Page() {
   const { id, casinogroup } = useParams();
@@ -42,6 +43,8 @@ export default function Page() {
   const { usersData } = useUsers(casinogroup?.toLocaleString());
   const { data: session } = useSession();
   const [showStatusSheet, setShowStatusSheet] = useState(false);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [previewFilename, setPreviewFilename] = useState<string | null>(null);
 
   // Attachments state
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -390,7 +393,7 @@ export default function Page() {
                 "flex flex-row gap-1 items-center justify-start overflow-hidden text-sm",
                 "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                 "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
               )}
             >
               {cashout.transactionRequestId && (
@@ -460,14 +463,15 @@ export default function Page() {
                   cashout.attachments.map((att) => (
                     <li key={att.id} className="flex items-center gap-1">
                       <Paperclip size={14} className="text-muted-foreground" />
-                      <a
-                        href={att.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 dark:text-blue-400 hover:underline text-xs truncate"
+                      <button
+                        onClick={() => {
+                          setPreviewImg(att.url);
+                          setPreviewFilename(att.filename ?? att.url);
+                        }}
+                        className="cursor-pointer text-sm text-primary underline hover:text-primary/80"
                       >
-                        {att.filename ?? att.url}
-                      </a>
+                        {att.filename || att.url}
+                      </button>
                     </li>
                   ))}
               </ul>
@@ -481,7 +485,7 @@ export default function Page() {
             </Label>
             <Badge
               className={`capitalize text-xs cursor-pointer ${getStatusColorClass(
-                cashout.status
+                cashout.status,
               )}`}
             >
               {getStatusIcon(cashout.status)}
@@ -490,7 +494,7 @@ export default function Page() {
             {cashout.transactionRequestId && (
               <Badge
                 className={`ml-2 capitalize text-xs cursor-pointer ${getStatusColorClass(
-                  "CLAIMED"
+                  "CLAIMED",
                 )}`}
               >
                 {getStatusIcon("CLAIMED")}
@@ -637,6 +641,13 @@ export default function Page() {
         open={showStatusSheet}
         onOpenChange={setShowStatusSheet}
         data={cashout?.cashoutLogs || []}
+      />
+      {/* Image Preview Dialog */}
+      <ImagePreviewDialog
+        open={!!previewImg}
+        imageUrl={previewImg}
+        filename={previewFilename}
+        onClose={() => setPreviewImg(null)}
       />
     </div>
   );
