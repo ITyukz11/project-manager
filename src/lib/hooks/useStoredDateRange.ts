@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import type { DateRange } from "react-day-picker";
-import { getTodayRange, parseStoredDateRange } from "../date-range";
+import { getTodayRange, parseStoredDateRange } from "@/lib/date-range";
 
 export function useStoredDateRange(storageKey: string) {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
-    const today = getTodayRange();
-
     if (typeof window === "undefined") {
-      return today;
+      return getTodayRange(); // SSR fallback
     }
 
     const stored = localStorage.getItem(storageKey);
-    return parseStoredDateRange(stored) ?? today;
+
+    // If nothing is stored, default to today
+    if (!stored) {
+      return getTodayRange();
+    }
+
+    return parseStoredDateRange(stored) ?? getTodayRange();
   });
 
   useEffect(() => {
