@@ -2,12 +2,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { RemittanceFormDialog } from "./(components)/RemittanceFormDialog";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BanknoteArrowUp, Wallet } from "lucide-react";
 import { Title } from "@/components/Title";
 import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
 import { useParams } from "next/navigation";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
+import { DateRange } from "react-day-picker";
 
 export default function RemittanceLayout({
   children,
@@ -23,16 +24,51 @@ export default function RemittanceLayout({
    */
   const STORAGE_KEY = `remittance-date-range:${casinoGroup}`;
 
-  const { dateRange } = useStoredDateRange(STORAGE_KEY);
+  /**
+   * ✅ Lazy initialize dateRange from localStorage
+   */
+  const [dateRange] = useState<DateRange | undefined>(() => {
+    const today = new Date();
+
+    if (typeof window === "undefined") {
+      return { from: today, to: today };
+    }
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return { from: today, to: today };
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      return {
+        from: parsed.from ? new Date(parsed.from) : today,
+        to: parsed.to ? new Date(parsed.to) : today,
+      };
+    } catch {
+      return { from: today, to: today };
+    }
+  });
 
   /**
-   * ✅ Fetch remittances using dateRange
+   * ✅ Persist dateRange to localStorage
    */
+  useEffect(() => {
+    if (!dateRange) return;
+
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        from: dateRange.from?.toISOString(),
+        to: dateRange.to?.toISOString(),
+      }),
+    );
+  }, [dateRange, STORAGE_KEY]);
+
   const { lastUpdate, error, isLoading } = useRemittance(
     casinoGroup,
     dateRange,
   );
-
   return (
     <Card>
       <CardContent>
