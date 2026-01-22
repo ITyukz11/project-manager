@@ -189,15 +189,33 @@ export function getDpayTransactionColumns({
             : row.original.qbetStatus || "-";
         console.log("originalStatus", originalStatus);
 
-        const badge = (
-          <Badge className={`w-fit ${getStatusColorClass(originalStatus)}`}>
-            {getStatusIcon(originalStatus)}
+        const createdAt = new Date(row.original.createdAt);
 
-            {originalStatus}
+        const effectiveStatus = getEffectiveStatus(originalStatus, createdAt);
+
+        const badge = (
+          <Badge className={`w-fit ${getStatusColorClass(effectiveStatus)}`}>
+            {getStatusIcon(effectiveStatus)}
+            {effectiveStatus}
           </Badge>
         );
 
-        return <div className="flex flex-col">{badge}</div>;
+        return (
+          <div className="flex flex-col">
+            {effectiveStatus === "DNPT" ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                  <TooltipContent>
+                    <p>Did Not Push Through (Pending &gt; 10 minutes)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              badge
+            )}
+          </div>
+        );
       },
     },
     {
