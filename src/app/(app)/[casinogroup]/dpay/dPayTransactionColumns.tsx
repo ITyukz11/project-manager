@@ -133,7 +133,7 @@ export function getDpayTransactionColumns({
     {
       accessorKey: "status",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
+        <DataTableColumnHeader column={column} title="DPAY Status" />
       ),
       cell: ({ row }) => {
         const originalStatus = row.original.status;
@@ -209,18 +209,6 @@ export function getDpayTransactionColumns({
               </TooltipProvider>
             ) : (
               badge
-            )}
-
-            {/* Show duration only if resolved */}
-            {effectiveStatus !== "DNPT" && row.original.updatedAt && (
-              <span className="text-xs text-muted-foreground">
-                {formatDurationObj(
-                  intervalToDuration({
-                    start: new Date(row.original.createdAt),
-                    end: new Date(row.original.updatedAt),
-                  }),
-                ) || "0secs"}
-              </span>
             )}
           </div>
         );
