@@ -130,7 +130,7 @@ export default function BankingPage() {
         reader.readAsDataURL(file);
       }
     },
-    []
+    [],
   );
 
   const removeReceipt = useCallback(() => {
@@ -305,7 +305,7 @@ export default function BankingPage() {
       if (activeTab === "cashout") {
         if (Number(amount) >= Number(balance)) {
           return toast.error(
-            `Insufficient Balance. You only have ${Number(balance)}`
+            `Insufficient Balance. You only have ${Number(balance)}`,
           );
         }
         const bankName =
@@ -493,6 +493,7 @@ export default function BankingPage() {
               setActiveTab={setActiveTab}
             /> */}
             <CashOutContent
+              externalUserId={externalUserId}
               selectedPayment={selectedPayment}
               setSelectedPayment={setSelectedPayment}
               amount={amount}

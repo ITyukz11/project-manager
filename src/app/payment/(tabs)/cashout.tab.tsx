@@ -20,8 +20,11 @@ import {
 } from "@/lib/constants/data";
 import { useEffect } from "react";
 import { PaymentMethod } from "@/app/banking/page";
+import { useTransactionRequestPending } from "@/lib/hooks/swr/transaction-request/check-pending/useTransactionRequestPending";
 
 interface CashOutContentProps {
+  externalUserId: string;
+
   selectedPayment: PaymentMethod | null;
   setSelectedPayment: (method: PaymentMethod) => void;
 
@@ -44,6 +47,7 @@ interface CashOutContentProps {
 }
 
 export function CashOutContent({
+  externalUserId,
   selectedPayment,
   setSelectedPayment,
   amount,
@@ -64,167 +68,188 @@ export function CashOutContent({
     setCustomBank("");
   }, [selectedPayment, setSelectedBank, setCustomBank]);
 
+  const { hasPending, isLoading } =
+    useTransactionRequestPending(externalUserId);
   return (
     <Card>
       <CardContent className="space-y-4 sm:space-y-6">
-        {/* Step 1: Payment Method Selection */}
-        <div>
-          <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-            Step 1. Select Payment Method
+        {!hasPending ? (
+          <Label className="text-destructive">
+            You have a PENDING transaction request. Please wait for it to be
+            processed before making a new one. Go to History tab to view the
+            status
           </Label>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-            {PAYMENT_METHODS_CASHOUT.map((method) => (
-              <Card
-                key={method.id}
-                className={`cursor-pointer transition-all hover:shadow-lg ${
-                  selectedPayment === method.id
-                    ? "ring-2 ring-primary shadow-lg"
-                    : ""
-                }`}
-                onClick={() => setSelectedPayment(method.id as PaymentMethod)}
-              >
-                <CardContent className="p-0 flex items-center justify-center">
-                  <Image
-                    src={method.icon}
-                    alt={method.name}
-                    width={150}
-                    height={150}
-                    className="rounded-xl"
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Step 2: Amount & Bank Details */}
-        <div>
-          <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-            Step 2. Enter Amount & Bank Details
-          </Label>
-
-          <div className="space-y-3 sm:space-y-4">
-            {/* Amount */}
+        ) : (
+          <>
+            {/* Step 1: Payment Method Selection */}
             <div>
-              <Label htmlFor="cashout-amount" className="text-sm mb-2 block">
-                Amount
-              </Label>
-              <Input
-                id="cashout-amount"
-                type="number"
-                placeholder="₱ 100 - 50,000"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="h-12"
-              />
-            </div>
-
-            {/* Quick Amounts */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3">
-              {QUICK_AMOUNTS.map((amt) => (
-                <Button
-                  key={amt}
-                  variant="outline"
-                  onClick={() => setAmount(amt.toString())}
-                  className="h-10 sm:h-12 text-sm sm:text-base"
-                >
-                  ₱{amt}
-                </Button>
-              ))}
-            </div>
-
-            {/* Bank Selection */}
-            <div>
-              <Label htmlFor="bank-select" className="text-sm mb-2 block">
-                Bank Name
+              <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
+                Step 1. Select Payment Method
               </Label>
 
-              <Select
-                value={selectedBank}
-                onValueChange={(value) => {
-                  setSelectedBank(value);
-                  if (value !== "Other") setCustomBank("");
-                }}
-              >
-                <SelectTrigger className="w-full" size="lg">
-                  <SelectValue placeholder="Select your bank" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  {selectedPayment === "GCash/Maya"
-                    ? E_WALLET_BANK.map((bank) => (
-                        <SelectItem key={bank} value={bank}>
-                          {bank}
-                        </SelectItem>
-                      ))
-                    : BANK_ONLY.map((bank) => (
-                        <SelectItem key={bank} value={bank}>
-                          {bank}
-                        </SelectItem>
-                      ))}
-
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Custom Bank */}
-            {selectedBank === "Other" && (
-              <div>
-                <Label htmlFor="custom-bank" className="text-sm mb-2 block">
-                  Enter Bank Name
-                </Label>
-                <Input
-                  id="custom-bank"
-                  type="text"
-                  placeholder="Enter your bank name"
-                  value={customBank}
-                  onChange={(e) => setCustomBank(e.target.value)}
-                  className="h-12"
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                {PAYMENT_METHODS_CASHOUT.map((method) => (
+                  <Card
+                    key={method.id}
+                    className={`cursor-pointer transition-all hover:shadow-lg ${
+                      selectedPayment === method.id
+                        ? "ring-2 ring-primary shadow-lg"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      setSelectedPayment(method.id as PaymentMethod)
+                    }
+                  >
+                    <CardContent className="p-0 flex items-center justify-center">
+                      <Image
+                        src={method.icon}
+                        alt={method.name}
+                        width={150}
+                        height={150}
+                        className="rounded-xl"
+                      />
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-            )}
-
-            {/* Account Name */}
-            <div>
-              <Label htmlFor="account-name" className="text-sm mb-2 block">
-                Account Name
-              </Label>
-              <Input
-                id="account-name"
-                type="text"
-                placeholder="Enter account holder name"
-                value={accountName}
-                onChange={(e) => setAccountName(e.target.value)}
-                className="h-12"
-              />
             </div>
 
-            {/* Account Number */}
+            {/* Step 2: Amount & Bank Details */}
             <div>
-              <Label htmlFor="account-number" className="text-sm mb-2 block">
-                Account Number
+              <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
+                Step 2. Enter Amount & Bank Details
               </Label>
-              <Input
-                id="account-number"
-                type="text"
-                placeholder="Enter account number"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-                className="h-12"
-              />
-            </div>
-          </div>
-        </div>
 
-        {/* Submit */}
-        <Button
-          onClick={handleProceedToQR}
-          className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90"
-        >
-          Submit Cash Out Request
-        </Button>
+              <div className="space-y-3 sm:space-y-4">
+                {/* Amount */}
+                <div>
+                  <Label
+                    htmlFor="cashout-amount"
+                    className="text-sm mb-2 block"
+                  >
+                    Amount
+                  </Label>
+                  <Input
+                    id="cashout-amount"
+                    type="number"
+                    placeholder="₱ 100 - 50,000"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+
+                {/* Quick Amounts */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {QUICK_AMOUNTS.map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      onClick={() => setAmount(amt.toString())}
+                      className="h-10 sm:h-12 text-sm sm:text-base"
+                    >
+                      ₱{amt}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Bank Selection */}
+                <div>
+                  <Label htmlFor="bank-select" className="text-sm mb-2 block">
+                    Bank Name
+                  </Label>
+
+                  <Select
+                    value={selectedBank}
+                    onValueChange={(value) => {
+                      setSelectedBank(value);
+                      if (value !== "Other") setCustomBank("");
+                    }}
+                  >
+                    <SelectTrigger className="w-full" size="lg">
+                      <SelectValue placeholder="Select your bank" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {selectedPayment === "GCash/Maya"
+                        ? E_WALLET_BANK.map((bank) => (
+                            <SelectItem key={bank} value={bank}>
+                              {bank}
+                            </SelectItem>
+                          ))
+                        : BANK_ONLY.map((bank) => (
+                            <SelectItem key={bank} value={bank}>
+                              {bank}
+                            </SelectItem>
+                          ))}
+
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Custom Bank */}
+                {selectedBank === "Other" && (
+                  <div>
+                    <Label htmlFor="custom-bank" className="text-sm mb-2 block">
+                      Enter Bank Name
+                    </Label>
+                    <Input
+                      id="custom-bank"
+                      type="text"
+                      placeholder="Enter your bank name"
+                      value={customBank}
+                      onChange={(e) => setCustomBank(e.target.value)}
+                      className="h-12"
+                    />
+                  </div>
+                )}
+
+                {/* Account Name */}
+                <div>
+                  <Label htmlFor="account-name" className="text-sm mb-2 block">
+                    Account Name
+                  </Label>
+                  <Input
+                    id="account-name"
+                    type="text"
+                    placeholder="Enter account holder name"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+
+                {/* Account Number */}
+                <div>
+                  <Label
+                    htmlFor="account-number"
+                    className="text-sm mb-2 block"
+                  >
+                    Account Number
+                  </Label>
+                  <Input
+                    id="account-number"
+                    type="text"
+                    placeholder="Enter account number"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <Button
+              onClick={handleProceedToQR}
+              className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90"
+              disabled={hasPending || isLoading}
+            >
+              Submit Cash Out Request
+            </Button>
+          </>
+        )}
       </CardContent>
     </Card>
   );
