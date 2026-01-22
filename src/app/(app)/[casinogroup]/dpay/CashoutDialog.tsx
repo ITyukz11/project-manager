@@ -30,7 +30,7 @@ interface CashoutDialogProps {
 export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
   const [form, setForm] = React.useState({
     Amount: 0,
-    ReferenceUserId: "CPA7DMZL98ZBHP46",
+    ReferenceUserId: "",
     AccountNumber: "",
     HolderName: "",
     Bank: "",
@@ -48,7 +48,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
       // Reset form and result when dialog is closed
       setForm({
         Amount: 0,
-        ReferenceUserId: "CPA7DMZL98ZBHP46",
+        ReferenceUserId: "",
         AccountNumber: "",
         HolderName: "",
         Bank: "",
@@ -104,7 +104,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
 
       // ✅ success-only path
       setResult(data);
-      toast.success("Cashout created successfully!");
+      toast.success("Successfully submitted to DPAY");
     } catch (err) {
       console.error(err);
       toast.error("Failed to create cash-out");
@@ -188,6 +188,15 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
 
         {!result ? (
           <div className="grid gap-4 py-4">
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="referenceUserId">User ID</Label>
+              <Input
+                id="referenceUserId"
+                name="referenceUserId"
+                value={form.ReferenceUserId}
+                onChange={handleChange}
+              />
+            </div>
             <div className="grid w-full items-center gap-1.5">
               <Label>Bank</Label>
 
