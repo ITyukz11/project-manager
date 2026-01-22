@@ -10,6 +10,7 @@ model DpayTransaction {
   amount            Float               // Transaction amount
   channel           String              // Payment method/channel used
   status            String              // "INITIATED", "PENDING", "COMPLETED", "REJECTED", "CANCELLED", etc
+  qbetStatus        String?             // Your internal status tracking
   paymentUrl        String?             // If gateway returns a payment URL (for CASHIN)
   rawRequest        Json                // The payload you sent to your droplet/gateway
   rawGatewayResponse Json?              // The payment gateway's create response

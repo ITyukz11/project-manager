@@ -179,6 +179,54 @@ export function getDpayTransactionColumns({
       },
     },
     {
+      accessorKey: "qbetStatus",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="QBET Status" />
+      ),
+      cell: ({ row }) => {
+        const originalStatus = row.original.qbetStatus || "-";
+        const createdAt = new Date(row.original.createdAt);
+
+        const effectiveStatus = getEffectiveStatus(originalStatus, createdAt);
+
+        const badge = (
+          <Badge className={`w-fit ${getStatusColorClass(effectiveStatus)}`}>
+            {getStatusIcon(effectiveStatus)}
+            {effectiveStatus}
+          </Badge>
+        );
+
+        return (
+          <div className="flex flex-col">
+            {effectiveStatus === "DNPT" ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                  <TooltipContent>
+                    <p>Did Not Push Through (Pending &gt; 10 minutes)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              badge
+            )}
+
+            {/* Show duration only if resolved */}
+            {effectiveStatus !== "DNPT" && row.original.updatedAt && (
+              <span className="text-xs text-muted-foreground">
+                {formatDurationObj(
+                  intervalToDuration({
+                    start: new Date(row.original.createdAt),
+                    end: new Date(row.original.updatedAt),
+                  }),
+                ) || "0secs"}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       accessorKey: "channel",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Channel" />

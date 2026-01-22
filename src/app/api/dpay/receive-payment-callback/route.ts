@@ -5,10 +5,6 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  // TODO: Signature verification for production!
-  // const isValid = verifySignature(body.Signature, body, process.env.YOUR_GATEWAY_SECRET);
-  // if (!isValid) return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-
   const {
     ReferenceUserId,
     Status,
@@ -21,26 +17,27 @@ export async function POST(req: NextRequest) {
     if (!ReferenceUserId || !TransactionNumber || typeof Status === "undefined")
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
 
-    // Determine textual status for DB
+    // Map gateway status to textual DB status
     let txnStatus = "PENDING";
     if (Status === 3) txnStatus = "COMPLETED";
     else if (Status === 4) txnStatus = "REJECTED";
-    else if (Status === 2) txnStatus = "PENDING"; // your gateway may send other intermediate codes
 
-    // Update transaction record in DB
+    // Initial update: always store gateway status & webhook
     await prisma.dpayTransaction.updateMany({
       where: { transactionNumber: TransactionNumber },
       data: {
         status: txnStatus,
         rawWebhook: body,
+        // qbetStatus remains PENDING unless rejected
+        ...(Status === 4 ? { qbetStatus: "REJECTED" } : {}),
       },
     });
 
     if (Status === 3) {
-      // Credit user's balance or mark transaction as successful
+      // Attempt to credit user's balance
       const transactionRes = await createTransaction({
         id: ReferenceUserId,
         txn: TransactionNumber,
@@ -55,35 +52,38 @@ export async function POST(req: NextRequest) {
       ) {
         const balanceAfter = transactionRes.data.data[0]?.balance_after;
         console.log(
-          `[CASHIN SUCCESS] User: ${ReferenceUserId} Amount: ${Amount} Tx: ${TransactionNumber} NewBalance: ${balanceAfter}`
+          `[CASHIN SUCCESS] User: ${ReferenceUserId} Amount: ${Amount} Tx: ${TransactionNumber} NewBalance: ${balanceAfter}`,
         );
+
+        // Mark qbetStatus as LOADED
+        await prisma.dpayTransaction.updateMany({
+          where: { transactionNumber: TransactionNumber },
+          data: { qbetStatus: "LOADED" },
+        });
       } else {
         console.error(
           `[CASHIN ERROR] Failed to credit balance for User: ${ReferenceUserId} Tx: ${TransactionNumber}. Response:`,
-          JSON.stringify(transactionRes)
+          JSON.stringify(transactionRes),
         );
-        // Optionally, mark transaction as failed in DB here as well!
+
+        // Mark transaction as FAILED but leave qbetStatus PENDING
         await prisma.dpayTransaction.updateMany({
           where: { transactionNumber: TransactionNumber },
-          data: {
-            status: "FAILED",
-            // Optionally add more debug info
-          },
+          data: { status: "FAILED" },
         });
+
         return NextResponse.json(
           { error: "Failed to record transaction", transactionRes },
-          { status: 500 }
+          { status: 500 },
         );
       }
     } else if (Status === 4) {
-      // Mark deposit as failed in your database
       console.log(
-        `[CASHIN FAILED] User: ${ReferenceUserId} Tx: ${TransactionNumber} Reason: ${StatusDescription}`
+        `[CASHIN FAILED] User: ${ReferenceUserId} Tx: ${TransactionNumber} Reason: ${StatusDescription}`,
       );
     } else {
-      // Log or handle pending or other statuses
       console.log(
-        `[CASHIN UPDATE] User: ${ReferenceUserId} Tx: ${TransactionNumber} Status: ${StatusDescription}`
+        `[CASHIN UPDATE] User: ${ReferenceUserId} Tx: ${TransactionNumber} Status: ${StatusDescription}`,
       );
     }
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     console.error("PAYMENT CALLBACK ERROR", err);
     return NextResponse.json(
       { error: "Failed to process callback" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

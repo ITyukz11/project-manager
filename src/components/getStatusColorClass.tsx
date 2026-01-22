@@ -20,6 +20,7 @@ export function getStatusColorClass(status: string): string {
       return "bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 text-white";
 
     case "COMPLETED":
+    case "LOADED":
     case "APPROVED":
     case "CASHIN":
       return "bg-green-600 dark:bg-green-700 hover:bg-green-700 text-white";
@@ -41,6 +42,7 @@ export const getStatusIcon = (status?: string) => {
   switch (status) {
     case "APPROVED":
     case "COMPLETED":
+    case "LOADED":
       return <BadgeCheck className="h-4 w-4" />;
 
     case "CASHIN":
