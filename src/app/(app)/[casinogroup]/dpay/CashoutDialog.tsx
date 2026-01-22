@@ -30,7 +30,7 @@ interface CashoutDialogProps {
 export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
   const [form, setForm] = React.useState({
     Amount: 0,
-    ReferenceUserId: "",
+    ReferenceUserId: crypto.randomUUID(),
     AccountNumber: "",
     HolderName: "",
     Bank: "",
@@ -48,7 +48,7 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
       // Reset form and result when dialog is closed
       setForm({
         Amount: 0,
-        ReferenceUserId: "",
+        ReferenceUserId: crypto.randomUUID(),
         AccountNumber: "",
         HolderName: "",
         Bank: "",
@@ -189,9 +189,10 @@ export function CashoutDialog({ open, onOpenChange }: CashoutDialogProps) {
         {!result ? (
           <div className="grid gap-4 py-4">
             <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="referenceUserId">User ID</Label>
+              <Label htmlFor="referenceUserId">Reference User ID</Label>
               <Input
                 id="referenceUserId"
+                disabled
                 name="referenceUserId"
                 value={form.ReferenceUserId}
                 onChange={handleChange}
