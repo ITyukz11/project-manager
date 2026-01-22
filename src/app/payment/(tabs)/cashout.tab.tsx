@@ -73,7 +73,7 @@ export function CashOutContent({
   return (
     <Card>
       <CardContent className="space-y-4 sm:space-y-6">
-        {!hasPending ? (
+        {hasPending ? (
           <Label className="text-destructive">
             You have a PENDING transaction request. Please wait for it to be
             processed before making a new one. Go to History tab to view the
