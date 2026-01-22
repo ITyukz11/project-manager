@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!userId) {
     return NextResponse.json(
       { error: "Missing userId query parameter" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
     const txns = await prisma.dpayTransaction.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
+      take: 15,
     });
 
     return NextResponse.json(txns);
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching transactions:", err);
     return NextResponse.json(
       { error: "Failed to fetch transactions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
