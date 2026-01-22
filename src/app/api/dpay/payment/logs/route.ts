@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // Adjust import path as needed!
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,21 +19,26 @@ export async function GET(req: NextRequest) {
   const fromParam = url.searchParams.get("from");
   const toParam = url.searchParams.get("to");
 
+  // Convert fromParam and toParam to start/end of day if only date is given
   let fromDate: Date | undefined;
   let toDate: Date | undefined;
 
   if (fromParam) {
-    fromDate = new Date(fromParam); // already UTC
+    const f = new Date(fromParam);
+    fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0, 0, 0, 0);
   }
 
   if (toParam) {
-    toDate = new Date(toParam); // already UTC
-  }
-
-  // 🔧 If only one date is selected, expand to full PHT day
-  if (fromDate && toDate && fromDate.getTime() === toDate.getTime()) {
-    // add 23:59:59.999 in PHT
-    toDate = new Date(fromDate.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const t = new Date(toParam);
+    toDate = new Date(
+      t.getFullYear(),
+      t.getMonth(),
+      t.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
   }
 
   // Build "where" clause to match cashout/cashout logic, but adapted for cashin statuses
@@ -56,7 +62,6 @@ export async function GET(req: NextRequest) {
     }),
   };
 
-  console.log("WHERE CLAUSE:", JSON.stringify(whereClause, null, 2));
   try {
     // You can add more filters/orderBy/limit as needed
     const txns = await prisma.dpayTransaction.findMany({
@@ -76,6 +81,7 @@ export async function GET(req: NextRequest) {
         channel: true,
         paymentUrl: true,
         transactionNumber: true,
+        qbetStatus: true,
         createdAt: true,
         updatedAt: true,
       },

@@ -7,9 +7,7 @@ import {
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { format, formatDate, intervalToDuration } from "date-fns";
-import Link from "next/link";
+import { format, intervalToDuration } from "date-fns";
 import { DpayTransaction } from "@prisma/client";
 import { DataTableColumnHeader } from "@/components/table/data-table-column-header";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
@@ -19,6 +17,7 @@ import {
 } from "@/components/getStatusColorClass";
 import { Label } from "@/components/ui/label";
 import { Check, Copy } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 function formatDurationObj(dur: {
   hours?: number;
@@ -184,34 +183,21 @@ export function getDpayTransactionColumns({
         <DataTableColumnHeader column={column} title="QBET Status" />
       ),
       cell: ({ row }) => {
-        const originalStatus = row.original.qbetStatus || "-";
-        const createdAt = new Date(row.original.createdAt);
-
-        const effectiveStatus = getEffectiveStatus(originalStatus, createdAt);
+        const originalStatus =
+          row.original.status === "PENDING"
+            ? "PENDING"
+            : row.original.qbetStatus || "-";
+        console.log("originalStatus", originalStatus);
 
         const badge = (
-          <Badge className={`w-fit ${getStatusColorClass(effectiveStatus)}`}>
-            {getStatusIcon(effectiveStatus)}
-            {effectiveStatus}
+          <Badge className={`w-fit ${getStatusColorClass(originalStatus)}`}>
+            {getStatusIcon(originalStatus)}
+
+            {originalStatus}
           </Badge>
         );
 
-        return (
-          <div className="flex flex-col">
-            {effectiveStatus === "DNPT" ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>{badge}</TooltipTrigger>
-                  <TooltipContent>
-                    <p>Did Not Push Through (Pending &gt; 10 minutes)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : (
-              badge
-            )}
-          </div>
-        );
+        return <div className="flex flex-col">{badge}</div>;
       },
     },
     {
@@ -232,7 +218,6 @@ export function getDpayTransactionColumns({
         return <Badge className={`${channelClass} uppercase`}>{value}</Badge>;
       },
     },
-
     {
       accessorKey: "createdAt",
       header: ({ column }) => (
