@@ -4,6 +4,27 @@ import { getCurrentUser } from "@/lib/auth";
 import { put } from "@vercel/blob";
 import { pusher } from "@/lib/pusher"; // optional: for real-time notifications
 
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const id = (await params).id;
+  try {
+    const threads = await prisma.commissionThread.findMany({
+      where: { commissionId: id },
+      include: {
+        attachments: true,
+      },
+    });
+    return NextResponse.json(threads);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch threads" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
