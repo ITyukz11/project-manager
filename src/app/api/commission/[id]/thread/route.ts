@@ -16,7 +16,13 @@ export async function GET(
         attachments: true,
       },
     });
-    return NextResponse.json(threads);
+    return NextResponse.json(threads, {
+      headers: {
+        "Access-Control-Allow-Origin": "*", // or specific domain
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch threads" },
