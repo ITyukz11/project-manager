@@ -31,8 +31,6 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { useParams } from "next/navigation";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
-import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
-import { DateRange } from "react-day-picker";
 
 // Zod schema for Remittance form
 const RemittanceFormSchema = z.object({
@@ -48,41 +46,17 @@ export function RemittanceFormDialog({
   open,
   onOpenChange,
   onSubmitted,
+  refetch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmitted?: () => void;
+  refetch: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
 
-  const STORAGE_KEY = `remittance-date-range:${casinoGroup}`;
-
-  const dateRange: DateRange | undefined = React.useMemo(() => {
-    const today = new Date();
-
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return undefined;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      return undefined;
-    }
-  }, [STORAGE_KEY]);
-
-  const { refetch } = useRemittance(casinoGroup, dateRange);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 
@@ -111,7 +85,7 @@ export function RemittanceFormDialog({
       formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
       formData.append(
         "users",
-        JSON.stringify(values.users || []) // Send as JSON string
+        JSON.stringify(values.users || []), // Send as JSON string
       );
 
       if (values.attachment && Array.isArray(values.attachment)) {

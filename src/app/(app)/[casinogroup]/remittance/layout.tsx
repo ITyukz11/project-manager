@@ -7,7 +7,6 @@ import { BanknoteArrowUp, Wallet } from "lucide-react";
 import { Title } from "@/components/Title";
 import { useRemittance } from "@/lib/hooks/swr/remittance/useRemittance";
 import { useParams } from "next/navigation";
-import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 import { DateRange } from "react-day-picker";
 
 export default function RemittanceLayout({
@@ -65,7 +64,7 @@ export default function RemittanceLayout({
     );
   }, [dateRange, STORAGE_KEY]);
 
-  const { lastUpdate, error, isLoading } = useRemittance(
+  const { lastUpdate, error, isLoading, refetch } = useRemittance(
     casinoGroup,
     dateRange,
   );
@@ -91,7 +90,11 @@ export default function RemittanceLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <RemittanceFormDialog open={open} onOpenChange={setOpen} />
+      <RemittanceFormDialog
+        open={open}
+        onOpenChange={setOpen}
+        refetch={refetch}
+      />
     </Card>
   );
 }

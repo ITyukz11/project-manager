@@ -30,9 +30,7 @@ import {
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
 import { useParams } from "next/navigation";
-import { useCustomerSupports } from "@/lib/hooks/swr/customer-support/useCustomerSupports";
 import { useUsers } from "@/lib/hooks/swr/user/useUsersData";
-import { DateRange } from "react-day-picker";
 
 // Zod schema for CustomerSupport form
 const CustomerSupportFormSchema = z.object({
@@ -50,41 +48,16 @@ export function CustomerSupportFormDialog({
   open,
   onOpenChange,
   onSubmitted,
+  refetch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmitted?: () => void;
+  refetch: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-
-  const STORAGE_KEY = `customerSupports-date-range:${casinoGroup}`;
-
-  const dateRange: DateRange | undefined = React.useMemo(() => {
-    const today = new Date();
-
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return undefined;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      return undefined;
-    }
-  }, [STORAGE_KEY]);
-
-  const { refetch: mutate } = useCustomerSupports(casinoGroup, dateRange);
   // Fetch network users to be assigned to the group chat
   const { usersData, usersLoading } = useUsers();
 
@@ -111,7 +84,7 @@ export function CustomerSupportFormDialog({
       formData.append("casinoGroup", casinoGroup); // Add the actual casinoGroup value here
       formData.append(
         "users",
-        JSON.stringify(values.users || []) // Send as JSON string
+        JSON.stringify(values.users || []), // Send as JSON string
       );
 
       if (values.attachment && Array.isArray(values.attachment)) {
@@ -135,7 +108,7 @@ export function CustomerSupportFormDialog({
       // Optionally, reset form or close dialog
       form.reset();
       onOpenChange(false);
-      mutate();
+      refetch();
       onSubmitted?.();
     } catch (e: any) {
       toast.error(e.message || "Something went wrong!");

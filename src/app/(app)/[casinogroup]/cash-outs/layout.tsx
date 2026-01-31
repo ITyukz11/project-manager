@@ -68,7 +68,10 @@ export default function CashoutLayout({
   /**
    * ✅ Fetch cashouts using dateRange
    */
-  const { lastUpdate, error, isLoading } = useCashouts(casinoGroup, dateRange);
+  const { lastUpdate, error, isLoading, refetch } = useCashouts(
+    casinoGroup,
+    dateRange,
+  );
 
   return (
     <Card>
@@ -92,7 +95,7 @@ export default function CashoutLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <CashoutFormDialog open={open} onOpenChange={setOpen} />
+      <CashoutFormDialog open={open} onOpenChange={setOpen} refetch={refetch} />
     </Card>
   );
 }

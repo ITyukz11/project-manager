@@ -29,10 +29,8 @@ import {
   avoidDefaultDomBehavior,
   handleKeyDown,
 } from "@/lib/utils/dialogcontent.utils";
-import { useCashouts } from "@/lib/hooks/swr/cashout/useCashouts";
 import { useParams } from "next/navigation";
 import { PasteImageTextarea } from "@/lib/common/paste-image-textarea";
-import { DateRange } from "react-day-picker";
 
 // Zod schema for Cashout form
 const CashoutFormSchema = z.object({
@@ -48,45 +46,18 @@ export function CashoutFormDialog({
   open,
   onOpenChange,
   onSubmitted,
+  refetch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmitted?: () => void;
+  refetch: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
   const [pastedImages, setPastedImages] = React.useState<File[]>([]);
 
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-  const STORAGE_KEY = `cashouts-date-range:${casinoGroup}`;
-
-  const dateRange: DateRange | undefined = React.useMemo(() => {
-    const today = new Date();
-
-    if (typeof window === "undefined") {
-      console.log("[cashout] Window is undefined");
-      return undefined;
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      console.log("[cashout] No stored date range found");
-      return undefined;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      console.log("[cashout] Failed to parse stored date range");
-      return undefined;
-    }
-  }, [STORAGE_KEY]);
-
-  const { refetch } = useCashouts(casinoGroup, dateRange);
 
   const form = useForm<CashoutFormValues>({
     resolver: zodResolver(CashoutFormSchema),

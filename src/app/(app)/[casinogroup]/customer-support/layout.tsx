@@ -22,7 +22,7 @@ export default function ConcernLayout({
 
   const { dateRange } = useStoredDateRange(STORAGE_KEY);
 
-  const { lastUpdate, isLoading, error } = useCustomerSupports(
+  const { lastUpdate, isLoading, error, refetch } = useCustomerSupports(
     casinoGroup,
     dateRange,
   );
@@ -50,7 +50,11 @@ export default function ConcernLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <CustomerSupportFormDialog open={open} onOpenChange={setOpen} />
+      <CustomerSupportFormDialog
+        open={open}
+        onOpenChange={setOpen}
+        refetch={refetch}
+      />
     </Card>
   );
 }

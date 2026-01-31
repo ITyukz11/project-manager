@@ -22,7 +22,10 @@ export default function TasksLayout({
 
   const { dateRange } = useStoredDateRange(STORAGE_KEY);
 
-  const { lastUpdate, isLoading, error } = useTask(casinoGroup, dateRange);
+  const { lastUpdate, isLoading, error, refetch } = useTask(
+    casinoGroup,
+    dateRange,
+  );
   return (
     <Card>
       <CardContent>
@@ -44,7 +47,7 @@ export default function TasksLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <TaskFormDialog open={open} onOpenChange={setOpen} />
+      <TaskFormDialog open={open} onOpenChange={setOpen} refetch={refetch} />
     </Card>
   );
 }

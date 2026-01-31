@@ -31,8 +31,6 @@ import {
 } from "@/lib/utils/dialogcontent.utils";
 import { useParams } from "next/navigation";
 import { PasteImageTextarea } from "@/lib/common/paste-image-textarea";
-import { useCashins } from "@/lib/hooks/swr/cashin/useCashins";
-import { DateRange } from "react-day-picker";
 
 // Zod schema for Cashin form
 const CashinFormSchema = z.object({
@@ -48,43 +46,18 @@ export function CashinFormDialog({
   open,
   onOpenChange,
   onSubmitted,
+  refetch,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmitted?: () => void;
+  refetch: () => void;
 }) {
   const [loading, setLoading] = React.useState(false);
   const [pastedImages, setPastedImages] = React.useState<File[]>([]);
 
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
-
-  const STORAGE_KEY = `cashins-date-range:${casinoGroup}`;
-
-  const dateRange: DateRange | undefined = React.useMemo(() => {
-    const today = new Date();
-
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return undefined;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
-    } catch {
-      return undefined;
-    }
-  }, [STORAGE_KEY]);
-
-  const { refetch } = useCashins(casinoGroup, dateRange);
 
   const form = useForm<CashinFormValues>({
     resolver: zodResolver(CashinFormSchema),

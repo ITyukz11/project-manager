@@ -61,7 +61,10 @@ export default function CashinLayout({
   /**
    * ✅ Fetch cashins using dateRange
    */
-  const { lastUpdate, error, isLoading } = useCashins(casinoGroup, dateRange);
+  const { lastUpdate, error, isLoading, refetch } = useCashins(
+    casinoGroup,
+    dateRange,
+  );
 
   return (
     <Card>
@@ -79,7 +82,7 @@ export default function CashinLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <CashinFormDialog open={open} onOpenChange={setOpen} />
+      <CashinFormDialog open={open} onOpenChange={setOpen} refetch={refetch} />
     </Card>
   );
 }

@@ -64,7 +64,10 @@ export default function ConcernLayout({
   /**
    * ✅ Fetch concerns using dateRange
    */
-  const { lastUpdate, error, isLoading } = useConcerns(casinoGroup, dateRange);
+  const { lastUpdate, error, isLoading, refetch } = useConcerns(
+    casinoGroup,
+    dateRange,
+  );
 
   return (
     <Card>
@@ -89,7 +92,7 @@ export default function ConcernLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <ConcernFormDialog open={open} onOpenChange={setOpen} />
+      <ConcernFormDialog open={open} onOpenChange={setOpen} refetch={refetch} />
     </Card>
   );
 }
