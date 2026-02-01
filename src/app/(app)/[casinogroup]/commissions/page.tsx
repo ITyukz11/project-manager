@@ -15,11 +15,14 @@ import { TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { DateRange } from "react-day-picker";
+import { CommissionDetailsDialog } from "./(components)/CommissionDetailsDialog";
 
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
   const router = useRouter();
+  const [commissionId, setCommissionId] = useState<string>("");
+  const [open, setOpen] = useState(false);
 
   /**
    * 🔑 Per-casinoGroup storage key
@@ -67,7 +70,7 @@ const Page = () => {
   /**
    * ✅ Fetch commissions using dateRange
    */
-  const { commissions, error, isLoading } = useCommissions(
+  const { commissions, error, isLoading, refetch } = useCommissions(
     casinoGroup,
     dateRange,
   );
@@ -130,12 +133,22 @@ const Page = () => {
           columns={commissionColumns}
           cursorRowSelect
           hiddenColumns={["details", "updatedAt"]}
-          onViewRowId={(id) => router.push(`/${casinoGroup}/commissions/${id}`)}
+          // onViewRowId={(id) => router.push(`/${casinoGroup}/commissions/${id}`)}
+          onViewRowId={(id) => {
+            setCommissionId(id);
+            setOpen(true);
+          }}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
         />
       )}
+      <CommissionDetailsDialog
+        open={open}
+        onOpenChange={setOpen}
+        commissionId={commissionId}
+        refetch={refetch}
+      />
     </div>
   );
 };

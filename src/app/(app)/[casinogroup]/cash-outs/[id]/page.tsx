@@ -398,17 +398,21 @@ export default function Page() {
             >
               {cashout.transactionRequestId && (
                 <span className="relative inline-flex">
+                  {/* Main label */}
+                  <Badge variant={"gateway"}>GATEWAY</Badge>
+                </span>
+              )}
+              {cashout.commissionId && (
+                <span className="relative inline-flex">
                   {/* Ping layer (only when PENDING) */}
                   {cashout.status === "COMPLETED" && (
-                    <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse">
-                      GATEWAY
+                    <span className="absolute inset-0 rounded-lg bg-purple-400 opacity-75 animate-pulse">
+                      COMMISSION
                     </span>
                   )}
 
                   {/* Main label */}
-                  <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
-                    GATEWAY
-                  </span>
+                  <Badge variant={"commission"}>COMMISSION</Badge>
                 </span>
               )}
 

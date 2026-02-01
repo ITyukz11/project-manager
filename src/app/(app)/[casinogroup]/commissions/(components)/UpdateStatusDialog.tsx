@@ -41,7 +41,7 @@ export function UpdateStatusDialog({
     },
   });
 
-  const statuses = ["PENDING", "PARTIAL", "APPROVED", "REJECTED"];
+  const statuses = ["PENDING", "PARTIAL", "APPROVED", "REJECTED", "COMMISSION"];
 
   // 2. Submission handler (native form submit)
   async function onSubmit(values) {

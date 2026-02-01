@@ -32,7 +32,7 @@ export function UpdateStatusDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { mutate } = useCashoutById(cashoutId);
+  const { cashout, mutate } = useCashoutById(cashoutId);
 
   // 1. Setup react-hook-form
   const form = useForm({
@@ -100,11 +100,20 @@ export function UpdateStatusDialog({
                         <SelectValue placeholder="Pick a status…" />
                       </SelectTrigger>
                       <SelectContent>
-                        {statuses.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {s}
-                          </SelectItem>
-                        ))}
+                        {statuses.map((s) => {
+                          if (
+                            (cashout?.commissionId ||
+                              cashout?.transactionRequestId) &&
+                            s === "REJECTED"
+                          )
+                            return;
+
+                          return (
+                            <SelectItem key={s} value={s}>
+                              {s}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </FormControl>

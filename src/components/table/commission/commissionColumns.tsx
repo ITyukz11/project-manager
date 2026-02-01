@@ -8,6 +8,7 @@ import {
   getStatusColorClass,
   getStatusIcon,
 } from "@/components/getStatusColorClass";
+import { getBadgeColor, roleStyles } from "@/lib/utils/roleColors";
 
 // Assuming Commission type
 export type CommissionForTable = {
@@ -36,9 +37,9 @@ export const commissionColumns: ColumnDef<CommissionForTable>[] = [
       // Show Admin's name if present, else NetworkUser name
       return (
         <span className="relative inline-flex gap-1">
-          <span className="uppercase font-bold relative z-10 rounded-lg bg-sky-100 border border-sky-300 px-2 py-0.5 text-xs text-sky-900">
+          <Badge className={`${roleStyles[row.original.role]}`}>
             {row.original.role}
-          </span>
+          </Badge>
           {row.original.userName}
         </span>
       );
@@ -78,7 +79,7 @@ export const commissionColumns: ColumnDef<CommissionForTable>[] = [
     cell: ({ row }) => (
       <Badge
         className={`w-fit capitalize ${getStatusColorClass(
-          row.original.status
+          row.original.status,
         )}`}
       >
         {getStatusIcon(row.original.status)}

@@ -7,6 +7,8 @@ model Commission {
   externalUserId String?   // Player's external ID from gaming system
   status          CommissionStatus   @default(PENDING)
 
+  reason          String?
+
   attachments     CommissionAttachment[]
 
   details         String
@@ -63,4 +65,5 @@ enum CommissionStatus {
   COMPLETED
   APPROVED
   REJECTED
+  CLAIMED
 }

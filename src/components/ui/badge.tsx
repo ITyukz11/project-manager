@@ -21,12 +21,16 @@ const badgeVariants = cva(
           "text-foreground [a&]: hover:bg-accent [a&]:hover:text-accent-foreground",
         claimed:
           "border-transparent bg-blue-600 text-white [a&]:hover:bg-blue-700 focus-visible:ring-blue-600/20 dark:focus-visible:ring-blue-600/40 dark:bg-blue-700",
+        gateway:
+          "border-transparent bg-sky-600 text-white [a&]:hover:bg-sky-700 focus-visible:ring-sky-600/20 dark:focus-visible:ring-sky-600/40 dark:bg-sky-700",
+        commission:
+          "border-transparent bg-purple-600 text-white [a&]:hover:bg-purple-700 focus-visible:ring-purple-600/20 dark:focus-visible:ring-purple-600/40 dark:bg-purple-700",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 function Badge({

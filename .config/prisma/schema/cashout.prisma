@@ -19,6 +19,7 @@ model Cashout {
   cashoutLogs     CashoutLogs[]
 
   transactionRequestId String?
+  commissionId     String?
 
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt

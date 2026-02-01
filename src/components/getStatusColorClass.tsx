@@ -33,6 +33,8 @@ export function getStatusColorClass(status: string): string {
 
     case "REJECTED":
       return "bg-red-600 dark:bg-red-700 hover:bg-red-700 text-white";
+    case "COMMISSION":
+      return "bg-teal-600 dark:bg-teal-700 hover:bg-teal-700 text-white";
     default:
       return "bg-gray-600 dark:bg-gray-700 hover:bg-gray-700 text-white";
   }

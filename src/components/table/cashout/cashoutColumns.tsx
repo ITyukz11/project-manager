@@ -17,6 +17,7 @@ export type CashoutForTable = {
   details: string;
   status: string;
   transactionRequestId?: string;
+  commissionId?: string;
   createdAt: Date;
   updatedAt: Date;
   createdByAdmin?: { id: string; name?: string };
@@ -39,22 +40,14 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     cell: ({ row }) => {
       const cashout = row.original;
       const isGateway = !!cashout.transactionRequestId;
+      const isCommission = !!cashout.commissionId;
 
       const entry = cashout.createdByAdmin?.name || cashout.user?.name || "—";
 
       return (
         <span className="font-medium flex items-center gap-1">
-          {isGateway && (
-            <span className="relative inline-flex">
-              {cashout.status === "COMPLETED" && (
-                <span className="absolute inset-0 rounded-lg bg-blue-400 opacity-75 animate-pulse" />
-              )}
-
-              <span className="relative z-10 rounded-lg bg-blue-100 border border-blue-300 px-2 py-0.5 text-xs font-semibold text-blue-900">
-                GATEWAY
-              </span>
-            </span>
-          )}
+          {isGateway && <Badge variant={"gateway"}>GATEWAY</Badge>}
+          {isCommission && <Badge variant={"commission"}>COMMISSION</Badge>}
 
           <span>{entry}</span>
         </span>
@@ -106,7 +99,7 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
     cell: ({ row }) => (
       <Badge
         className={`w-fit capitalize ${getStatusColorClass(
-          row.original.status
+          row.original.status,
         )}`}
       >
         {getStatusIcon(row.original.status)}

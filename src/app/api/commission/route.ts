@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { emitCommissionUpdated } from "@/actions/server/emitCommissionUpdated";
 import { verifyExternalJwt } from "@/lib/auth/verifyExternalJwt";
 
@@ -32,7 +31,7 @@ export async function GET(req: Request) {
         0,
         0,
         0,
-        0
+        0,
       );
     }
 
@@ -45,7 +44,7 @@ export async function GET(req: Request) {
         23,
         59,
         59,
-        999
+        999,
       );
     }
 
@@ -53,10 +52,11 @@ export async function GET(req: Request) {
     const whereClause: any = {
       OR: [
         { status: "PENDING" },
+        { status: "CLAIMED" },
         { status: "PARTIAL" }, // always include PENDING and PARTIAL
         {
           // other statuses with date range filter
-          NOT: { status: { in: ["PENDING", "PARTIAL"] } },
+          NOT: { status: { in: ["PENDING", "PARTIAL", "CLAIMED"] } },
           ...(fromDate || toDate
             ? {
                 createdAt: {
@@ -78,12 +78,6 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Allowed roles filter
-    const allowedRoles = [
-      ...Object.values(ADMINROLES),
-      ...Object.values(NETWORKROLES),
-    ];
-
     const commissions = await prisma.commission.findMany({
       where: whereClause,
       include: {
@@ -98,12 +92,16 @@ export async function GET(req: Request) {
     });
 
     // Business sorting: pending, partial, rest sorted by createdAt desc
+    const claimed = commissions.filter((x) => x.status === "CLAIMED");
     const pending = commissions.filter((x) => x.status === "PENDING");
     const partial = commissions.filter((x) => x.status === "PARTIAL");
     const rest = commissions.filter(
-      (x) => x.status !== "PENDING" && x.status !== "PARTIAL"
+      (x) =>
+        x.status !== "PENDING" &&
+        x.status !== "PARTIAL" &&
+        x.status !== "CLAIMED",
     );
-    const sorted = [...pending, ...partial, ...rest];
+    const sorted = [...pending, ...claimed, ...partial, ...rest];
 
     return NextResponse.json(sorted);
   } catch (e: any) {
@@ -122,7 +120,7 @@ export async function POST(req: Request) {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Unauthorized. Missing JWT token." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -146,7 +144,7 @@ export async function POST(req: Request) {
       console.error("JWT verification failed:", err);
       return NextResponse.json(
         { error: "Unauthorized. Invalid or expired token." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -160,6 +158,10 @@ export async function POST(req: Request) {
     const amountStr = formData.get("amount");
     const details = formData.get("details") as string;
     const casinoGroupName = formData.get("casinoGroup") as string;
+    // const accountNumber = formData.get("accountNumber") as string;
+    // const accountName = formData.get("accountName") as string;
+    // const bankName = formData.get("bankName") as string;
+    // const remarks = formData.get("remarks") as string;
 
     /* -------------------------------------------
        3. VALIDATION
@@ -167,14 +169,14 @@ export async function POST(req: Request) {
     if (!userName?.trim()) {
       return NextResponse.json(
         { error: "Username is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!amountStr || isNaN(Number(amountStr))) {
       return NextResponse.json(
         { error: "Amount must be a valid number." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -182,14 +184,14 @@ export async function POST(req: Request) {
     if (amount <= 0) {
       return NextResponse.json(
         { error: "Amount must be greater than zero." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!details?.trim()) {
       return NextResponse.json(
         { error: "Commission details are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -202,7 +204,7 @@ export async function POST(req: Request) {
     if (!casinoGroup) {
       return NextResponse.json(
         { error: "Invalid casino group specified." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -269,7 +271,7 @@ export async function POST(req: Request) {
     console.error("Commission POST error:", err);
     return NextResponse.json(
       { error: "Unexpected server error." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
