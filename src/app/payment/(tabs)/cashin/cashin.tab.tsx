@@ -201,7 +201,7 @@ export function CashInContent({
           {submitting ? "Please wait..." : "Proceed to Payment"}
         </Button>
       </CardContent>
-      <Dialog open={!submitting}>
+      <Dialog open={submitting}>
         <DialogContent
           className="sm:w-fit text-center border-yellow-300 [&>button]:hidden"
           onInteractOutside={(e) => e.preventDefault()}
