@@ -6,6 +6,37 @@ import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
 
+// --- Convert local date string to UTC start/end of day ---
+function toUtcStartOfDay(dateStr: string, tzOffsetHours = 8): Date {
+  const localDate = new Date(dateStr);
+  return new Date(
+    Date.UTC(
+      localDate.getFullYear(),
+      localDate.getMonth(),
+      localDate.getDate(),
+      0 - tzOffsetHours, // shift local midnight to UTC
+      0,
+      0,
+      0,
+    ),
+  );
+}
+
+function toUtcEndOfDay(dateStr: string, tzOffsetHours = 8): Date {
+  const localDate = new Date(dateStr);
+  return new Date(
+    Date.UTC(
+      localDate.getFullYear(),
+      localDate.getMonth(),
+      localDate.getDate(),
+      23 - tzOffsetHours, // shift local 23:59:59 to UTC
+      59,
+      59,
+      999,
+    ),
+  );
+}
+
 // --- GET handler to fetch all cashouts with attachments and threads ---
 export async function GET(req: Request) {
   try {
@@ -24,30 +55,19 @@ export async function GET(req: Request) {
     let toDate: Date | undefined;
 
     if (fromParam) {
-      const f = new Date(fromParam);
-      fromDate = new Date(
-        f.getFullYear(),
-        f.getMonth(),
-        f.getDate(),
-        0,
-        0,
-        0,
-        0,
-      );
+      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
     }
 
     if (toParam) {
-      const t = new Date(toParam);
-      toDate = new Date(
-        t.getFullYear(),
-        t.getMonth(),
-        t.getDate(),
-        23,
-        59,
-        59,
-        999,
-      );
+      toDate = toUtcEndOfDay(toParam, 8);
     }
+
+    console.log("Fetching cashouts with params:", {
+      casinoGroup,
+      fromDate,
+      toDate,
+    });
 
     if (!fromParam || !toParam) {
       return NextResponse.json(
