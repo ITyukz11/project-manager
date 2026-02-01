@@ -5,37 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitCashoutUpdated } from "@/actions/server/emitCashoutUpdated";
-
-// --- Convert local date string to UTC start/end of day ---
-function toUtcStartOfDay(dateStr: string, tzOffsetHours = 8): Date {
-  const localDate = new Date(dateStr);
-  return new Date(
-    Date.UTC(
-      localDate.getFullYear(),
-      localDate.getMonth(),
-      localDate.getDate(),
-      0 - tzOffsetHours, // shift local midnight to UTC
-      0,
-      0,
-      0,
-    ),
-  );
-}
-
-function toUtcEndOfDay(dateStr: string, tzOffsetHours = 8): Date {
-  const localDate = new Date(dateStr);
-  return new Date(
-    Date.UTC(
-      localDate.getFullYear(),
-      localDate.getMonth(),
-      localDate.getDate(),
-      23 - tzOffsetHours, // shift local 23:59:59 to UTC
-      59,
-      59,
-      999,
-    ),
-  );
-}
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 // --- GET handler to fetch all cashouts with attachments and threads ---
 export async function GET(req: Request) {
@@ -62,12 +32,6 @@ export async function GET(req: Request) {
     if (toParam) {
       toDate = toUtcEndOfDay(toParam, 8);
     }
-
-    console.log("Fetching cashouts with params:", {
-      casinoGroup,
-      fromDate,
-      toDate,
-    });
 
     if (!fromParam || !toParam) {
       return NextResponse.json(

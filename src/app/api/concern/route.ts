@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitConcernUpdated } from "@/actions/server/emitConcernUpdated";
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 // --- GET: Fetch concerns (pending first, partial second, then rest by createdAt desc, supports daterange) ---
 export async function GET(req: Request) {
@@ -24,28 +25,18 @@ export async function GET(req: Request) {
     let toDate: Date | undefined;
 
     if (fromParam) {
-      const f = new Date(fromParam);
-      fromDate = new Date(
-        f.getFullYear(),
-        f.getMonth(),
-        f.getDate(),
-        0,
-        0,
-        0,
-        0
-      );
+      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
     }
 
     if (toParam) {
-      const t = new Date(toParam);
-      toDate = new Date(
-        t.getFullYear(),
-        t.getMonth(),
-        t.getDate(),
-        23,
-        59,
-        59,
-        999
+      toDate = toUtcEndOfDay(toParam, 8);
+    }
+
+    if (!fromParam || !toParam) {
+      return NextResponse.json(
+        { error: "Both 'from' and 'to' query parameters are required." },
+        { status: 400 },
       );
     }
 
@@ -121,7 +112,7 @@ export async function POST(req: Request) {
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized. Please log in." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -135,14 +126,14 @@ export async function POST(req: Request) {
     if (!subject?.trim()) {
       return NextResponse.json(
         { error: "Subject is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!details?.trim()) {
       return NextResponse.json(
         { error: "Concern details are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -155,7 +146,7 @@ export async function POST(req: Request) {
     if (!casinoGroup) {
       return NextResponse.json(
         { error: "Invalid casino group specified." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -174,7 +165,7 @@ export async function POST(req: Request) {
     if (!isMember) {
       return NextResponse.json(
         { error: "You are not a member of this casino group." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -262,7 +253,7 @@ export async function POST(req: Request) {
       await pusher.trigger(
         `concern-${casinoGroupName.toLowerCase()}`,
         "concern-pending-count",
-        { count: pendingCount }
+        { count: pendingCount },
       );
 
       // Per-user notifications (SAFE)
@@ -284,9 +275,9 @@ export async function POST(req: Request) {
           await pusher.trigger(
             `user-notify-${userId}`,
             "notifications-event",
-            notification
+            notification,
           );
-        })
+        }),
       );
 
       await emitConcernUpdated({
@@ -303,7 +294,7 @@ export async function POST(req: Request) {
     console.error("Unexpected error creating concern:", e);
     return NextResponse.json(
       { error: "Unexpected server error. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

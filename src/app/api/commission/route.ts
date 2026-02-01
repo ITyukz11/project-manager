@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { emitCommissionUpdated } from "@/actions/server/emitCommissionUpdated";
 import { verifyExternalJwt } from "@/lib/auth/verifyExternalJwt";
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 // --- GET handler to fetch all commissions with attachments and threads ---
 export async function GET(req: Request) {
@@ -23,28 +24,18 @@ export async function GET(req: Request) {
     let toDate: Date | undefined;
 
     if (fromParam) {
-      const f = new Date(fromParam);
-      fromDate = new Date(
-        f.getFullYear(),
-        f.getMonth(),
-        f.getDate(),
-        0,
-        0,
-        0,
-        0,
-      );
+      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
     }
 
     if (toParam) {
-      const t = new Date(toParam);
-      toDate = new Date(
-        t.getFullYear(),
-        t.getMonth(),
-        t.getDate(),
-        23,
-        59,
-        59,
-        999,
+      toDate = toUtcEndOfDay(toParam, 8);
+    }
+
+    if (!fromParam || !toParam) {
+      return NextResponse.json(
+        { error: "Both 'from' and 'to' query parameters are required." },
+        { status: 400 },
       );
     }
 

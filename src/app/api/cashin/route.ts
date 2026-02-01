@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { emitCashinUpdated } from "@/actions/server/emitCashinUpdated";
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 const STATUS_SORT = {
   ACCOMMODATING: 1,
@@ -33,28 +34,18 @@ export async function GET(req: Request) {
     let toDate: Date | undefined;
 
     if (fromParam) {
-      const f = new Date(fromParam);
-      fromDate = new Date(
-        f.getFullYear(),
-        f.getMonth(),
-        f.getDate(),
-        0,
-        0,
-        0,
-        0
-      );
+      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
     }
 
     if (toParam) {
-      const t = new Date(toParam);
-      toDate = new Date(
-        t.getFullYear(),
-        t.getMonth(),
-        t.getDate(),
-        23,
-        59,
-        59,
-        999
+      toDate = toUtcEndOfDay(toParam, 8);
+    }
+
+    if (!fromParam || !toParam) {
+      return NextResponse.json(
+        { error: "Both 'from' and 'to' query parameters are required." },
+        { status: 400 },
       );
     }
 
@@ -120,7 +111,7 @@ export async function POST(req: Request) {
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized. Please log in." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -140,35 +131,35 @@ export async function POST(req: Request) {
     if (!casinoGroup) {
       return NextResponse.json(
         { error: "Invalid casino group specified." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     // --- Validation ---
     if (!userName || typeof userName !== "string" || userName.trim() === "") {
       return NextResponse.json(
         { error: "Username is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!amountStr || isNaN(Number(amountStr))) {
       return NextResponse.json(
         { error: "Amount is required and must be a valid number." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const amount = parseFloat(amountStr as string);
     if (amount <= 0) {
       return NextResponse.json(
         { error: "Amount must be greater than zero." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!details || typeof details !== "string" || details.trim() === "") {
       return NextResponse.json(
         { error: "Cashin details are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -195,7 +186,7 @@ export async function POST(req: Request) {
           console.error("Attachment upload error:", err);
           return NextResponse.json(
             { error: "Attachment upload failed." },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
@@ -243,7 +234,7 @@ export async function POST(req: Request) {
         await pusher.trigger(
           `cashin-${casinoGroupName.toLowerCase()}`, // channel name
           "cashin-pending-count", // event name
-          { count: pendingCount }
+          { count: pendingCount },
         );
 
         // Get all tagged users for this notification
@@ -292,9 +283,9 @@ export async function POST(req: Request) {
             await pusher.trigger(
               `user-notify-${userId}`,
               "notifications-event", // Event name by notification type
-              notification
+              notification,
             );
-          })
+          }),
         );
 
         await emitCashinUpdated({
@@ -315,7 +306,7 @@ export async function POST(req: Request) {
           error:
             "Failed to create cashin. Please check your data and try again.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (e: any) {
@@ -323,7 +314,7 @@ export async function POST(req: Request) {
     console.error("Unexpected error creating cashin:", e);
     return NextResponse.json(
       { error: "Unexpected server error. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

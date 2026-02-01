@@ -5,6 +5,7 @@ import { ADMINROLES, NETWORKROLES } from "@/lib/types/role";
 import { put } from "@vercel/blob";
 import { pusher } from "@/lib/pusher";
 import { emitTaskUpdated } from "@/actions/server/emitTaskUpdated";
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 // --- GET handler to fetch all tasks (with date range support) ---
 export async function GET(req: Request) {
@@ -27,28 +28,18 @@ export async function GET(req: Request) {
     let toDate: Date | undefined;
 
     if (fromParam) {
-      const f = new Date(fromParam);
-      fromDate = new Date(
-        f.getFullYear(),
-        f.getMonth(),
-        f.getDate(),
-        0,
-        0,
-        0,
-        0
-      );
+      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
     }
 
     if (toParam) {
-      const t = new Date(toParam);
-      toDate = new Date(
-        t.getFullYear(),
-        t.getMonth(),
-        t.getDate(),
-        23,
-        59,
-        59,
-        999
+      toDate = toUtcEndOfDay(toParam, 8);
+    }
+
+    if (!fromParam || !toParam) {
+      return NextResponse.json(
+        { error: "Both 'from' and 'to' query parameters are required." },
+        { status: 400 },
       );
     }
 
@@ -123,7 +114,7 @@ export async function POST(req: Request) {
     if (!currentUser) {
       return NextResponse.json(
         { error: "Unauthorized. Please log in." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -143,21 +134,21 @@ export async function POST(req: Request) {
     if (!casinoGroup) {
       return NextResponse.json(
         { error: "Invalid casino group specified." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     // --- Validation ---
     if (!subject || typeof subject !== "string" || subject.trim() === "") {
       return NextResponse.json(
         { error: "Subject is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!details || typeof details !== "string" || details.trim() === "") {
       return NextResponse.json(
         { error: "Task details are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -184,7 +175,7 @@ export async function POST(req: Request) {
           console.error("Attachment upload error:", err);
           return NextResponse.json(
             { error: "Attachment upload failed." },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
@@ -233,7 +224,7 @@ export async function POST(req: Request) {
         await pusher.trigger(
           `task-${casinoGroupName.toLowerCase()}`, // channel name
           "task-pending-count",
-          { count: pendingCount }
+          { count: pendingCount },
         );
 
         // Notify each tagged user
@@ -260,9 +251,9 @@ export async function POST(req: Request) {
             await pusher.trigger(
               `user-notify-${userId}`, // user channel
               "notifications-event", // event name
-              notification
+              notification,
             );
-          })
+          }),
         );
 
         await emitTaskUpdated({
@@ -281,7 +272,7 @@ export async function POST(req: Request) {
         {
           error: "Failed to create task. Please check your data and try again.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
   } catch (e: any) {
@@ -289,7 +280,7 @@ export async function POST(req: Request) {
     console.error("Unexpected error creating task:", e);
     return NextResponse.json(
       { error: "Unexpected server error. Please try again later." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

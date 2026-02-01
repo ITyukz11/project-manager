@@ -6,6 +6,7 @@ import { put } from "@vercel/blob";
 import crypto from "crypto";
 import { ADMINROLES } from "@/lib/types/role";
 import { emitTransactionUpdated } from "@/actions/server/emitTransactionUpdated";
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 const STATUS_SORT = {
   PENDING: 1,
@@ -187,30 +188,21 @@ export async function GET(req: Request) {
     let toDate: Date | undefined;
 
     if (fromParam) {
-      const f = new Date(fromParam);
-      fromDate = new Date(
-        f.getFullYear(),
-        f.getMonth(),
-        f.getDate(),
-        0,
-        0,
-        0,
-        0
-      );
+      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
     }
 
     if (toParam) {
-      const t = new Date(toParam);
-      toDate = new Date(
-        t.getFullYear(),
-        t.getMonth(),
-        t.getDate(),
-        23,
-        59,
-        59,
-        999
+      toDate = toUtcEndOfDay(toParam, 8);
+    }
+
+    if (!fromParam || !toParam) {
+      return NextResponse.json(
+        { error: "Both 'from' and 'to' query parameters are required." },
+        { status: 400 },
       );
     }
+
     // Build business logic filter
     const whereClause: any = {
       OR: [
@@ -288,7 +280,7 @@ export async function POST(req: Request) {
           error: "Unauthorized.  Invalid or missing API key.",
           details: authResult.error,
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -327,7 +319,7 @@ export async function POST(req: Request) {
           headers: {
             "Retry-After": String(Math.ceil(limits.windowMs / 1000)),
           },
-        }
+        },
       );
     }
 
@@ -353,7 +345,7 @@ export async function POST(req: Request) {
           headers: {
             "Retry-After": String(Math.ceil(limits.windowMs / 1000)),
           },
-        }
+        },
       );
     }
 
@@ -366,7 +358,7 @@ export async function POST(req: Request) {
           error: "Invalid transaction type. Must be CASHIN or CASHOUT.",
           field: "type",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -376,7 +368,7 @@ export async function POST(req: Request) {
           error: "Username is required.",
           field: "username",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -387,7 +379,7 @@ export async function POST(req: Request) {
             "Invalid username format. Use 3-30 characters (letters, numbers, underscore, hyphen).",
           field: "username",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -397,7 +389,7 @@ export async function POST(req: Request) {
           error: "Amount is required and must be a valid number.",
           field: "amount",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -410,7 +402,7 @@ export async function POST(req: Request) {
           field: "amount",
           minAmount: TRANSACTION_LIMITS.minAmount,
         },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -421,7 +413,7 @@ export async function POST(req: Request) {
           field: "amount",
           maxAmount: TRANSACTION_LIMITS.maxAmount,
         },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -431,7 +423,7 @@ export async function POST(req: Request) {
           error: "Bank details are required for cash out.",
           field: "bankDetails",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -441,7 +433,7 @@ export async function POST(req: Request) {
           error: "Receipt is required for cash in.",
           field: "receipt",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -460,7 +452,7 @@ export async function POST(req: Request) {
           error: "Invalid casino group specified.",
           field: "casinoGroupName",
         },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -487,7 +479,7 @@ export async function POST(req: Request) {
           currentCount: todayTransactionCount,
           dailyLimit: TRANSACTION_LIMITS.dailyLimit,
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -515,7 +507,7 @@ export async function POST(req: Request) {
           duplicateTransactionId: recentDuplicate.id,
           retryAfter: 300,
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -533,7 +525,7 @@ export async function POST(req: Request) {
               "Invalid receipt file.  Must be JPG, PNG, or WEBP under 5MB.",
             field: "receipt",
           },
-          { status: 415 }
+          { status: 415 },
         );
       }
 
@@ -557,7 +549,7 @@ export async function POST(req: Request) {
               duplicateTransactionId: duplicateReceipt.id,
               field: "receipt",
             },
-            { status: 409 }
+            { status: 409 },
           );
         }
       } catch (hashError) {
@@ -568,7 +560,7 @@ export async function POST(req: Request) {
             details:
               hashError instanceof Error ? hashError.message : "Unknown error",
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
 
@@ -576,7 +568,7 @@ export async function POST(req: Request) {
         const timestamp = Date.now();
         const sanitizedFilename = receiptFile.name.replace(
           /[^a-z0-9.-]/gi,
-          "_"
+          "_",
         );
         const filename = `Transaction-Requests/${sanitizedUsername}-${timestamp}-${sanitizedFilename}`;
 
@@ -591,7 +583,7 @@ export async function POST(req: Request) {
             error: "Failed to upload receipt.  Please try again.",
             details: "Storage service temporarily unavailable",
           },
-          { status: 503 }
+          { status: 503 },
         );
       }
     }
@@ -681,9 +673,9 @@ export async function POST(req: Request) {
         await pusher.trigger(
           `user-notify-${userId}`,
           "notifications-event", // Event name by notification type
-          notification
+          notification,
         );
-      })
+      }),
     );
     const pendingCount = await prisma.transactionRequest.count({
       where: {
@@ -695,11 +687,11 @@ export async function POST(req: Request) {
     await pusher.trigger(
       `transaction-${casinoGroupName.toLowerCase()}`, // channel name
       "transaction-pending-count", // event name
-      { count: pendingCount }
+      { count: pendingCount },
     );
 
     console.log(
-      `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
+      `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`,
     );
 
     return NextResponse.json(
@@ -714,7 +706,7 @@ export async function POST(req: Request) {
         },
         message: "Transaction request submitted successfully.",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (e: any) {
     console.error("❌ Transaction creation error:", e);
@@ -722,13 +714,13 @@ export async function POST(req: Request) {
     if (e.name === "PrismaClientKnownRequestError") {
       return NextResponse.json(
         { error: "Database error. Please try again later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create transaction request.  Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
