@@ -11,6 +11,8 @@ import {
 } from "@/lib/constants/data";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useEffect } from "react";
 
 export type PaymentGatewayMethod = "GCash" | "Maya" | "Chat-Based" | null;
 
@@ -28,6 +30,21 @@ export function CashInContent({
     useState<PaymentGatewayMethod | null>(null);
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+
+    if (submitting) {
+      interval = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [submitting]);
 
   const handleProceedToPaymentGateway = async () => {
     if (!selectedPayment) {
@@ -75,7 +92,7 @@ export function CashInContent({
       // If request failed
       if (!res.ok) {
         toast.error(
-          data?.error || data?.message || "Failed to create payment request."
+          data?.error || data?.message || "Failed to create payment request.",
         );
         setSubmitting(false);
         return;
@@ -184,6 +201,33 @@ export function CashInContent({
           {submitting ? "Please wait..." : "Proceed to Payment"}
         </Button>
       </CardContent>
+      <Dialog open={!submitting}>
+        <DialogContent
+          className="sm:w-fit text-center border-yellow-300 [&>button]:hidden"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogTitle>
+            <p className="text-lg font-semibold tracking-wide text-yellow-400">
+              PROCESSING...
+            </p>
+            <p className="text-sm text-muted-foreground">
+              PLEASE DO NOT CLOSE BROWSER!
+            </p>
+          </DialogTitle>
+          <div className="flex flex-col items-center gap-4 relative">
+            <Image
+              src={"/tube-spinner.svg"}
+              width={150}
+              height={150}
+              alt="tube-spinner"
+            />
+            <span className="absolute top-14 text-2xl font-mono font-bold">
+              {elapsedSeconds}s
+            </span>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

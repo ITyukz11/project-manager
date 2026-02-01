@@ -427,8 +427,8 @@ export default function BankingPage() {
     <div className="dark relative min-h-screen bg-[url('/qbet-bg.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="container mx-auto p-4 sm:p-6 max-w-4xl min-h-dvh flex flex-col">
         <div className="flex flex-row justify-between mb-2 items-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Transaction Request
+          <h1 className="text-xl sm:text-3xl font-bold text-foreground flex flex-row gap-2">
+            Transaction <span className="hidden sm:block">Request</span>
           </h1>
           <div className="flex flex-row text-muted-foreground items-center gap-1">
             Balance: {formatAmountWithDecimals(balance)}
