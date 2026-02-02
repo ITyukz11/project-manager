@@ -17,6 +17,7 @@ import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { AccountFormDialog } from "./(components)/AccountFormDialog";
 import { useParams, useRouter } from "next/navigation";
+import { ADMINROLES } from "@/lib/types/role";
 
 export default function Page() {
   const { data: session } = useSession();
@@ -55,10 +56,14 @@ export default function Page() {
                 </TooltipContent>
               </Tooltip>
             )}
-            <Button onClick={() => setOpen(true)}>
-              <Plus />
-              Add Account
-            </Button>
+            {session?.user?.role === ADMINROLES.SUPERADMIN && (
+              <>
+                <Button onClick={() => setOpen(true)}>
+                  <Plus />
+                  Add Account
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
