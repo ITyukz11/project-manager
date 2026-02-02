@@ -30,9 +30,15 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
   {
     id: "entryBy",
     accessorFn: (row) => {
-      if (row.transactionRequestId) return "gateway";
+      const entry = row.createdByAdmin?.name || row.user?.name || "";
 
-      return row.createdByAdmin?.name || row.user?.name || "";
+      const flags: string[] = [];
+
+      if (row.transactionRequestId) flags.push("gateway");
+      if (row.commissionId) flags.push("commission");
+
+      // This string is what search/filter will use
+      return [...flags, entry].join(" ").toLowerCase();
     },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Entry By" />
@@ -46,9 +52,8 @@ export const cashoutColumns: ColumnDef<CashoutForTable>[] = [
 
       return (
         <span className="font-medium flex items-center gap-1">
-          {isGateway && <Badge variant={"gateway"}>GATEWAY</Badge>}
-          {isCommission && <Badge variant={"commission"}>COMMISSION</Badge>}
-
+          {isGateway && <Badge variant="gateway">GATEWAY</Badge>}
+          {isCommission && <Badge variant="commission">COMMISSION</Badge>}
           <span>{entry}</span>
         </span>
       );
