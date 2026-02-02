@@ -64,7 +64,7 @@ export function PaymentQRCodeDialog({
     setIsSubmitting(true);
     if (Number(amount) >= Number(balance)) {
       return toast.error(
-        `Insufficient Balance. You only have ${Number(balance)}`
+        `Insufficient Balance. You only have ${Number(balance)}`,
       );
     }
 
@@ -75,8 +75,9 @@ export function PaymentQRCodeDialog({
         ReferenceUserId: externalUserId,
         UserName: username,
         NotificationUrl:
-          "https://www.nxtlink.xyz/api/dpay/receive-payment-callback",
-        SuccessRedirectUrl: "http://nxtlink.xyz/payment/success",
+          "https://www.project-manager-three-kappa.vercel.app/api/dpay/receive-payment-callback",
+        SuccessRedirectUrl:
+          "http://project-manager-three-kappa.vercel.app.xyz/payment/success",
         CancelRedirectUrl: "https://qbet88.vip/",
         Type: "CASHOUT",
         AccountName: accountName,
