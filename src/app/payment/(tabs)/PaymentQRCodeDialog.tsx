@@ -75,9 +75,8 @@ export function PaymentQRCodeDialog({
         ReferenceUserId: externalUserId,
         UserName: username,
         NotificationUrl:
-          "https://www.project-manager-three-kappa.vercel.app/api/dpay/receive-payment-callback",
-        SuccessRedirectUrl:
-          "http://project-manager-three-kappa.vercel.app/payment/success",
+          "https://www.nxtlink.xyz/api/dpay/receive-payment-callback",
+        SuccessRedirectUrl: "http://nxtlink.xyz/payment/success",
         CancelRedirectUrl: "https://qbet88.vip/",
         Type: "CASHOUT",
         AccountName: accountName,
