@@ -404,13 +404,6 @@ export default function Page() {
               )}
               {cashout.commissionId && (
                 <span className="relative inline-flex">
-                  {/* Ping layer (only when PENDING) */}
-                  {cashout.status === "COMPLETED" && (
-                    <span className="absolute inset-0 rounded-lg bg-purple-400 opacity-75 animate-pulse">
-                      COMMISSION
-                    </span>
-                  )}
-
                   {/* Main label */}
                   <Badge variant={"commission"}>COMMISSION</Badge>
                 </span>
