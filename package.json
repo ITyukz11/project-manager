@@ -7,7 +7,8 @@
     "build": "prisma generate --no-engine && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "seed:user": "tsx .config/prisma/seed/user.seed.ts"
+    "seed:user": "tsx .config/prisma/seed/user.seed.ts",
+    "seed:blacklist": "tsx .config/prisma/seed/blacklist.seed.ts"
   },
   "dependencies": {
     "@diceui/mention": "^0.8.0",
@@ -39,6 +40,8 @@
     "date-fns": "^4.1.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.3",
