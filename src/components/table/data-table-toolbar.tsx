@@ -6,8 +6,8 @@ import { DataTableViewOptions } from "./data-table-view-options";
 import { Download, SearchIcon } from "lucide-react";
 import { DateRangePopover } from "../DateRangePopover";
 import { DateRange } from "react-day-picker";
-// import ExcelJS from "exceljs"
-// import { saveAs } from "file-saver"
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 interface DataTableToolbarProps<TData> {
   data: TData[];
@@ -39,33 +39,35 @@ export function DataTableToolbar<TData extends Record<string, unknown>>({
   }, [filterInput, table]);
 
   // Export to Excel handler
-  // const handleExportData = () => {
-  //   startTransition(async () => {
-  //     const exportData = table.getFilteredRowModel().rows.map(row => row.original)
+  const handleExportData = () => {
+    startTransition(async () => {
+      const exportData = table
+        .getFilteredRowModel()
+        .rows.map((row) => row.original);
 
-  //     const workbook = new ExcelJS.Workbook()
-  //     const worksheet = workbook.addWorksheet("Sheet1")
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Sheet1");
 
-  //     if (exportData.length > 0) {
-  //       // Create header row from object keys
-  //       worksheet.columns = Object.keys(exportData[0]).map(key => ({
-  //         header: key,
-  //         key: key
-  //         // width: 20 // optional column width
-  //       }))
+      if (exportData.length > 0) {
+        // Create header row from object keys
+        worksheet.columns = Object.keys(exportData[0]).map((key) => ({
+          header: key,
+          key: key,
+          // width: 20 // optional column width
+        }));
 
-  //       // Add data rows
-  //       exportData.forEach(data => worksheet.addRow(data))
-  //     }
+        // Add data rows
+        exportData.forEach((data) => worksheet.addRow(data));
+      }
 
-  //     // Generate XLSX file and trigger download
-  //     const buffer = await workbook.xlsx.writeBuffer()
-  //     const blob = new Blob([buffer], {
-  //       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  //     })
-  //     saveAs(blob, "data-table-export.xlsx")
-  //   })
-  // }
+      // Generate XLSX file and trigger download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, "data-table-export.xlsx");
+    });
+  };
 
   return (
     <div className="flex items-center justify-between flex-wrap overflow-x-auto px-1">
@@ -80,11 +82,11 @@ export function DataTableToolbar<TData extends Record<string, unknown>>({
           <SearchIcon className="absolute right-2 top-2 h-4 w-4" />
         </div>
 
-        {/* {allowExportData && (
+        {allowExportData && (
           <Button onClick={() => handleExportData()} variant="outline">
             Download Data <Download className="w-5 h-5 shrink-0" />
           </Button>
-        )} */}
+        )}
 
         {/* <Button variant="outline" disabled className="cursor-not-allowed">
           <AiOutlinePrinter className="w-5 h-5 shrink-0" />

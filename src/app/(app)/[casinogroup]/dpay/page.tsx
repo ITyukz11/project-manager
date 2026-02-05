@@ -9,17 +9,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TriangleAlert } from "lucide-react";
+import { ArrowLeftRight, Banknote, TriangleAlert, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { useDPayTransactionLogs } from "@/lib/hooks/swr/dpay/useDPayTransactionLogs";
 import { getDpayTransactionColumns } from "./dPayTransactionColumns";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
+import { QBETACCOUNTS } from "./data";
+import { useSession } from "next-auth/react";
+import { ADMINROLES } from "@/lib/types/role";
 
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const [filterEjticon, setFilterEjticon] = useState(false);
+  const { data: session } = useSession();
   /**
    * 🔑 Per-casinoGroup storage key
    */
@@ -35,28 +41,41 @@ const Page = () => {
     dateRange,
   );
 
+  const qbetAccountIdSet = useMemo(
+    () => new Set(QBETACCOUNTS.map((a) => a.id)),
+    [],
+  );
+  const filteredTransactionLogs = useMemo(() => {
+    if (!transactionLogs) return [];
+    if (!filterEjticon) return transactionLogs;
+
+    return transactionLogs.filter((tx) =>
+      qbetAccountIdSet.has(tx.referenceUserId),
+    );
+  }, [transactionLogs, filterEjticon, qbetAccountIdSet]);
+
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    if (transactionLogs) {
-      transactionLogs.forEach((c) => {
+    if (filteredTransactionLogs) {
+      filteredTransactionLogs.forEach((c) => {
         counts[c.type] = (counts[c.type] || 0) + 1;
       });
     }
     return counts;
-  }, [transactionLogs]);
+  }, [filteredTransactionLogs]);
 
   /**
    * ✅ Compute status metrics
    */
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    if (transactionLogs) {
-      transactionLogs.forEach((c) => {
+    if (filteredTransactionLogs) {
+      filteredTransactionLogs.forEach((c) => {
         counts[c.status] = (counts[c.status] || 0) + 1;
       });
     }
     return counts;
-  }, [transactionLogs]);
+  }, [filteredTransactionLogs]);
 
   const STATUS_ORDER = ["PENDING", "COMPLETED"];
 
@@ -69,6 +88,13 @@ const Page = () => {
       console.error("Failed to copy!", err);
     }
   };
+
+  const totalAmountCashin = useMemo(() => {
+    if (!filteredTransactionLogs) return 0;
+    return filteredTransactionLogs
+      .filter((tx) => tx.status === "COMPLETED")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [filteredTransactionLogs]);
 
   return (
     <div className="space-y-2">
@@ -90,26 +116,65 @@ const Page = () => {
       </div>
 
       {/* Status Metrics */}
-      <div className="flex flex-wrap gap-2 mx-1">
-        <Badge
-          className={`text-xs bg-purple-200 dark:bg-purple-800 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-700`}
-        >
-          Total Transactions: {transactionLogs.length}
-        </Badge>
-        {["CASHIN", "CASHOUT"].map((type) => (
-          <Badge key={type} className={`text-xs ${getStatusColorClass(type)}`}>
-            {type}: {typeCounts[type] || 0}
-          </Badge>
-        ))}
-        {STATUS_ORDER.map((status) => (
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2 mx-1">
+          {["CASHIN", "CASHOUT"].map((type) => (
+            <Badge
+              key={type}
+              className={`text-xs ${getStatusColorClass(type)}`}
+            >
+              {type}: {typeCounts[type] || 0}
+            </Badge>
+          ))}
+          {STATUS_ORDER.map((status) => (
+            <Badge
+              key={status}
+              className={`text-xs ${getStatusColorClass(status)}`}
+            >
+              {status}: {statusCounts[status] || 0}
+            </Badge>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-2 mx-1">
           <Badge
-            key={status}
-            className={`text-xs ${getStatusColorClass(status)}`}
+            className={`text-xs bg-purple-200 dark:bg-purple-800 text-white border border-purple-300 dark:border-purple-700`}
           >
-            {status}: {statusCounts[status] || 0}
+            <ArrowLeftRight /> Transactions: {filteredTransactionLogs.length}
           </Badge>
-        ))}
+          <Badge
+            className={`text-xs bg-yellow-200 dark:bg-yellow-800 text-white border border-yellow-300 dark:border-yellow-700`}
+          >
+            <Users />
+            Users:{" "}
+            {
+              new Set(filteredTransactionLogs.map((tx) => tx.referenceUserId))
+                .size
+            }
+          </Badge>
+
+          <Badge
+            className={`text-xs bg-green-200 dark:bg-green-800 text-white border border-green-300 dark:border-green-700`}
+          >
+            <Banknote /> Total Completed Amount:{" "}
+            {totalAmountCashin.toLocaleString()}
+          </Badge>
+        </div>
       </div>
+      {session?.user?.role === ADMINROLES.SUPERADMIN ||
+        (session?.user?.role === ADMINROLES.ADMIN && (
+          <div className="flex gap-2 mx-1">
+            <Badge
+              onClick={() => setFilterEjticon((v) => !v)}
+              className={`cursor-pointer text-xs ${
+                filterEjticon
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 dark:bg-gray-700"
+              }`}
+            >
+              {filterEjticon ? "Showing ejticon11" : "Filter ejticon11"}
+            </Badge>
+          </div>
+        ))}
 
       {/* Table */}
       {isLoading ? (
@@ -119,12 +184,13 @@ const Page = () => {
         </div>
       ) : (
         <DataTable
-          data={transactionLogs}
+          data={filteredTransactionLogs}
           columns={getDpayTransactionColumns({ handleCopy, copiedId })}
           hiddenColumns={["updatedAt", "transactionNumber"]}
           allowDateRange
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
+          allowExportData
         />
       )}
     </div>
