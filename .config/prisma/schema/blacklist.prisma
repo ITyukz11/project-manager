@@ -1,0 +1,10 @@
+model GatewayBlackListPlayers {
+  id          String   @id @default(cuid())
+  casinoGroup CasinoGroup @relation(fields: [casinoGroupId], references: [id])
+  casinoGroupId String   // Link to CasinoGroup
+  userId      String   @unique // Unique user identifier
+  userName    String?   // Your internal user name
+  reason      String?  // Reason for blacklisting
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
