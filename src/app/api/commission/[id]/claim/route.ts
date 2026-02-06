@@ -42,11 +42,31 @@ export async function POST(
     }
 
     const cashout = await prisma.$transaction(async (tx) => {
-      // 1️⃣ Fetch commission
+      // 1️⃣ Atomically claim ONLY if still PENDING
+      const claimResult = await tx.commission.updateMany({
+        where: {
+          id: commissionId,
+          status: "PENDING",
+        },
+        data: {
+          status: "CLAIMED",
+        },
+      });
+
+      // 2️⃣ If no rows updated → already claimed
+      if (claimResult.count === 0) {
+        throw new Error("Commission already claimed.");
+      }
+
+      // 3️⃣ Now safely fetch the commission
       const commission = await tx.commission.findUnique({
         where: { id: commissionId },
         include: { casinoGroup: true },
       });
+
+      if (!commission) {
+        throw new Error("Commission not found.");
+      }
 
       console.log("Fetched commission:", commission);
 
