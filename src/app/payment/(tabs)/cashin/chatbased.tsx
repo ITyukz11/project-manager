@@ -190,7 +190,7 @@ export function ChatBasedContent({
       // ✅ only after success
       setOpen(false);
       setEnableChatBased(false);
-      toast.success("Chat left successfully.");
+      toast.success("Chat closed successfully.");
     } catch (error) {
       console.error(error);
       // show toast / alert here
@@ -205,8 +205,8 @@ export function ChatBasedContent({
 
   // Comments Section Component (reusable)
   const ChatBox = () => (
-    <div className="flex flex-col h-full border p-2 overflow-hidden border-red-500">
-      <ScrollArea className="flex-1  min-h-[50vh] pr-2 overflow-y-auto pb-2">
+    <div className="flex flex-col h-full border-t  p-2 overflow-hidden">
+      <ScrollArea className="flex-1 min-h-[300px] max-h-[300px] md:max-h-[calc(100vh-300px)] pr-2 overflow-y-auto pb-2">
         {isWaitingForAdmin && (
           <div className="flex justify-center my-4">
             <div className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm text-muted-foreground">

@@ -77,7 +77,7 @@ export async function POST(req: Request) {
           error: "Unauthorized.  Invalid or missing API key.",
           details: authResult.error,
         },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -98,16 +98,16 @@ export async function POST(req: Request) {
     // Username checks
     const sanitizedUsername = username?.trim().toLowerCase() || "";
 
-    if (!balance || balance.trim() === "") {
-      return NextResponse.json(
-        { error: "Balance is required.", field: "balance" },
-        { status: 400 }
-      );
-    }
+    // if (!balance || balance.trim() === "") {
+    //   return NextResponse.json(
+    //     { error: "Balance is required.", field: "balance" },
+    //     { status: 400 }
+    //   );
+    // }
     if (!username || username.trim() === "") {
       return NextResponse.json(
         { error: "Username is required.", field: "username" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!/^[a-z0-9_-]{3,30}$/i.test(sanitizedUsername)) {
@@ -117,7 +117,7 @@ export async function POST(req: Request) {
             "Invalid username format. Use 3-30 characters (letters, numbers, underscore, hyphen).",
           field: "username",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!amountStr || isNaN(Number(amountStr))) {
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
           error: "Amount is required and must be a valid number.",
           field: "amount",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -142,7 +142,7 @@ export async function POST(req: Request) {
     if (!casinoGroup) {
       return NextResponse.json(
         { error: "Invalid casino group specified.", field: "casinoGroupName" },
-        { status: 422 }
+        { status: 422 },
       );
     }
 
@@ -257,15 +257,15 @@ Pwede niyo rin pong i-check ang instructions sa ibaba para mas madaling ma intin
         await pusher.trigger(
           `user-notify-${user.id}`,
           "notifications-event",
-          notification
+          notification,
         );
 
         await pusher.trigger(
           `chatbased-cashin-${cashin.id}`,
           "cashin:thread-updated",
-          { cashin }
+          { cashin },
         );
-      })
+      }),
     );
 
     const pendingCount = await prisma.transactionRequest.count({
@@ -278,7 +278,7 @@ Pwede niyo rin pong i-check ang instructions sa ibaba para mas madaling ma intin
     await pusher.trigger(
       `transaction-${casinoGroup.name.toLowerCase()}`,
       "transaction-pending-count",
-      { count: pendingCount }
+      { count: pendingCount },
     );
 
     // ====== EMIT TRANSACTION UPDATED EVENT (ONCE ONLY) ======
@@ -289,7 +289,7 @@ Pwede niyo rin pong i-check ang instructions sa ibaba para mas madaling ma intin
     });
 
     console.log(
-      `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`
+      `✅ Transaction created: ${transaction.id} | ${type} | ${sanitizedUsername} | ₱${parsedAmount} | IP: ${clientIp} | API Key: ${authResult.keyName}`,
     );
 
     return NextResponse.json(
@@ -305,7 +305,7 @@ Pwede niyo rin pong i-check ang instructions sa ibaba para mas madaling ma intin
         },
         message: "Transaction request submitted successfully.",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (e: any) {
     console.error("❌ Transaction creation error:", e);
@@ -313,13 +313,13 @@ Pwede niyo rin pong i-check ang instructions sa ibaba para mas madaling ma intin
     if (e?.name === "PrismaClientKnownRequestError") {
       return NextResponse.json(
         { error: "Database error. Please try again later." },
-        { status: 503 }
+        { status: 503 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to create transaction request.  Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

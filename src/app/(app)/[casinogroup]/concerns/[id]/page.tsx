@@ -108,7 +108,7 @@ export default function Page() {
       setValue([]);
       setAttachments([]);
       mutate();
-      toast.success("Comment posted!");
+      // toast.success("Comment posted!");
     } catch (e: any) {
       toast.error(e.message);
     } finally {

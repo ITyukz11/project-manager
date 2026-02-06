@@ -29,7 +29,7 @@ export default function Page() {
   const { id, casinogroup } = useParams();
   const router = useRouter();
   const { customerSupport, isLoading, error, mutate } = useCustomerSupportById(
-    id as string
+    id as string,
   );
   const [value, setValue] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -106,7 +106,7 @@ export default function Page() {
       setValue([]);
       setAttachments([]);
       mutate();
-      toast.success("Comment posted!");
+      // toast.success("Comment posted!");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -183,7 +183,7 @@ export default function Page() {
                 customerSupport.createdAt
                   ? formatDate(
                       customerSupport.createdAt,
-                      "M/dd/yyyy 'at' hh:mm a"
+                      "M/dd/yyyy 'at' hh:mm a",
                     )
                   : "—"
               }
@@ -255,8 +255,8 @@ export default function Page() {
                 customerSupport.status === "PENDING"
                   ? "bg-yellow-400 text-black"
                   : customerSupport.status === "COMPLETED"
-                  ? "bg-green-600 text-white"
-                  : "bg-red-600 text-white"
+                    ? "bg-green-600 text-white"
+                    : "bg-red-600 text-white"
               }`}
             >
               {customerSupport.status}

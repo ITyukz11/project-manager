@@ -1,13 +1,7 @@
 "use client";
-import {
-  ArrowLeft,
-  Paperclip,
-  Radio,
-  RefreshCcw,
-  UsersRound,
-} from "lucide-react";
+import { ArrowLeft, Paperclip, Radio, RefreshCcw } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,7 +137,7 @@ export default function Page() {
       setValue([]);
       setAttachments([]);
       mutate();
-      toast.success("Comment posted!");
+      // toast.success("Comment posted!");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -203,7 +197,7 @@ export default function Page() {
                 "flex flex-row gap-1 items-center justify-start overflow-hidden text-sm",
                 "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
                 "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive"
+                "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
               )}
             >
               {cashin.transactionRequestId && (
@@ -294,22 +288,22 @@ export default function Page() {
             </Label>
             <Badge
               className={`capitalize text-xs cursor-pointer ${getStatusColorClass(
-                cashin.status
+                cashin.status,
               )}`}
             >
               {getStatusIcon(cashin.status)}
               {cashin.status}
             </Badge>
-            {cashin.transactionRequestId && (
+            {/* {cashin.transactionRequestId && (
               <Badge
                 className={`ml-2 capitalize text-xs cursor-pointer ${getStatusColorClass(
-                  "CLAIMED"
+                  "CLAIMED",
                 )}`}
               >
                 {getStatusIcon("CLAIMED")}
                 CLAIMED
               </Badge>
-            )}
+            )} */}
           </div>
 
           {/* Admin Actions */}

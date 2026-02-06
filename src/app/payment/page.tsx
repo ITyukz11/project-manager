@@ -17,6 +17,8 @@ import { TransactionHistoryContent } from "./(tabs)/history.tab";
 import { toast } from "sonner";
 import { PaymentMethod, QR_CODE_MAP } from "../banking/page";
 import { PaymentQRCodeDialog } from "../banking/(tabs)/PaymentQRCodeDialog";
+import { useDpayConfig } from "@/lib/hooks/swr/dpay/config/useDpayConfig";
+import { signOut } from "next-auth/react";
 
 // Transaction type
 export type Transaction = {
@@ -46,7 +48,6 @@ export default function BankingPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(null);
   const [amount, setAmount] = useState("");
 
-  const [pageLoading, setPageLoading] = useState(true);
   //params
   const [username, setUsername] = useState("");
   const [externalUserId, setExternalUserId] = useState("");
@@ -79,10 +80,6 @@ export default function BankingPage() {
 
   const [casinoExists, setCasinoExists] = useState<boolean | null>(null);
 
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-  const COOLDOWN_SECONDS = 10;
-
   const [casinoExistsLoading, setCasinoExistsLoading] = useState(true);
 
   const {
@@ -107,6 +104,10 @@ export default function BankingPage() {
     if (casinoGroupParam) setCasinoGroup(casinoGroupParam);
   }, [searchParams]);
 
+  const { config: DpayKillSwitch, isLoading: killSwitchLoading } =
+    useDpayConfig(casino);
+
+  console.log("DpayKillSwitch: ", DpayKillSwitch, killSwitchLoading);
   const handleReceiptChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -160,6 +161,37 @@ export default function BankingPage() {
     checkCasino();
   }, [casino]);
 
+  //3.
+  useEffect(() => {
+    if (!username || !externalUserId || !casino || casinoExists !== true)
+      return;
+
+    const checkExistingCashin = async () => {
+      try {
+        const res = await fetch(
+          `/api/cashin/${username}/accommodating?casino=${casino}`,
+        );
+
+        if (!res.ok) return;
+
+        console.log("Response status for existing cashin check:", res);
+
+        const data = await res.json();
+        console.log("Existing accommodating cashin check:", data);
+        console.log("Data exists:", username, casino);
+        if (data.exists) {
+          setEnableChatBased(true);
+          setCashinId(data.cashinId);
+        }
+      } catch (err) {
+        console.error("Failed to check existing cashin", err);
+      } finally {
+        await signOut({ redirect: false });
+      }
+    };
+
+    checkExistingCashin();
+  }, [username, casino, casinoExists, externalUserId]);
   // Memoize the bank display name
   const displayBankName = useMemo(() => {
     return selectedBank === "Other" ? customBank : selectedBank;
@@ -480,6 +512,12 @@ export default function BankingPage() {
               externalUserId={externalUserId}
               userName={username}
               casino={casino}
+              killSwitch={DpayKillSwitch}
+              killSwitchLoading={killSwitchLoading}
+              enableChatBased={enableChatBased}
+              setEnableChatBased={setEnableChatBased}
+              cashinId={cashinId}
+              setCashinId={setCashinId}
             />
           </TabsContent>
 

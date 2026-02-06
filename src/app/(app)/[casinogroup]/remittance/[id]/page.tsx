@@ -111,14 +111,14 @@ export default function Page() {
         setValue([]);
         setAttachments([]);
         mutate();
-        toast.success("Comment posted!");
+        // toast.success("Comment posted!");
       } catch (e: any) {
         toast.error(e.message);
       } finally {
         setSubmitting(false);
       }
     },
-    [inputValue, attachments, id, mutate],
+    [inputValue, attachments, casinogroup, value, id, mutate],
   );
 
   const isAllowed =

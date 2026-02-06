@@ -34,7 +34,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import React, { useState, useEffect, useRef } from "react";
 import { useTransactionDetails } from "@/lib/hooks/swr/transaction-request/details/useTransactionDetails";
-import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { useParams, useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -183,7 +182,7 @@ export function TransactionDetailsDialog({
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [receiptSource, setReceiptSource] = useState<"upload" | "paste" | null>(
-    null
+    null,
   );
 
   const router = useRouter();
@@ -203,7 +202,7 @@ export function TransactionDetailsDialog({
   }, [open, transactionId, mutate]);
 
   const openConfirmDialog = (
-    status: "CLAIMED" | "REJECTED" | "APPROVED" | "ACCOMMODATING"
+    status: "CLAIMED" | "REJECTED" | "APPROVED" | "ACCOMMODATING",
   ) => {
     setActionType(status);
     setRemarks("");
@@ -275,7 +274,7 @@ export function TransactionDetailsDialog({
         const renamedFile = new File(
           [file],
           `pasted-receipt-${timestamp}.${file.type.split("/")[1]}`,
-          { type: file.type }
+          { type: file.type },
         );
 
         // Replace existing receipt
@@ -328,7 +327,7 @@ export function TransactionDetailsDialog({
       if (actionType === "CLAIMED" && transaction.type === "CASHOUT") {
         response = await fetch(
           `/api/transaction-request/${transactionId}/claim`,
-          { method: "POST", body: formData }
+          { method: "POST", body: formData },
         );
 
         data = await response.json();
@@ -349,7 +348,7 @@ export function TransactionDetailsDialog({
 
         if (!response.ok) {
           toast.error(
-            data?.error || `Failed to ${actionType.toLowerCase()} transaction`
+            data?.error || `Failed to ${actionType.toLowerCase()} transaction`,
           );
           return;
         }
@@ -450,7 +449,7 @@ export function TransactionDetailsDialog({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="relative text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                          className="relative mr-4 text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                           onClick={() => openConfirmDialog("ACCOMMODATING")}
                         >
                           <span className="absolute top-0 right-0 flex h-2 w-2">
@@ -461,27 +460,29 @@ export function TransactionDetailsDialog({
                           Enter Chat
                         </Button>
                       ) : (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                          onClick={() => openConfirmDialog("APPROVED")}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          Approve
-                        </Button>
+                        <div className="flex-row gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-green-600 hover:text-green-700 border-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                            onClick={() => openConfirmDialog("APPROVED")}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-600 hover:text-red-700 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                            onClick={() => openConfirmDialog("REJECTED")}
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Reject
+                          </Button>
+                        </div>
                       )}
                     </>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-red-600 hover:text-red-700 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                    onClick={() => openConfirmDialog("REJECTED")}
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Reject
-                  </Button>
                 </div>
               )}
             </div>
@@ -752,7 +753,7 @@ export function TransactionDetailsDialog({
                             <p className="text-sm font-medium">
                               {formatDate(
                                 new Date(transaction.processedAt),
-                                "MMM dd, yyyy h:mm:ss aa"
+                                "MMM dd, yyyy h:mm:ss aa",
                               )}
                             </p>
                           </div>
@@ -779,7 +780,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.createdAt || ""),
-                            "MMM dd, yyyy - h:mm:ss aa"
+                            "MMM dd, yyyy - h:mm:ss aa",
                           )}
                       </p>
                     </div>
@@ -791,7 +792,7 @@ export function TransactionDetailsDialog({
                         {transaction &&
                           formatDate(
                             new Date(transaction.updatedAt || ""),
-                            "MMM dd, yyyy - h:mm:ss aa"
+                            "MMM dd, yyyy - h:mm:ss aa",
                           )}
                       </p>
                     </div>
@@ -869,10 +870,10 @@ export function TransactionDetailsDialog({
               {actionType === "CLAIMED"
                 ? "You are about to approve this transaction"
                 : actionType === "APPROVED"
-                ? "You are about to approve this transaction"
-                : actionType === "ACCOMMODATING"
-                ? "You are about to accommodate this player"
-                : "You are about to reject this transaction"}
+                  ? "You are about to approve this transaction"
+                  : actionType === "ACCOMMODATING"
+                    ? "You are about to accommodate this player"
+                    : "You are about to reject this transaction"}
             </DialogDescription>
           </DialogHeader>
 
