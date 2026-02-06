@@ -8,6 +8,7 @@ model DpayTransaction {
   transactionNumber String?             // Set after gateway responds
   type              String              // "CASHIN" or "CASHOUT"
   amount            Float               // Transaction amount
+  remarks           String?             // Any remarks you want to store
   channel           String              // Payment method/channel used
   status            String              // "INITIATED", "PENDING", "COMPLETED", "REJECTED", "CANCELLED", etc
   qbetStatus        String?             // Your internal status tracking
@@ -17,4 +18,25 @@ model DpayTransaction {
   rawWebhook        Json?               // Full webhook JSON from NotificationUrl callback
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model DpayConfig{
+  id               String   @id @default(cuid())
+  casinoGroup       CasinoGroup       @relation(fields: [casinoGroupId], references: [id])
+  casinoGroupId     String              // Link to CasinoGroup
+
+  cashinGatewayEnabled   Boolean  @default(true)
+  history        DpayConfigHistory[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model DpayConfigHistory{
+  id               String   @id @default(cuid())
+  dpayConfig       DpayConfig       @relation(fields: [dpayConfigId], references: [id])
+  dpayConfigId     String              // Link to DpayConfig
+  changedByUserId  String              // User who made the change
+  changeSummary    String              // Summary of changes made
+  changedAt        DateTime @default(now())
 }
