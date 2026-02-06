@@ -23,7 +23,7 @@ model DpayTransaction {
 model DpayConfig{
   id               String   @id @default(cuid())
   casinoGroup       CasinoGroup       @relation(fields: [casinoGroupId], references: [id])
-  casinoGroupId     String              // Link to CasinoGroup
+  casinoGroupId     String          @unique    // Link to CasinoGroup
 
   cashinGatewayEnabled   Boolean  @default(true)
   history        DpayConfigHistory[]
