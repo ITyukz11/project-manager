@@ -12,6 +12,7 @@ import { CashoutDialog } from "./CashoutDialog";
 import { useDpayConfig } from "@/lib/hooks/swr/dpay/config/useDpayConfig";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ArrowLeftRight, Wallet } from "lucide-react";
 
 interface ControlDialogProps {
   open: boolean;
@@ -69,30 +70,32 @@ export default function ControlDialog({
           <DialogHeader>
             <DialogTitle>DPAY Controls</DialogTitle>
           </DialogHeader>
-
           <div className="flex flex-col gap-3">
             {/* Cashin Killswitch */}
             <Button
               disabled={isLoading || isError || isToggling}
-              variant={isCashinEnabled ? "default" : "destructive"}
+              variant={!isCashinEnabled ? "default" : "destructive"}
               onClick={toggleCashin}
             >
-              {isLoading && "Loading..."}
-              {isToggling && "Saving..."}
-              {isError && "Error loading config"}
-              {!isLoading &&
-                !isToggling &&
-                !isError &&
-                (isCashinEnabled
-                  ? "CASHIN GATEWAY ENABLED"
-                  : "CASHIN GATEWAY DISABLED")}
-              {isCashinEnabled && (
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              {isLoading && "Loading…"}
+              {isToggling && "Saving…"}
+              {isError && "Error!"}
+              {!isLoading && !isToggling && !isError && (
+                <span className="flex items-center gap-2">
+                  {!isCashinEnabled && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                    </span>
+                  )}
+                  {!isCashinEnabled
+                    ? "Disable Cash-in Gateway"
+                    : "Enable Cash-in Gateway"}
                 </span>
               )}
+              <ArrowLeftRight />
             </Button>
+
             {/* Cashout */}
             <Button
               variant={"secondary"}
@@ -101,7 +104,7 @@ export default function ControlDialog({
                 setCashoutOpen(true);
               }}
             >
-              Cashout
+              <Wallet /> Cashout
             </Button>
           </div>
         </DialogContent>
