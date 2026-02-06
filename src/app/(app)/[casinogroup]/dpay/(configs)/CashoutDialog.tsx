@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cashoutBanks } from "./cashoutdata";
+import { cashoutBanks } from "../cashoutdata";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 

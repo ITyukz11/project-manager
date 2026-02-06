@@ -15,10 +15,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { useDPayBalance } from "@/lib/hooks/swr/dpay/balance/useDPayBalance";
 import { useDPayTransactionLogs } from "@/lib/hooks/swr/dpay/useDPayTransactionLogs";
 import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
-import { CashoutDialog } from "./CashoutDialog";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { ADMINROLES } from "@/lib/types/role";
+import ControlDialog from "./(configs)/ControlDialog";
 
 export default function CashinLayout({
   children,
@@ -26,6 +26,7 @@ export default function CashinLayout({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
   const { data: session } = useSession();
@@ -102,7 +103,7 @@ export default function CashinLayout({
                         className="cursor-pointer hover:underline font-bold text-yellow-600 dark:text-yellow-400"
                         onClick={() => setOpen(true)}
                       >
-                        Cashout
+                        Control
                       </span>
                     )}
                   </div>
@@ -215,7 +216,11 @@ export default function CashinLayout({
         />
         <section>{children}</section>
       </CardContent>
-      <CashoutDialog open={open} onOpenChange={() => setOpen(false)} />
+      <ControlDialog
+        open={open}
+        onOpenChange={() => setOpen(false)}
+        casinoGroup={casinoGroup}
+      />
     </Card>
   );
 }
