@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
-  output: "standalone", // <-- this is critical
+  output: "export",
   images: {
     remotePatterns: [
       {
