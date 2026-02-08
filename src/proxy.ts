@@ -4,6 +4,16 @@ import { getToken } from "next-auth/jwt";
 import { ADMINROLES } from "./lib/types/role";
 
 export async function proxy(request: NextRequest) {
+  // 🔴 EMERGENCY FAILOVER SWITCH
+  if (process.env.REDIRECT_TO_VERCEL === "true") {
+    const vercelUrl = new URL(
+      request.nextUrl.pathname + request.nextUrl.search,
+      "https://nxtlink.xyz", // <-- change this
+    );
+
+    return NextResponse.redirect(vercelUrl, 307);
+  }
+
   const { pathname } = request.nextUrl;
 
   // Allow internal Next.js and public asset routes to proceed immediately (but NOT /login!):
@@ -17,7 +27,7 @@ export async function proxy(request: NextRequest) {
     pathname === "/robots.txt" ||
     // allow files with common static extensions
     pathname.startsWith("/nxtlottotest") ||
-    // pathname.startsWith("/droplet") ||
+    pathname.startsWith("/droplet") ||
     pathname.startsWith("/payment") ||
     pathname.match(/\.(jpg|jpeg|png|svg|gif|webp|ico|css|js|json|txt|pdf)$/i)
   ) {
@@ -72,5 +82,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|static|api|favicon.ico).*)"],
+  matcher: ["/:path*"],
 };
