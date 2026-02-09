@@ -7,10 +7,11 @@ import { ADMINROLES } from "@/lib/types/role";
 import { pusher } from "@/lib/pusher";
 import { put } from "@vercel/blob";
 import { createTransaction } from "@/lib/qbet88/createTransaction";
+import { QBET_TRANSACTION_ERROR_MESSAGES } from "@/lib/qbet88/errorMessages";
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const currentUser = await getCurrentUser();
@@ -36,7 +37,7 @@ export async function POST(
     if (!casinoGroup) {
       return NextResponse.json(
         { error: "Invalid casino group specified." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -44,7 +45,7 @@ export async function POST(
     if (!userName || typeof userName !== "string" || userName.trim() === "") {
       return NextResponse.json(
         { error: "Username is required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!amountStr || isNaN(Number(amountStr))) {
@@ -54,13 +55,13 @@ export async function POST(
     if (amount <= 0) {
       return NextResponse.json(
         { error: "Amount must be greater than zero." },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (!details || typeof details !== "string" || details.trim() === "") {
       return NextResponse.json(
         { error: "Cashout details are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,7 +88,7 @@ export async function POST(
           console.error("Attachment upload error:", err);
           return NextResponse.json(
             { error: "Attachment upload failed." },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
@@ -100,7 +101,7 @@ export async function POST(
     if (!existingTransaction) {
       return NextResponse.json(
         { error: "Transaction not found." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -155,21 +156,30 @@ export async function POST(
             console.error("createTransaction failed:", trxnResult);
             throw new Error(
               "createTransaction failed: " +
-                (trxnResult?.data || "unknown error")
+                (trxnResult?.data || "unknown error"),
             ); // <-- THIS causes a rollback!
-          } else {
-            console.log("createTransaction success:", trxnResult.data);
+          }
+          if (trxnResult.code !== 0) {
+            console.error(
+              "createTransaction error code:",
+              trxnResult.code,
+              "details:",
+              trxnResult,
+            );
+            throw new Error(
+              `${QBET_TRANSACTION_ERROR_MESSAGES[trxnResult.code as number] || "Unknown error"}`,
+            ); // <-- THIS causes a rollback!
           }
 
           return createdCashout;
         },
-        { timeout: 15000 }
+        { timeout: 15000 },
       );
     } catch (dbErr: any) {
       console.error("DB error during cashout creation:", dbErr);
       return NextResponse.json(
         { error: dbErr.message || "Failed to create cashout." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -191,13 +201,13 @@ export async function POST(
       await pusher.trigger(
         `cashout-${casinoGroupName.toLowerCase()}`,
         "cashout-pending-count",
-        { count: cashoutPendingCount }
+        { count: cashoutPendingCount },
       );
 
       await pusher.trigger(
         `transaction-${casinoGroupName.toLowerCase()}`, // channel name
         "transaction-pending-count", // event name
-        { count: transactionPendingCount }
+        { count: transactionPendingCount },
       );
 
       // Notify tagged users
@@ -233,9 +243,9 @@ export async function POST(
           await pusher.trigger(
             `user-notify-${user.id}`,
             "notifications-event",
-            notification
+            notification,
           );
-        })
+        }),
       );
 
       // Custom emit handlers
@@ -259,7 +269,7 @@ export async function POST(
     console.error("Transaction update error:", err);
     return NextResponse.json(
       { error: err.message || "Failed to update transaction." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

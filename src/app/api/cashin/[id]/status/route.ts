@@ -7,10 +7,11 @@ import { pusher } from "@/lib/pusher";
 import { emitCashinUpdated } from "@/actions/server/emitCashinUpdated";
 import { CashinStatus } from "@prisma/client";
 import { createTransaction } from "@/lib/qbet88/createTransaction";
+import { QBET_TRANSACTION_ERROR_MESSAGES } from "@/lib/qbet88/errorMessages";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const id = (await params).id;
   const session = await getServerSession(authOptions);
@@ -27,7 +28,7 @@ export async function PATCH(
   ) {
     return NextResponse.json(
       { error: "Unauthorized only ADMINS and ACCOUNTING can update status" },
-      { status: 403 }
+      { status: 403 },
     );
   }
 
@@ -72,7 +73,16 @@ export async function PATCH(
       if (!transactionRes.ok) {
         return NextResponse.json(
           { error: "Failed to post transaction", details: transactionRes },
-          { status: 502 }
+          { status: 502 },
+        );
+      }
+      if (transactionRes.code !== 0) {
+        return NextResponse.json(
+          {
+            error: `${QBET_TRANSACTION_ERROR_MESSAGES[transactionRes.code as number] || "Unknown error"}`,
+            details: transactionRes,
+          },
+          { status: 400 },
         );
       }
     }
@@ -106,13 +116,13 @@ export async function PATCH(
     await pusher.trigger(
       `cashin-${cashin.casinoGroup.name.toLowerCase()}`,
       "cashin-pending-count",
-      { count: pendingCount }
+      { count: pendingCount },
     );
 
     await pusher.trigger(
       `transaction-${cashin.casinoGroup.name.toLowerCase()}`,
       "transaction-pending-count",
-      { count: pendingCountTransaction }
+      { count: pendingCountTransaction },
     );
 
     await emitCashinUpdated({
@@ -125,7 +135,7 @@ export async function PATCH(
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "An error occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

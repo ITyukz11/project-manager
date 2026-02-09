@@ -36,11 +36,11 @@ export async function createTransaction({
   // Add console logs
   console.log(
     "createTransaction - Request body:",
-    JSON.stringify(body, null, 2)
+    JSON.stringify(body, null, 2),
   );
   console.log(
     "createTransaction - Sending API request to:",
-    `${process.env.BASE_URL}/api/droplet/qbet88/gateway`
+    `${process.env.BASE_URL}/api/droplet/qbet88/gateway`,
   );
 
   try {
@@ -52,7 +52,7 @@ export async function createTransaction({
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
-      }
+      },
     );
 
     const data = await res.json();
@@ -61,14 +61,21 @@ export async function createTransaction({
       "createTransaction - Response status:",
       res.status,
       "| ok:",
-      res.ok
+      res.ok,
+      "Code: ",
+      data?.data?.[0]?.code, // ✅ THIS IS IT
     );
     console.log(
       "createTransaction - Response data:",
-      JSON.stringify(data, null, 2)
+      JSON.stringify(data, null, 2),
     );
 
-    return { ok: res.ok, status: res.status, data };
+    return {
+      ok: res.ok,
+      status: res.status,
+      data,
+      code: data?.data?.[0]?.code,
+    };
   } catch (error) {
     console.error("createTransaction - API error:", error);
     return { ok: false, error };

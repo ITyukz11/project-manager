@@ -17,7 +17,7 @@ const ALLOWED_STATUS = [
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const currentUser = await getCurrentUser();
@@ -41,7 +41,7 @@ export async function PATCH(
         {
           error: `Invalid status. Must be ${ALLOWED_STATUS.join(", ")}.`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,7 +53,7 @@ export async function PATCH(
     if (!existingTransaction) {
       return NextResponse.json(
         { error: "Transaction not found." },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -66,7 +66,7 @@ export async function PATCH(
     ) {
       return NextResponse.json(
         { error: "Receipt is required for cashout approval." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -76,27 +76,27 @@ export async function PATCH(
       if (!receiptFile.type.startsWith("image/")) {
         return NextResponse.json(
           { error: "Receipt must be an image file." },
-          { status: 400 }
+          { status: 400 },
         );
       }
       if (receiptFile.size > 5 * 1024 * 1024) {
         return NextResponse.json(
           { error: "Receipt file size must be less than 5MB." },
-          { status: 400 }
+          { status: 400 },
         );
       }
       try {
         const blob = await put(
           `receipts/${id}-${Date.now()}-${receiptFile.name}`,
           receiptFile,
-          { access: "public", addRandomSuffix: true }
+          { access: "public", addRandomSuffix: true },
         );
         receiptUrl = blob.url;
       } catch (uploadError: any) {
         console.error("Receipt upload error:", uploadError);
         return NextResponse.json(
           { error: "Failed to upload receipt." },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
@@ -136,8 +136,16 @@ export async function PATCH(
         console.error("createTransaction failed:", trxnResult);
         // Optionally: undo approval, mark as error, or return error response
         // return NextResponse.json({ error: "Transaction API failed.", details: trxnResult }, { status: 502 });
-      } else {
-        console.log("createTransaction success:", trxnResult.data);
+      }
+      if (trxnResult.code !== 0) {
+        console.error(
+          "createTransaction error code:",
+          trxnResult.code,
+          "details:",
+          trxnResult,
+        );
+        // Optionally: undo approval, mark as error, or return error response
+        // return NextResponse.json({ error: `Transaction failed with code: ${trxnResult.code} or ${QBET_TRANSACTION_ERROR_MESSAGES[trxnResult.code as number] || 'Unknown error'}`, details: trxnResult }, { status: 400 });
       }
     }
     // ⏫⏫⏫ ---- END CREATE TRANSACTION LOGIC ---- ⏫⏫⏫
@@ -182,13 +190,13 @@ export async function PATCH(
     await pusher.trigger(
       `transaction-${existingTransaction.casinoGroup.name.toLowerCase()}`,
       "transaction-pending-count",
-      { count: pendingCount }
+      { count: pendingCount },
     );
 
     await pusher.trigger(
       `cashin-${existingTransaction.casinoGroup.name.toLowerCase()}`,
       "cashin-pending-count",
-      { count: pendingCountCashin }
+      { count: pendingCountCashin },
     );
 
     await emitTransactionUpdated({
@@ -202,7 +210,7 @@ export async function PATCH(
     console.error("Transaction update error:", e);
     return NextResponse.json(
       { error: e.message || "Failed to update transaction." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

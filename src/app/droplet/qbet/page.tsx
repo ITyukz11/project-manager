@@ -3,8 +3,10 @@
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createTransaction } from "@/lib/qbet88/createTransaction";
+import { QBET_TRANSACTION_ERROR_MESSAGES } from "@/lib/qbet88/errorMessages";
 import { NextResponse } from "next/server";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const Page = () => {
   const [result, setResult] = useState<any>(null);
@@ -72,7 +74,7 @@ const Page = () => {
       const transactionRes = await createTransaction({
         id: memberAccount, //cashin.id,
         txn, // Adjust to your transaction ref field
-        type: "DEPOSIT", // Since this is a cashin
+        type: type,
         amount: amount,
       });
 
@@ -80,7 +82,12 @@ const Page = () => {
       if (!transactionRes.ok) {
         return NextResponse.json(
           { error: "Failed to post transaction", details: transactionRes },
-          { status: 502 }
+          { status: 502 },
+        );
+      }
+      if (transactionRes.code !== 0) {
+        toast.error(
+          `${QBET_TRANSACTION_ERROR_MESSAGES[transactionRes.code as number] || "Unknown error"}`,
         );
       }
 
