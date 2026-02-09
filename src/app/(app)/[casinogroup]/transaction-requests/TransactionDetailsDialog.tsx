@@ -442,6 +442,15 @@ export function TransactionDetailsDialog({
                         <CheckCircle className="h-4 w-4" />
                         Claim
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 border-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                        onClick={() => openConfirmDialog("REJECTED")}
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reject
+                      </Button>
                     </>
                   ) : (
                     <>
