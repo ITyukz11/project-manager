@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-
   const {
     ReferenceUserId,
     Status,
@@ -14,30 +13,47 @@ export async function POST(req: NextRequest) {
   } = body;
 
   try {
-    if (!ReferenceUserId || !TransactionNumber || typeof Status === "undefined")
+    // Validate required fields
+    if (
+      !ReferenceUserId ||
+      !TransactionNumber ||
+      typeof Status === "undefined"
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
       );
+    }
 
-    // Map gateway status to textual DB status
+    // Map DPay status
     let txnStatus = "PENDING";
     if (Status === 3) txnStatus = "COMPLETED";
     else if (Status === 4) txnStatus = "REJECTED";
 
-    // Initial update: always store gateway status & webhook
+    // Update DPay status & webhook
     await prisma.dpayTransaction.updateMany({
       where: { transactionNumber: TransactionNumber },
       data: {
         status: txnStatus,
         rawWebhook: body,
-        // qbetStatus remains PENDING unless rejected
         ...(Status === 4 ? { qbetStatus: "REJECTED" } : {}),
       },
     });
 
-    if (Status === 3) {
-      // Attempt to credit user's balance
+    // ----------------------------
+    // Atomic check & lock for QBet deposit
+    // ----------------------------
+    const lockedTxn = await prisma.dpayTransaction.updateMany({
+      where: {
+        transactionNumber: TransactionNumber,
+        qbetStatus: "PENDING",
+        status: "COMPLETED",
+      },
+      data: { qbetStatus: "PROCESSING" }, // temporary status to prevent duplicates
+    });
+
+    if (Status === 3 && lockedTxn.count === 1) {
+      // Safe to call QBet deposit
       const transactionRes = await createTransaction({
         id: ReferenceUserId,
         txn: TransactionNumber,
@@ -45,17 +61,17 @@ export async function POST(req: NextRequest) {
         amount: Number(Amount),
       });
 
-      if (
+      const success =
         transactionRes?.ok &&
         Array.isArray(transactionRes.data?.data) &&
-        transactionRes.data.data[0]?.code === 0
-      ) {
+        transactionRes.data.data[0]?.code === 0;
+
+      if (success) {
         const balanceAfter = transactionRes.data.data[0]?.balance_after;
         console.log(
           `[CASHIN SUCCESS] User: ${ReferenceUserId} Amount: ${Amount} Tx: ${TransactionNumber} NewBalance: ${balanceAfter}`,
         );
 
-        // Mark qbetStatus as LOADED
         await prisma.dpayTransaction.updateMany({
           where: { transactionNumber: TransactionNumber },
           data: { qbetStatus: "LOADED" },
@@ -66,10 +82,9 @@ export async function POST(req: NextRequest) {
           JSON.stringify(transactionRes),
         );
 
-        // Mark transaction as FAILED but leave qbetStatus PENDING
         await prisma.dpayTransaction.updateMany({
           where: { transactionNumber: TransactionNumber },
-          data: { status: "FAILED" },
+          data: { qbetStatus: "FAILED" },
         });
 
         return NextResponse.json(
@@ -77,6 +92,11 @@ export async function POST(req: NextRequest) {
           { status: 500 },
         );
       }
+    } else if (Status === 3 && lockedTxn.count === 0) {
+      // QBet deposit already processed
+      console.log(
+        `[SKIP QBET DEPOSIT] Tx: ${TransactionNumber} qbetStatus already processed.`,
+      );
     } else if (Status === 4) {
       console.log(
         `[CASHIN FAILED] User: ${ReferenceUserId} Tx: ${TransactionNumber} Reason: ${StatusDescription}`,
