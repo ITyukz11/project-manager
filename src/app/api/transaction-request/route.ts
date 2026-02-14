@@ -298,6 +298,7 @@ export async function POST(req: Request) {
     const paymentMethod = formData.get("paymentMethod") as string | null;
     const casinoGroupName = formData.get("casinoGroupName") as string;
     const receiptFile = formData.get("receipt") as File | null;
+    const referrer = formData.get("referrer") as string | null;
 
     // ============================================
     // SECURITY CHECK 1: Rate Limiting by IP
@@ -606,6 +607,7 @@ export async function POST(req: Request) {
         casinoGroupId: casinoGroup.id,
         ipAddress: clientIp,
         userAgent: req.headers.get("user-agent") || null,
+        referrer: referrer || null,
       },
       include: {
         processedBy: {

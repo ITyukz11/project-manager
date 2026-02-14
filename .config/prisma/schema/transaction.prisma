@@ -14,6 +14,8 @@ model TransactionRequest {
   status        String   @default("PENDING") // PENDING, COMPLETED, REJECTED
   balance    String?  // URL to attachment/image proof reply in updating status
 
+  referrer String? // For ran online tracking
+
   remarks         String? // For rejection reason or additional notes
   receiptUrl      String?
   receiptHash     String?       // 🆕 For duplicate detection

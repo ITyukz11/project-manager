@@ -97,13 +97,17 @@ export default function BankingPage() {
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
   const COOLDOWN_SECONDS = 10;
 
+  const [referrer, setReferrer] = useState("");
+
   const {
     balance,
     isLoading: balanceLoading,
     refreshBalance,
     isValidating: balanceValidating,
     error: balanceError,
-  } = useBalance(externalUserId);
+  } = useBalance(
+    casino.toLocaleLowerCase() !== "ran" ? externalUserId : undefined,
+  );
 
   console.log("balance: ", balance);
 
@@ -118,7 +122,7 @@ export default function BankingPage() {
     if (externalUserIdParam) setExternalUserId(externalUserIdParam);
     if (casinoGroupParam) setCasinoGroup(casinoGroupParam);
   }, [searchParams]);
-
+  console.log("casino: ", casino);
   // 2. Check casino existence (triggered by casino name change)
   useEffect(() => {
     if (!casino) return;
@@ -146,7 +150,7 @@ export default function BankingPage() {
     const checkExistingCashin = async () => {
       try {
         const res = await fetch(
-          `/api/cashin/${username}/accommodating?casino=${casino}`
+          `/api/cashin/${username}/accommodating?casino=${casino}`,
         );
 
         if (!res.ok) return;
@@ -192,7 +196,7 @@ export default function BankingPage() {
           headers: {
             Authorization: `Bearer ${process.env.NEXT_PUBLIC_BANKING_API_KEY}`,
           },
-        }
+        },
       );
 
       const data = await response.json();
@@ -253,7 +257,7 @@ export default function BankingPage() {
         reader.readAsDataURL(file);
       }
     },
-    []
+    [],
   );
 
   const removeReceipt = useCallback(() => {
@@ -401,7 +405,7 @@ export default function BankingPage() {
       if (activeTab === "cashout") {
         if (Number(amount) >= Number(balance)) {
           return toast.error(
-            `Insufficient Balance. You only have ${Number(balance)}`
+            `Insufficient Balance. You only have ${Number(balance)}`,
           );
         }
         const bankName =
@@ -412,6 +416,11 @@ export default function BankingPage() {
 
       if (receiptFile) {
         formData.append("receipt", receiptFile);
+      }
+
+      //for ran online
+      if (referrer) {
+        formData.append("referrer", referrer.trim());
       }
 
       const response = await fetch("/api/transaction-request", {
@@ -461,6 +470,7 @@ export default function BankingPage() {
     customBank,
     accountName,
     accountNumber,
+    referrer,
   ]);
 
   // Memoize the bank display name
@@ -532,19 +542,13 @@ export default function BankingPage() {
   return (
     <div className="dark relative min-h-screen bg-[url('/qbet-bg.jpg')] bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="container mx-auto p-4 sm:p-6 max-w-4xl min-h-dvh flex flex-col">
-        <div className="mb-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-            Transaction Request
+        <div className="flex flex-row justify-between mb-2 items-center">
+          <h1 className="text-xl sm:text-3xl font-bold text-foreground flex flex-row gap-2">
+            Transaction <span className="hidden sm:block">Request</span>
           </h1>
-          <div className="text-sm text-muted-foreground mt-1 space-y-0. 5">
-            <p>
-              Player: <span className="font-semibold">{username}</span>
-            </p>
-            <p>
-              Casino: <span className="font-semibold">{casino}</span>
-            </p>
-            <div className="flex flex-row items-center gap-1">
-              Balance:{formatAmountWithDecimals(balance)}
+          {casino.toLocaleLowerCase() !== "ran" && (
+            <div className="flex flex-row text-muted-foreground items-center gap-1">
+              Balance: {formatAmountWithDecimals(balance)}
               <button
                 type="button"
                 onClick={() => refreshBalance()}
@@ -559,7 +563,7 @@ export default function BankingPage() {
                 )}
               </button>
             </div>
-          </div>
+          )}
         </div>
 
         <Tabs
@@ -574,13 +578,16 @@ export default function BankingPage() {
             >
               Cash in
             </TabsTrigger>
-            <TabsTrigger
-              value="cashout"
-              disabled={enableChatBased}
-              className="data-[state=active]:bg-white data-[state=active]:text-black"
-            >
-              Cash out
-            </TabsTrigger>
+            {casino.toLocaleLowerCase() !== "ran" && (
+              <TabsTrigger
+                value="cashout"
+                disabled={enableChatBased}
+                className="data-[state=active]:bg-white data-[state=active]:text-black"
+              >
+                Cash out
+              </TabsTrigger>
+            )}
+
             <TabsTrigger
               value="history"
               disabled={enableChatBased}
@@ -605,28 +612,31 @@ export default function BankingPage() {
               cashinId={cashinId}
               playerUsername={username}
               casinoLink={casino}
+              referrer={referrer}
+              setReferrer={setReferrer}
             />
           </TabsContent>
 
           {/* CASH OUT TAB */}
-          <TabsContent value="cashout">
-            <CashOutContent
-              selectedPayment={selectedPayment}
-              setSelectedPayment={setSelectedPayment}
-              amount={amount}
-              setAmount={setAmount}
-              selectedBank={selectedBank}
-              setSelectedBank={setSelectedBank}
-              customBank={customBank}
-              setCustomBank={setCustomBank}
-              accountName={accountName}
-              setAccountName={setAccountName}
-              accountNumber={accountNumber}
-              setAccountNumber={setAccountNumber}
-              handleProceedToQR={handleProceedToQR}
-            />
-          </TabsContent>
-
+          {casino.toLocaleLowerCase() !== "ran" && (
+            <TabsContent value="cashout">
+              <CashOutContent
+                selectedPayment={selectedPayment}
+                setSelectedPayment={setSelectedPayment}
+                amount={amount}
+                setAmount={setAmount}
+                selectedBank={selectedBank}
+                setSelectedBank={setSelectedBank}
+                customBank={customBank}
+                setCustomBank={setCustomBank}
+                accountName={accountName}
+                setAccountName={setAccountName}
+                accountNumber={accountNumber}
+                setAccountNumber={setAccountNumber}
+                handleProceedToQR={handleProceedToQR}
+              />
+            </TabsContent>
+          )}
           {/* HISTORY TAB - UPDATED */}
           <TabsContent value="history">
             <TabsContent value="history">

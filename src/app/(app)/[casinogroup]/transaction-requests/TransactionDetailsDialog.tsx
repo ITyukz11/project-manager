@@ -28,6 +28,7 @@ import {
   Trash2,
   ImageIcon,
   MessageSquare,
+  Handshake,
 } from "lucide-react";
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -307,6 +308,8 @@ export function TransactionDetailsDialog({
       formData.append("casinoGroup", transaction.casinoGroup.name);
       formData.append("status", actionType);
 
+      formData.append("referrer", transaction.referrer || "");
+
       if (remarks.trim()) {
         formData.append("remarks", remarks.trim());
       }
@@ -469,7 +472,7 @@ export function TransactionDetailsDialog({
                           Enter Chat
                         </Button>
                       ) : (
-                        <div className="flex-row gap-2">
+                        <div className="flex flex-row gap-2">
                           <Button
                             size="sm"
                             variant="outline"
@@ -567,6 +570,24 @@ export function TransactionDetailsDialog({
                       </div>
                     </div>
                   </div>
+                  {transaction?.referrer && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <Handshake className="h-4 w-4 text-muted-foreground" />
+                        Referrer
+                      </div>
+                      <div className="pl-6 space-y-1">
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            Referrer Username
+                          </p>
+                          <p className="text-sm font-medium break-all">
+                            {transaction?.referrer}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-semibold">

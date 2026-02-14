@@ -4,6 +4,7 @@ interface TransactionDetails {
   id: string;
   type: string;
   username: string;
+  referrer: string | null;
   externalUserId: string | null;
   amount: number;
   bankDetails: string | null;
@@ -58,7 +59,7 @@ export function useTransactionDetails(transactionId: string | null) {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
       shouldRetryOnError: false,
-    }
+    },
   );
 
   return {

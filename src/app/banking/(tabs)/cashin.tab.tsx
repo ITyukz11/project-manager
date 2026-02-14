@@ -24,6 +24,8 @@ interface CashInContentProps {
   chatBasedLoading?: boolean;
   casinoLink: string;
   playerUsername: string;
+  referrer?: string;
+  setReferrer?: (referrer: string) => void;
 }
 
 export function CashInContent({
@@ -38,6 +40,8 @@ export function CashInContent({
   cashinId,
   casinoLink,
   playerUsername,
+  referrer,
+  setReferrer,
 }: CashInContentProps) {
   return (
     <Card>
@@ -109,6 +113,21 @@ export function CashInContent({
                   </Button>
                 ))}
               </div>
+            </div>
+          </div>
+          <div>
+            <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
+              Step 3. Referrer
+            </Label>
+
+            <div className="space-y-3 sm:space-y-4">
+              <Input
+                id="referrer"
+                placeholder="Enter referrer username (optional)"
+                value={referrer}
+                onChange={(e) => setReferrer?.(e.target.value)}
+                className="text-base sm:text-lg h-12"
+              />
             </div>
           </div>
 

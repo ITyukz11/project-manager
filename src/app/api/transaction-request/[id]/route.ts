@@ -33,14 +33,14 @@ export async function PATCH(
     const remarks = formData.get("remarks") as string | null;
     const receiptFile = formData.get("receipt") as File | null;
     const externalUserId = formData.get("externalUserId") as string;
-    const casinoGroupName =
-      (formData.get("casinoGroup") as string | null) || "";
+    const referrer = (formData.get("referrer") as string) || "";
+    const casinoGroupName = (
+      (formData.get("casinoGroup") as string) || ""
+    ).toLowerCase();
 
     if (!status || !ALLOWED_STATUS.includes(status)) {
       return NextResponse.json(
-        {
-          error: `Invalid status. Must be ${ALLOWED_STATUS.join(", ")}.`,
-        },
+        { error: `Invalid status. Must be ${ALLOWED_STATUS.join(", ")}.` },
         { status: 400 },
       );
     }
@@ -57,7 +57,7 @@ export async function PATCH(
       );
     }
 
-    // Cashout approval requires a receipt
+    // Cashout approval requires receipt
     if (
       status === "APPROVED" &&
       existingTransaction.type === "CASHOUT" &&
@@ -70,7 +70,7 @@ export async function PATCH(
       );
     }
 
-    // Upload receipt if provided and valid
+    // Upload receipt if provided
     let receiptUrl = existingTransaction.receiptUrl;
     if (receiptFile) {
       if (!receiptFile.type.startsWith("image/")) {
@@ -101,69 +101,99 @@ export async function PATCH(
       }
     }
 
-    // Update transaction
-    const updatedTransaction = await prisma.transactionRequest.update({
-      where: { id },
-      data: {
-        status,
-        processedById: currentUser.id,
-        processedAt: new Date(),
-        remarks: remarks || undefined,
-        receiptUrl: receiptUrl || undefined,
-      },
-      include: {
-        processedBy: {
-          select: { id: true, name: true, username: true, role: true },
+    // Begin atomic transaction
+    const updatedTransaction = await prisma.$transaction(async (tx) => {
+      // 1️⃣ Update the transactionRequest first
+      const updated = await tx.transactionRequest.update({
+        where: { id },
+        data: {
+          status,
+          processedById: currentUser.id,
+          processedAt: new Date(),
+          remarks: remarks || undefined,
+          receiptUrl: receiptUrl || undefined,
         },
-        casinoGroup: true,
-      },
-    });
-
-    // ⏬⏬⏬ ---- CALL CREATE TRANSACTION IF "APPROVED" AND A DEPOSIT ---- ⏬⏬⏬
-    if (status === "APPROVED" && existingTransaction.type === "CASHIN") {
-      console.log("externalUserId:", externalUserId);
-      // Call createTransaction
-      // you might want to wrap this in a try/catch (optional)
-      const trxnResult = await createTransaction({
-        id: externalUserId, //user.externalId for player,
-        txn: updatedTransaction.id, // use appropriate field for "txn"
-        type: "DEPOSIT",
-        amount: updatedTransaction.amount,
+        include: {
+          processedBy: {
+            select: { id: true, name: true, username: true, role: true },
+          },
+          casinoGroup: true,
+        },
       });
 
-      // You can customize response or handle errors/logs
-      if (!trxnResult.ok) {
-        console.error("createTransaction failed:", trxnResult);
-        // Optionally: undo approval, mark as error, or return error response
-        // return NextResponse.json({ error: "Transaction API failed.", details: trxnResult }, { status: 502 });
-      }
-      if (trxnResult.code !== 0) {
-        console.error(
-          "createTransaction error code:",
-          trxnResult.code,
-          "details:",
-          trxnResult,
-        );
-        // Optionally: undo approval, mark as error, or return error response
-        // return NextResponse.json({ error: `Transaction failed with code: ${trxnResult.code} or ${QBET_TRANSACTION_ERROR_MESSAGES[trxnResult.code as number] || 'Unknown error'}`, details: trxnResult }, { status: 400 });
-      }
-    }
-    // ⏫⏫⏫ ---- END CREATE TRANSACTION LOGIC ---- ⏫⏫⏫
+      // 2️⃣ Handle CASHIN approval
+      if (status === "APPROVED" && existingTransaction.type === "CASHIN") {
+        if (casinoGroupName !== "ran") {
+          // QBET API
+          const trxnResult = await createTransaction({
+            id: externalUserId,
+            txn: updated.id,
+            type: "DEPOSIT",
+            amount: updated.amount,
+          });
+          if (!trxnResult.ok || trxnResult.code !== 0) {
+            console.error("QBET transaction failed:", trxnResult);
+            throw new Error(`QBET transaction failed`);
+          }
+        } else {
+          console.log(
+            `Processing RAN top-up for user ${externalUserId} with amount ${updated.amount} and referrer "${referrer}"`,
+          );
+          console.log("Other:", receiptUrl, referrer);
+          console.log("RAN API URL:", process.env.RAN_BASE_URL);
+          console.log("RAN API Token:", process.env.RAN_API_TOKEN);
 
-    // If ACCOMMODATING and has linked Cashin, update cashin status and emit update
-    if (status === "ACCOMMODATING" && updatedTransaction.cashInId) {
-      const cashinId = updatedTransaction.cashInId;
+          // Validate inputs
+          const chaNum = Number(externalUserId);
+          const topUpPoints = Number(updated.amount);
 
-      // Use transaction for atomic updates
-      await prisma.$transaction([
-        prisma.cashin.update({
-          where: { id: cashinId },
+          if (isNaN(chaNum)) throw new Error("Invalid id!");
+          if (isNaN(topUpPoints))
+            throw new Error("Invalid topUpPoints: not a number");
+
+          const ranResponse = await fetch(
+            `${process.env.RAN_BASE_URL}/api/TopUpReceive`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chaNum, // must be a valid integer
+                topUpPoints, // must be a number
+                referral: (referrer || "").trim(),
+                referenceNumber: receiptUrl,
+                tokenApi: process.env.RAN_API_TOKEN,
+              }),
+            },
+          );
+
+          const ranResult = await ranResponse.json();
+          if (!ranResult.success) {
+            console.error("RAN Top-up failed:", ranResult);
+            throw new Error(
+              `RAN Top-up failed: ${ranResult.message || JSON.stringify(ranResult)}`,
+            );
+          }
+
+          console.log("RAN Top-up successful:", ranResult);
+        }
+      }
+
+      // 3️⃣ If ACCOMMODATING with linked Cashin
+      if (status === "ACCOMMODATING" && updated.cashInId) {
+        await tx.cashin.update({
+          where: { id: updated.cashInId },
           data: {
             status: "ACCOMMODATING",
             externalUserId: externalUserId || undefined,
           },
-        }),
-      ]);
+        });
+      }
+
+      return updated;
+    }); // End of $transaction
+
+    // Emit events (outside transaction)
+    if (status === "ACCOMMODATING" && updatedTransaction.cashInId) {
       emitCashinUpdated({
         transactionId: existingTransaction.id,
         casinoGroup: casinoGroupName.toLocaleLowerCase(),
@@ -171,7 +201,6 @@ export async function PATCH(
       });
     }
 
-    // Count pending and accommodating transactions/cashins in this casinoGroup
     const [pendingCount, pendingCountCashin] = await Promise.all([
       prisma.transactionRequest.count({
         where: {
@@ -188,20 +217,21 @@ export async function PATCH(
     ]);
 
     await pusher.trigger(
-      `transaction-${existingTransaction.casinoGroup.name.toLowerCase()}`,
+      `transaction-${casinoGroupName}`,
       "transaction-pending-count",
       { count: pendingCount },
     );
-
     await pusher.trigger(
-      `cashin-${existingTransaction.casinoGroup.name.toLowerCase()}`,
+      `cashin-${casinoGroupName.toLocaleLowerCase()}`,
       "cashin-pending-count",
-      { count: pendingCountCashin },
+      {
+        count: pendingCountCashin,
+      },
     );
 
     await emitTransactionUpdated({
       transactionId: existingTransaction.id,
-      casinoGroup: casinoGroupName.toLocaleLowerCase(),
+      casinoGroup: casinoGroupName,
       action: "UPDATED",
     });
 
