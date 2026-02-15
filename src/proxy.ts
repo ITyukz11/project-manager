@@ -78,7 +78,9 @@ export async function proxy(request: NextRequest) {
   }
 
   const isPrivileged =
-    token?.role === ADMINROLES.ADMIN || token?.role === ADMINROLES.SUPERADMIN;
+    token?.role === ADMINROLES.ADMIN ||
+    token?.role === ADMINROLES.SUPERADMIN ||
+    token?.role === ADMINROLES.ACCOUNTING;
 
   const userGroups =
     token?.casinoGroups?.map((g) => g.name.toLowerCase()) || [];
