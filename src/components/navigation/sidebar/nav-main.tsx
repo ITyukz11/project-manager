@@ -42,10 +42,10 @@ export const NavMain = () => {
         title: "Network",
         url: "/network/accounts",
         icon: Share2,
-        visible: true,
+        visible: isSuperAdmin || isAdmin,
       },
     ],
-    [isSuperAdmin, isAdmin]
+    [isSuperAdmin, isAdmin],
   );
 
   const visibleItems = items.filter((item) => item.visible);
