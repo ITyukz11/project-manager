@@ -213,41 +213,44 @@ export function CashInContent({
 
               {/* Show all normal cashin methods, disabled if killswitch is active */}
               {!killSwitchLoading &&
-                PAYMENTGATEWAY_METHODS_CASHIN.map((method) => (
-                  <Card
-                    key={method.id}
-                    className={`relative transition-all ${
-                      cashinDisabled
-                        ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer hover:shadow-lg"
-                    } ${
-                      selectedPayment === method.id && !cashinDisabled
-                        ? "ring-2 ring-primary shadow-lg"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      if (cashinDisabled) return;
-                      setSelectedPayment(method.id as PaymentGatewayMethod);
-                    }}
-                  >
-                    <CardContent className="relative p-0 flex items-center justify-center">
-                      <Image
-                        src={method.icon}
-                        alt={method.name}
-                        width={150}
-                        height={150}
-                        className="rounded-xl"
-                      />
-                      {cashinDisabled && (
-                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
-                          <span className="text-white text-sm font-semibold tracking-wide">
-                            DISABLED
-                          </span>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+                PAYMENTGATEWAY_METHODS_CASHIN.map((method) => {
+                  if (method.id === "QRPH-RAN") return null; // skip empty entries
+                  return (
+                    <Card
+                      key={method.id}
+                      className={`relative transition-all ${
+                        cashinDisabled
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer hover:shadow-lg"
+                      } ${
+                        selectedPayment === method.id && !cashinDisabled
+                          ? "ring-2 ring-primary shadow-lg"
+                          : ""
+                      }`}
+                      onClick={() => {
+                        if (cashinDisabled) return;
+                        setSelectedPayment(method.id as PaymentGatewayMethod);
+                      }}
+                    >
+                      <CardContent className="relative p-0 flex items-center justify-center">
+                        <Image
+                          src={method.icon}
+                          alt={method.name}
+                          width={150}
+                          height={150}
+                          className="rounded-xl"
+                        />
+                        {cashinDisabled && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-xl">
+                            <span className="text-white text-sm font-semibold tracking-wide">
+                              DISABLED
+                            </span>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
 
               {/* Show Chat-Based Cashin only when killswitch is active and not loading */}
               {cashinDisabled && !killSwitchLoading && (
