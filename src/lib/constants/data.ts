@@ -1,10 +1,12 @@
 export const PAYMENTGATEWAY_METHODS_CASHIN = [
   // { id: "QRPH", name: "QRPH", icon: "/payment-gateway/qrph.png" },
   { id: "GCash", name: "GCash", icon: "/payment-gateway/gcash.png" },
+  { id: "QRPH-RAN", name: "QRPH-RAN", icon: "/payment-gateway/QR-Ran.png" },
   { id: "Maya", name: "Maya", icon: "/payment-gateway/maya.png" },
 ];
 
 export const PAYMENT_METHODS_CASHIN = [
+  { id: "QRPH-RAN", name: "QRPH-RAN", icon: "/logo/qr-logo.png" },
   { id: "QRPH", name: "QRPH", icon: "/logo/qr-logo.png" },
   { id: "GoTyme", name: "GoTyme", icon: "/logo/gotyme-logo.png" },
   { id: "Chat-Based", name: "Chat-Based", icon: "/logo/chat-based-logo.png" },

@@ -10,6 +10,7 @@ import { PaymentMethod } from "../page";
 
 import { Spinner } from "@/components/ui/spinner";
 import { ChatBasedContent } from "./chatbased";
+import { useMemo } from "react";
 
 interface CashInContentProps {
   selectedPayment: PaymentMethod | null;
@@ -43,6 +44,21 @@ export function CashInContent({
   referrer,
   setReferrer,
 }: CashInContentProps) {
+  const isRan = useMemo(
+    () => casinoLink?.toLowerCase() === "ran",
+    [casinoLink],
+  );
+
+  const methodsToShow = useMemo(() => {
+    return isRan
+      ? PAYMENT_METHODS_CASHIN.filter((m) => m.id === "QRPH-RAN")
+      : PAYMENT_METHODS_CASHIN.filter((m) => m.id !== "QRPH-RAN");
+  }, [isRan]);
+
+  const quickAmountsToShow = useMemo(() => {
+    return isRan ? [50, 100, 200, 300, 500, 1000] : QUICK_AMOUNTS;
+  }, [isRan]);
+
   return (
     <Card>
       {!enableChatBased ? (
@@ -54,7 +70,7 @@ export function CashInContent({
             </Label>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-              {PAYMENT_METHODS_CASHIN.map((method) => (
+              {methodsToShow.map((method) => (
                 <Card
                   key={method.id}
                   className={`cursor-pointer transition-all hover:shadow-lg ${
@@ -72,7 +88,7 @@ export function CashInContent({
                       height={150}
                       className="rounded-xl"
                     />
-                    {/* Online indicator for chat-based payment */}
+
                     {method.id === "Chat-Based" && (
                       <span className="absolute top-2 right-15 flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -102,7 +118,7 @@ export function CashInContent({
               />
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {QUICK_AMOUNTS.map((amt) => (
+                {quickAmountsToShow.map((amt) => (
                   <Button
                     key={amt}
                     variant="outline"

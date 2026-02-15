@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { AlertCircle, Loader2, RefreshCcw, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CashInContent } from "./(tabs)/cashin.tab";
@@ -20,6 +20,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
 
 export type PaymentMethod =
+  | "QRPH-RAN"
   | "QRPH"
   | "GCash/Maya"
   | "GoTyme"
@@ -29,6 +30,7 @@ export type PaymentMethod =
 
 export const QR_CODE_MAP: Record<string, string> = {
   QRPH: "/Sec-QRPH-qr.png",
+  "QRPH-RAN": "/payment-gateway/QR-Ran.png",
   GoTyme: "/gotyme-qr1.png",
 };
 
@@ -338,7 +340,7 @@ export default function BankingPage() {
       return;
     }
 
-    const minAmount = 100;
+    const minAmount = casino.toLowerCase() === "ran" ? 50 : 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
       return;
@@ -380,7 +382,7 @@ export default function BankingPage() {
   ]);
 
   const handleFinalSubmit = useCallback(async () => {
-    const minAmount = 100;
+    const minAmount = casino.toLowerCase() === "ran" ? 50 : 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
       return;
