@@ -1,30 +1,14 @@
-// --- Convert local date string to UTC start/end of day ---
-export function toUtcStartOfDay(dateStr: string, tzOffsetHours = 8): Date {
+export function toUtcStartOfDay(dateStr: string, offsetHours: number) {
   const localDate = new Date(dateStr);
-  return new Date(
-    Date.UTC(
-      localDate.getFullYear(),
-      localDate.getMonth(),
-      localDate.getDate(),
-      0 - tzOffsetHours, // shift local midnight to UTC
-      0,
-      0,
-      0,
-    ),
-  );
+  localDate.setHours(0, 0, 0, 0); // start of local day
+  // shift to UTC
+  const utcDate = new Date(localDate.getTime() - offsetHours * 60 * 60 * 1000);
+  return utcDate;
 }
 
-export function toUtcEndOfDay(dateStr: string, tzOffsetHours = 8): Date {
+export function toUtcEndOfDay(dateStr: string, offsetHours: number) {
   const localDate = new Date(dateStr);
-  return new Date(
-    Date.UTC(
-      localDate.getFullYear(),
-      localDate.getMonth(),
-      localDate.getDate(),
-      23 - tzOffsetHours, // shift local 23:59:59 to UTC
-      59,
-      59,
-      999,
-    ),
-  );
+  localDate.setHours(23, 59, 59, 999); // end of local day
+  const utcDate = new Date(localDate.getTime() - offsetHours * 60 * 60 * 1000);
+  return utcDate;
 }
