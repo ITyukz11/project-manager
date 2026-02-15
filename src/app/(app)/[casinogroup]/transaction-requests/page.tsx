@@ -5,7 +5,13 @@ import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeftRight, RefreshCw, TriangleAlert, Wallet } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Banknote,
+  RefreshCw,
+  TriangleAlert,
+  Wallet,
+} from "lucide-react";
 import { useTransactionRequest } from "@/lib/hooks/swr/transaction-request/useTransactionRequest";
 import { transactionRequestColumns } from "@/components/table/transaction-request/transaction-request-columns";
 import { TransactionDetailsDialog } from "./TransactionDetailsDialog";
@@ -13,7 +19,7 @@ import { Title } from "@/components/Title";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
-import { formatPhpAmount } from "@/components/formatAmount";
+import { formatAmount, formatPhpAmount } from "@/components/formatAmount";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
@@ -123,6 +129,51 @@ export default function Page() {
     return counts;
   }, [transactionRequests]);
 
+  const totalAmountApproved = useMemo(() => {
+    if (!transactionRequests) return 0;
+    return transactionRequests
+      .filter((tx) => tx.status === "APPROVED")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [transactionRequests]);
+
+  const totalAmountPending = useMemo(() => {
+    if (!transactionRequests) return 0;
+    return transactionRequests
+      .filter((tx) => tx.status === "PENDING")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [transactionRequests]);
+
+  const totalAmountRejected = useMemo(() => {
+    if (!transactionRequests) return 0;
+    return transactionRequests
+      .filter((tx) => tx.status === "REJECTED")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [transactionRequests]);
+
+  const metrics = useMemo(
+    () => [
+      {
+        title: "Total Completed Amount",
+        amount: totalAmountApproved,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: "bg-green-500",
+      },
+      {
+        title: "Total Pending Amount",
+        amount: totalAmountPending,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: "bg-yellow-500",
+      },
+      {
+        title: "Total Rejected Amount",
+        amount: totalAmountRejected,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: "bg-red-500",
+      },
+    ],
+    [totalAmountApproved, totalAmountPending, totalAmountRejected],
+  );
+
   return (
     <>
       <Card>
@@ -208,23 +259,48 @@ export default function Page() {
           />
 
           {/* Status Metrics */}
-          <div className="flex flex-wrap gap-2 mx-1 mt-1">
-            {["CASHIN", "CASHOUT"].map((type) => (
-              <Badge
-                key={type}
-                className={`text-xs ${getStatusColorClass(type)}`}
-              >
-                {type}: {typeCounts[type] || 0}
-              </Badge>
-            ))}
-            {STATUS_ORDER.map((status) => (
-              <Badge
-                key={status}
-                className={`text-xs ${getStatusColorClass(status)}`}
-              >
-                {status}: {statusCounts[status] || 0}
-              </Badge>
-            ))}
+          <div className="flex flex-col flex-wrap gap-2 mx-1 mt-1">
+            <div className="flex flex-wrap gap-2 mx-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {metrics.map((m) => (
+                  <Card key={m.title} className="overflow-hidden ">
+                    <CardContent className="flex items-center gap-4">
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-lg ${m.bgColor}`}
+                      >
+                        {m.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm text-muted-foreground">
+                          {m.title}
+                        </p>
+                        <p className="text-lg font-semibold font-mono">
+                          {formatAmount(m.amount)}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 mx-1">
+              {["CASHIN", "CASHOUT"].map((type) => (
+                <Badge
+                  key={type}
+                  className={`text-xs ${getStatusColorClass(type)}`}
+                >
+                  {type}: {typeCounts[type] || 0}
+                </Badge>
+              ))}
+              {STATUS_ORDER.map((status) => (
+                <Badge
+                  key={status}
+                  className={`text-xs ${getStatusColorClass(status)}`}
+                >
+                  {status}: {statusCounts[status] || 0}
+                </Badge>
+              ))}
+            </div>
           </div>
           {/* Table */}
           {isLoading ? (
