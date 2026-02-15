@@ -72,9 +72,30 @@ export async function proxy(request: NextRequest) {
     // or e.g. new URL("/unauthorized", request.url)
   }
 
-  // If not logged in and not on login, redirect to login
+  // If not logged in and not on login → login
   if (!token && pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const isPrivileged =
+    token?.role === ADMINROLES.ADMIN || token?.role === ADMINROLES.SUPERADMIN;
+
+  const userGroups =
+    token?.casinoGroups?.map((g) => g.name.toLowerCase()) || [];
+
+  const pathGroup = pathname.split("/")[1]?.toLowerCase();
+
+  const isCasinoRoute = userGroups.length > 0 && pathGroup;
+
+  if (
+    token &&
+    !isPrivileged &&
+    isCasinoRoute &&
+    !userGroups.includes(pathGroup)
+  ) {
+    return NextResponse.redirect(
+      new URL(`/${userGroups[0]}/transaction-requests`, request.url),
+    );
   }
 
   // Let them through for login if not authenticated
