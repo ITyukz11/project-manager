@@ -22,9 +22,9 @@ export default function Page() {
 
   console.log("casinoGroup: ", casinoGroup);
   const { usersData, usersLoading, usersError } = useUsers(
-    casinoGroup?.toLocaleString() || ""
+    casinoGroup?.toLocaleString() || "",
   );
-  const hiddenColumns = ["messengerLink"];
+  const hiddenColumns = ["messengerLink", "casinoGroups"];
   // Advanced Filter Sheet UI
 
   console.log("Current User Session: ", session);
