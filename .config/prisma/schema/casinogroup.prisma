@@ -17,8 +17,10 @@ model CasinoGroup {
   customerSupports CustomerSupport[] // NEW: customer support tickets for this casino group
   gateway       Gateway[]
   dpayTransactions   DpayTransaction[]
+  optimumPayTransactions   OptimumPayTransaction[]
   gatewayBlackListPlayers   GatewayBlackListPlayers[]
   dpayConfigs   DpayConfig[]
+  optimumPayConfigs   OptimumPayConfig[]
   active        Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

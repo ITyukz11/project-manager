@@ -44,20 +44,19 @@ export function CashInContent({
   referrer,
   setReferrer,
 }: CashInContentProps) {
-  const isRan = useMemo(
-    () => casinoLink?.toLowerCase() === "ran",
-    [casinoLink],
-  );
+  const isRan = casinoLink?.toLowerCase() === "ran";
 
-  const methodsToShow = useMemo(() => {
-    return isRan
-      ? PAYMENT_METHODS_CASHIN.filter((m) => m.id === "QRPH-RAN")
-      : PAYMENT_METHODS_CASHIN.filter((m) => m.id !== "QRPH-RAN");
-  }, [isRan]);
+  const methodsToShow = PAYMENT_METHODS_CASHIN.filter((m) =>
+    isRan ? m.id === "QRPH-RAN" : m.id !== "QRPH-RAN",
+  );
 
   const quickAmountsToShow = useMemo(() => {
     return isRan ? [50, 100, 200, 300, 500, 1000] : QUICK_AMOUNTS;
   }, [isRan]);
+
+  if (!casinoLink) {
+    return <Spinner />;
+  }
 
   return (
     <Card>

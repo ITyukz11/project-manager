@@ -55,7 +55,7 @@ export default function NavCasinoGroup({
 
   const casinoGroupLower = React.useMemo(
     () => casinoGroup.name.toLowerCase(),
-    [casinoGroup.name]
+    [casinoGroup.name],
   );
 
   // Pusher event handlers
@@ -73,7 +73,7 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
 
@@ -91,7 +91,7 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
 
@@ -109,7 +109,7 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
 
@@ -128,7 +128,7 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
 
@@ -148,7 +148,7 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
 
@@ -166,7 +166,7 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
   const handleTaskUpdate = (data: { count: number }) => {
@@ -183,7 +183,7 @@ export default function NavCasinoGroup({
           (data.count ?? 0) +
           (prev?.customerSupport ?? 0),
       }),
-      false
+      false,
     );
   };
   const handleCustomerSupportUpdate = (data: { count: number }) => {
@@ -200,43 +200,43 @@ export default function NavCasinoGroup({
           (prev?.task ?? 0) +
           (data.count ?? 0),
       }),
-      false
+      false,
     );
   };
 
   // Memoized channel names
   const transactionChannel = React.useMemo(
     () => [`transaction-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
 
   const cashinChannel = React.useMemo(
     () => [`cashin-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
   const cashoutChannel = React.useMemo(
     () => [`cashout-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
   const remittanceChannel = React.useMemo(
     () => [`remittance-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
   const concernChannel = React.useMemo(
     () => [`concern-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
   const taskChannel = React.useMemo(
     () => [`task-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
   const commissionChannel = React.useMemo(
     () => [`commission-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
   const customerSupportChannel = React.useMemo(
     () => [`customerSupport-${casinoGroupLower}`],
-    [casinoGroupLower]
+    [casinoGroupLower],
   );
 
   // Pusher subscriptions
@@ -329,6 +329,13 @@ export default function NavCasinoGroup({
     ];
 
     const regularLinks: MenuLink[] = [
+      {
+        href: `/${casinoGroupLower}/optimum-pay`,
+        text: "OptimumPay",
+        icon: Wallet,
+        disable: false,
+        pendingCount: 0,
+      },
       {
         href: `/${casinoGroupLower}/dpay`,
         text: "DPay",
@@ -433,7 +440,7 @@ export default function NavCasinoGroup({
             <Badge
               className={cn(
                 "ml-auto transition-all",
-                getTotalBadgeColorClass()
+                getTotalBadgeColorClass(),
               )}
             >
               {counts.total}
@@ -448,7 +455,7 @@ export default function NavCasinoGroup({
           "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
           "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
           "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
-          "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+          "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         )}
       >
         <SidebarMenuSub>
@@ -479,7 +486,7 @@ export default function NavCasinoGroup({
                   <SidebarMenuBadge
                     className={cn(
                       "peer-hover/menu-button:text-yellow-600 peer-data-[active=true]/menu-button:text-yellow-600 text-yellow-600",
-                      "dark:peer-data-[active=true]:text-yellow-400 dark:text-yellow-400"
+                      "dark:peer-data-[active=true]:text-yellow-400 dark:text-yellow-400",
                     )}
                   >
                     {link.pendingCount}

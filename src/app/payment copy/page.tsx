@@ -3,36 +3,22 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CashInContent } from "./(tabs)/cashin.tab";
+import { CashInContent } from "./(tabs)/cashin/cashin.tab";
 
 import { CashOutContent } from "./(tabs)/cashout.tab";
-import { TransactionHistoryContent } from "./(tabs)/history.tab";
-import { PaymentQRCodeDialog } from "./(tabs)/PaymentQRCodeDialog";
-import Loading from "./Loading";
 import { Button } from "@/components/ui/button";
-import { signOut } from "next-auth/react";
 import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
 import { Spinner } from "@/components/ui/spinner";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
-
-export type PaymentMethod =
-  | "QRPH-RAN"
-  | "QRPH"
-  | "GCash/Maya"
-  | "GoTyme"
-  | "Bank"
-  | "Chat-Based"
-  | null;
-
-export const QR_CODE_MAP: Record<string, string> = {
-  QRPH: "/Sec-QRPH-qr.png",
-  "QRPH-RAN": "/payment-gateway/QR-Ran-Online.png",
-  GoTyme: "/gotyme-qr1.png",
-};
+import { TransactionHistoryContent } from "./(tabs)/history.tab";
+import { toast } from "sonner";
+import { PaymentMethod, QR_CODE_MAP } from "../banking/page";
+import { PaymentQRCodeDialog } from "../banking/(tabs)/PaymentQRCodeDialog";
+import { useDpayConfig } from "@/lib/hooks/swr/dpay/config/useDpayConfig";
+import { signOut } from "next-auth/react";
 
 // Transaction type
 export type Transaction = {
@@ -62,7 +48,6 @@ export default function BankingPage() {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(null);
   const [amount, setAmount] = useState("");
 
-  const [pageLoading, setPageLoading] = useState(true);
   //params
   const [username, setUsername] = useState("");
   const [externalUserId, setExternalUserId] = useState("");
@@ -82,9 +67,9 @@ export default function BankingPage() {
   const [accountNumber, setAccountNumber] = useState("");
 
   // History tab states
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [historyError, setHistoryError] = useState<string | null>(null);
+  // const [transactions, setTransactions] = useState<Transaction[]>([]);
+  // const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  // const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [customBank, setCustomBank] = useState("");
 
@@ -95,11 +80,7 @@ export default function BankingPage() {
 
   const [casinoExists, setCasinoExists] = useState<boolean | null>(null);
 
-  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
-  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
-  const COOLDOWN_SECONDS = 10;
-
-  const [referrer, setReferrer] = useState("");
+  const [casinoExistsLoading, setCasinoExistsLoading] = useState(true);
 
   const {
     balance,
@@ -107,9 +88,7 @@ export default function BankingPage() {
     refreshBalance,
     isValidating: balanceValidating,
     error: balanceError,
-  } = useBalance(
-    casino.toLocaleLowerCase() !== "ran" ? externalUserId : undefined,
-  );
+  } = useBalance(externalUserId);
 
   console.log("balance: ", balance);
 
@@ -124,118 +103,11 @@ export default function BankingPage() {
     if (externalUserIdParam) setExternalUserId(externalUserIdParam);
     if (casinoGroupParam) setCasinoGroup(casinoGroupParam);
   }, [searchParams]);
-  console.log("casino: ", casino);
-  // 2. Check casino existence (triggered by casino name change)
-  useEffect(() => {
-    if (!casino) return;
 
-    const checkCasino = async () => {
-      try {
-        const res = await fetch(`/api/casino-group/${casino}/exists/`);
+  const { config: DpayKillSwitch, isLoading: killSwitchLoading } =
+    useDpayConfig(casino);
 
-        if (!res.ok) throw new Error("Server error");
-
-        const data = await res.json();
-        setCasinoExists(data.exists);
-      } catch (err) {
-        setCasinoExists(false);
-      }
-    };
-
-    checkCasino();
-  }, [casino]);
-
-  useEffect(() => {
-    if (!username || !externalUserId || !casino || casinoExists !== true)
-      return;
-
-    const checkExistingCashin = async () => {
-      try {
-        const res = await fetch(
-          `/api/cashin/${username}/accommodating?casino=${casino}`,
-        );
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        console.log("Existing accommodating cashin check:", data);
-        console.log("Data exists:", username, casino);
-        if (data.exists) {
-          setEnableChatBased(true);
-          setCashinId(data.cashinId);
-        }
-      } catch (err) {
-        console.error("Failed to check existing cashin", err);
-      } finally {
-        await signOut({ redirect: false });
-        setPageLoading(false);
-      }
-    };
-
-    checkExistingCashin();
-  }, [username, casino, casinoExists, externalUserId]);
-
-  const fetchTransactionHistory = useCallback(async () => {
-    const now = Date.now();
-    const timeSinceLastFetch = (now - lastFetchTime) / 1000; // Convert to seconds
-
-    // ✅ Check if still in cooldown
-    if (timeSinceLastFetch < COOLDOWN_SECONDS) {
-      const remaining = Math.ceil(COOLDOWN_SECONDS - timeSinceLastFetch);
-      setCooldownRemaining(remaining);
-      return;
-    }
-
-    setIsLoadingHistory(true);
-    setHistoryError(null);
-    setCooldownRemaining(0);
-
-    try {
-      const response = await fetch(
-        `/api/transaction-request/username/${username}?casinoGroup=${casino}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_BANKING_API_KEY}`,
-          },
-        },
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch transaction history");
-      }
-
-      setTransactions(data.transactions || []);
-      setLastFetchTime(Date.now()); // ✅ Update last fetch time on success
-    } catch (error: any) {
-      console.error("Error fetching history:", error);
-      setHistoryError(error.message || "Failed to load transaction history");
-      toast.error("Failed to load transaction history");
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  }, [username, casino, lastFetchTime]);
-
-  useEffect(() => {
-    if (activeTab === "history") {
-      fetchTransactionHistory();
-    }
-    setShowSuccessMessage(false);
-    setSelectedPayment(null);
-  }, [activeTab, fetchTransactionHistory]);
-
-  // ✅ Optional:  Countdown timer for UI feedback
-  useEffect(() => {
-    if (cooldownRemaining > 0) {
-      const timer = setTimeout(() => {
-        setCooldownRemaining((prev) => Math.max(0, prev - 1));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [cooldownRemaining]);
-
+  console.log("DpayKillSwitch: ", DpayKillSwitch, killSwitchLoading);
   const handleReceiptChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -266,6 +138,64 @@ export default function BankingPage() {
     setReceiptFile(null);
     setReceiptPreview(null);
   }, []);
+
+  // 2. Check casino existence (triggered by casino name change)
+  useEffect(() => {
+    if (!casino) return;
+
+    const checkCasino = async () => {
+      setCasinoExistsLoading(true);
+      try {
+        const res = await fetch(`/api/casino-group/${casino}/exists/`);
+
+        if (!res.ok) throw new Error("Server error");
+
+        const data = await res.json();
+        setCasinoExists(data.exists);
+        setCasinoExistsLoading(false);
+      } catch (err) {
+        setCasinoExists(false);
+      }
+    };
+
+    checkCasino();
+  }, [casino]);
+
+  //3.
+  useEffect(() => {
+    if (!username || !externalUserId || !casino || casinoExists !== true)
+      return;
+
+    const checkExistingCashin = async () => {
+      try {
+        const res = await fetch(
+          `/api/cashin/${username}/accommodating?casino=${casino}`,
+        );
+
+        if (!res.ok) return;
+
+        console.log("Response status for existing cashin check:", res);
+
+        const data = await res.json();
+        console.log("Existing accommodating cashin check:", data);
+        console.log("Data exists:", username, casino);
+        if (data.exists) {
+          setEnableChatBased(true);
+          setCashinId(data.cashinId);
+        }
+      } catch (err) {
+        console.error("Failed to check existing cashin", err);
+      } finally {
+        await signOut({ redirect: false });
+      }
+    };
+
+    checkExistingCashin();
+  }, [username, casino, casinoExists, externalUserId]);
+  // Memoize the bank display name
+  const displayBankName = useMemo(() => {
+    return selectedBank === "Other" ? customBank : selectedBank;
+  }, [selectedBank, customBank]);
 
   const handleProceedToQR = useCallback(async () => {
     if (!username.trim()) {
@@ -340,7 +270,7 @@ export default function BankingPage() {
       return;
     }
 
-    const minAmount = casino.toLowerCase() === "ran" ? 50 : 100;
+    const minAmount = 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
       return;
@@ -382,7 +312,7 @@ export default function BankingPage() {
   ]);
 
   const handleFinalSubmit = useCallback(async () => {
-    const minAmount = casino.toLowerCase() === "ran" ? 50 : 100;
+    const minAmount = 100;
     if (parseFloat(amount) < minAmount) {
       toast.error(`Minimum amount is ${minAmount}`);
       return;
@@ -418,11 +348,6 @@ export default function BankingPage() {
 
       if (receiptFile) {
         formData.append("receipt", receiptFile);
-      }
-
-      //for ran online
-      if (referrer) {
-        formData.append("referrer", referrer.trim());
       }
 
       const response = await fetch("/api/transaction-request", {
@@ -472,20 +397,9 @@ export default function BankingPage() {
     customBank,
     accountName,
     accountNumber,
-    referrer,
   ]);
 
-  // Memoize the bank display name
-  const displayBankName = useMemo(() => {
-    return selectedBank === "Other" ? customBank : selectedBank;
-  }, [selectedBank, customBank]);
-
-  // Show error if required parameters are missing
-  if (pageLoading) {
-    return <Loading />;
-  }
-
-  if (!casinoExists) {
+  if (!casinoExists && !casinoExistsLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[300px] space-y-6">
         {/* Icon -- you can swap for another SVG or library icon */}
@@ -524,7 +438,7 @@ export default function BankingPage() {
     );
   }
 
-  if (!username || !casino || !balance) {
+  if ((!username || !casino || !balance) && !casinoExistsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Alert variant="destructive">
@@ -548,24 +462,22 @@ export default function BankingPage() {
           <h1 className="text-xl sm:text-3xl font-bold text-foreground flex flex-row gap-2">
             Transaction <span className="hidden sm:block">Request</span>
           </h1>
-          {casino.toLocaleLowerCase() !== "ran" && (
-            <div className="flex flex-row text-muted-foreground items-center gap-1">
-              Balance: {formatAmountWithDecimals(balance)}
-              <button
-                type="button"
-                onClick={() => refreshBalance()}
-                disabled={balanceLoading}
-                title="Refresh balance"
-                className="cursor-pointer flex items-center justify-center "
-              >
-                {!balanceLoading && !balanceValidating ? (
-                  <RefreshCw className="w-3.5 h-3.5" />
-                ) : (
-                  <Spinner />
-                )}
-              </button>
-            </div>
-          )}
+          <div className="flex flex-row text-muted-foreground items-center gap-1">
+            Balance: {formatAmountWithDecimals(balance)}
+            <button
+              type="button"
+              onClick={() => refreshBalance()}
+              disabled={balanceLoading}
+              title="Refresh balance"
+              className="cursor-pointer flex items-center justify-center "
+            >
+              {!balanceLoading && !balanceValidating ? (
+                <RefreshCw className="w-3.5 h-3.5" />
+              ) : (
+                <Spinner />
+              )}
+            </button>
+          </div>
         </div>
 
         <Tabs
@@ -580,21 +492,15 @@ export default function BankingPage() {
             >
               Cash in
             </TabsTrigger>
-            {casino.toLocaleLowerCase() !== "ran" && (
-              <TabsTrigger
-                value="cashout"
-                disabled={enableChatBased}
-                className="data-[state=active]:bg-white data-[state=active]:text-black"
-              >
-                Cash out
-              </TabsTrigger>
-            )}
-
+            <TabsTrigger
+              value="cashout"
+              className="data-[state=active]:bg-white data-[state=active]:text-black"
+            >
+              Cash out
+            </TabsTrigger>
             <TabsTrigger
               value="history"
-              disabled={enableChatBased}
               className="data-[state=active]:bg-white data-[state=active]:text-black"
-              onClick={fetchTransactionHistory}
             >
               History
             </TabsTrigger>
@@ -603,53 +509,51 @@ export default function BankingPage() {
           {/* CASH IN TAB */}
           <TabsContent value="cashin">
             <CashInContent
-              selectedPayment={selectedPayment}
-              setSelectedPayment={setSelectedPayment}
-              amount={amount}
-              setAmount={setAmount}
-              handleProceedToQR={handleProceedToQR}
+              externalUserId={externalUserId}
+              userName={username}
+              casino={casino}
+              killSwitch={DpayKillSwitch}
+              killSwitchLoading={killSwitchLoading}
               enableChatBased={enableChatBased}
-              chatBasedLoading={chatBasedLoading}
               setEnableChatBased={setEnableChatBased}
               cashinId={cashinId}
-              playerUsername={username}
-              casinoLink={casino}
-              referrer={referrer}
-              setReferrer={setReferrer}
+              setCashinId={setCashinId}
             />
           </TabsContent>
 
           {/* CASH OUT TAB */}
-          {casino.toLocaleLowerCase() !== "ran" && (
-            <TabsContent value="cashout">
-              <CashOutContent
-                selectedPayment={selectedPayment}
-                setSelectedPayment={setSelectedPayment}
-                amount={amount}
-                setAmount={setAmount}
-                selectedBank={selectedBank}
-                setSelectedBank={setSelectedBank}
-                customBank={customBank}
-                setCustomBank={setCustomBank}
-                accountName={accountName}
-                setAccountName={setAccountName}
-                accountNumber={accountNumber}
-                setAccountNumber={setAccountNumber}
-                handleProceedToQR={handleProceedToQR}
-              />
-            </TabsContent>
-          )}
+          <TabsContent value="cashout">
+            {/* <CashOutContent
+              externalUserId={externalUserId}
+              username={username}
+              balance={balance}
+              casino={casino}
+              setActiveTab={setActiveTab}
+            /> */}
+            <CashOutContent
+              externalUserId={externalUserId}
+              selectedPayment={selectedPayment}
+              setSelectedPayment={setSelectedPayment}
+              amount={amount}
+              setAmount={setAmount}
+              selectedBank={selectedBank}
+              setSelectedBank={setSelectedBank}
+              customBank={customBank}
+              setCustomBank={setCustomBank}
+              accountName={accountName}
+              setAccountName={setAccountName}
+              accountNumber={accountNumber}
+              setAccountNumber={setAccountNumber}
+              handleProceedToQR={handleProceedToQR}
+            />
+          </TabsContent>
+
           {/* HISTORY TAB - UPDATED */}
           <TabsContent value="history">
             <TabsContent value="history">
               <TransactionHistoryContent
-                transactions={transactions}
-                isLoadingHistory={isLoadingHistory}
-                historyError={historyError}
-                cooldownRemaining={cooldownRemaining}
-                casinoLink={casino}
-                fetchTransactionHistory={fetchTransactionHistory}
                 casinoName={casino}
+                externalUserId={externalUserId}
               />
             </TabsContent>
           </TabsContent>

@@ -1,0 +1,59 @@
+model OptimumPayTransaction {
+  id                String   @id @default(cuid())
+  casinoGroup       CasinoGroup       @relation(fields: [casinoGroupId], references: [id])
+  casinoGroupId     String              // Link to CasinoGroup
+  userId            String              // Your internal user ID
+  userName          String              // Your internal user name
+  referenceUserId   String              // Gateway's user/ref ID
+
+  type              String              // "CASHIN" or "CASHOUT"
+
+  remarks           String?             // Any remarks you want to store
+
+  qbetStatus        String?             // Your internal status tracking
+
+  amount            Float               // Transaction amount
+  trans_id String?             // Set after gateway responds
+  trans_time String?           // Set after gateway responds
+  transaction_url   String?             // If gateway returns a payment URL (for CASHIN)
+  qr_image_url      String?             // If gateway returns a QR image URL (for CASHIN)
+  status            String              // "INITIATED", "PENDING", "COMPLETED", "REJECTED", "CANCELLED", etc
+  error_code       String?             // If any error occurs, store the code
+  error_msg    String?             // If any error occurs, store the message
+  sign       String?             // Signature from gateway for verification
+  platform       String              // "PC", "MOBILE_WEB"
+
+dPayCompletedAt   DateTime? // When DPay confirmed
+qbetDepositedAt   DateTime? // When deposit to QBet confirmed
+
+  rawRequest        Json                // The payload you sent to your droplet/gateway
+  rawGatewayResponse Json?              // The payment gateway's create response
+  rawWebhook        Json?               // Full webhook JSON from NotificationUrl callback
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId, status])
+@@index([userId, qbetStatus])
+@@index([status, qbetStatus])
+}
+
+model OptimumPayConfig{
+  id               String   @id @default(cuid())
+  casinoGroup       CasinoGroup       @relation(fields: [casinoGroupId], references: [id])
+  casinoGroupId     String          @unique    // Link to CasinoGroup
+
+  cashinGatewayEnabled   Boolean  @default(true)
+  history        OptimumPayConfigHistory[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model OptimumPayConfigHistory{
+  id               String   @id @default(cuid())
+  optimumPayConfig       OptimumPayConfig       @relation(fields: [optimumPayConfigId], references: [id])
+  optimumPayConfigId     String              // Link to OptimumPayConfig
+  changedByUserId  String              // User who made the change
+  changeSummary    String              // Summary of changes made
+  changedAt        DateTime @default(now())
+}
