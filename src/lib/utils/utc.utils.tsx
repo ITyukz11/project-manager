@@ -1,16 +1,31 @@
-export function toUtcStartOfDay(dateStr: string, tzOffsetHours: number) {
-  // Parse the date string as local date (ignore server TZ)
-  const [year, month, day] = dateStr.split("-").map(Number);
-  // month is 0-indexed
-  const localMidnight = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
-  // Shift forward by timezone offset to get UTC equivalent
-  localMidnight.setUTCHours(localMidnight.getUTCHours() - tzOffsetHours);
-  return localMidnight;
+// --- Convert local date string to UTC start/end of day ---
+export function toUtcStartOfDay(dateStr: string, tzOffsetHours = 8): Date {
+  const localDate = new Date(dateStr);
+  // Start at 12 AM local time, but extend by 8 hours back in UTC
+  return new Date(
+    Date.UTC(
+      localDate.getFullYear(),
+      localDate.getMonth(),
+      localDate.getDate(),
+      0, //- tzOffsetHours, // shift local midnight to UTC
+      0,
+      0,
+      0,
+    ),
+  );
 }
 
-export function toUtcEndOfDay(dateStr: string, tzOffsetHours: number) {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  const localEnd = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-  localEnd.setUTCHours(localEnd.getUTCHours() - tzOffsetHours);
-  return localEnd;
+export function toUtcEndOfDay(dateStr: string, tzOffsetHours = 8): Date {
+  const localDate = new Date(dateStr);
+  return new Date(
+    Date.UTC(
+      localDate.getFullYear(),
+      localDate.getMonth(),
+      localDate.getDate(),
+      23 - tzOffsetHours, // shift local 23:59:59 to UTC
+      59,
+      59,
+      999,
+    ),
+  );
 }
