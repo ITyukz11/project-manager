@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // Adjust import path as needed!
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { toUtcEndOfDay, toUtcStartOfDay } from "@/lib/utils/utc.utils";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -20,20 +21,18 @@ export async function GET(req: NextRequest) {
   let toDate: Date | undefined;
 
   if (fromParam) {
-    const f = new Date(fromParam);
-    fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0, 0, 0, 0);
+    // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+    fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
   }
 
   if (toParam) {
-    const t = new Date(toParam);
-    toDate = new Date(
-      t.getFullYear(),
-      t.getMonth(),
-      t.getDate(),
-      23,
-      59,
-      59,
-      999,
+    toDate = toUtcEndOfDay(toParam, 8);
+  }
+
+  if (!fromParam || !toParam) {
+    return NextResponse.json(
+      { error: "Both 'from' and 'to' query parameters are required." },
+      { status: 400 },
     );
   }
 
