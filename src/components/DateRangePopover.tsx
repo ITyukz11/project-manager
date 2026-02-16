@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, isSameDay, startOfMonth, subDays } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
+import { startOfMonth, subDays } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,44 +18,21 @@ interface DateRangePopoverProps {
   onChange?: (range: DateRange | undefined) => void;
 }
 
-// Create a Date at PH midnight (UTC+8)
-const phMidnight = (date?: Date) => {
-  if (!date) return undefined;
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = d.getMonth();
-  const day = d.getDate();
-
-  // PH midnight in UTC
-  return new Date(Date.UTC(year, month, day, 0 - 8, 0, 0, 0));
-};
-
 export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
   const [isSmall, setIsSmall] = useState(false);
 
   const today = new Date();
 
   // ---- PRESETS ----
-  const yesterday = {
-    from: phMidnight(subDays(today, 1)),
-    to: phMidnight(subDays(today, 1)),
-  };
-  const last7Days = {
-    from: phMidnight(subDays(today, 6)),
-    to: phMidnight(today),
-  };
-  const last30Days = {
-    from: phMidnight(subDays(today, 29)),
-    to: phMidnight(today),
-  };
-  const monthToDate = {
-    from: phMidnight(startOfMonth(today)),
-    to: phMidnight(today),
-  };
+  const yesterday = { from: subDays(today, 1), to: subDays(today, 1) };
+  const last7Days = { from: subDays(today, 6), to: today };
+  const last30Days = { from: subDays(today, 29), to: today };
+  const monthToDate = { from: startOfMonth(today), to: today };
 
   const [month, setMonth] = useState<Date>(today);
 
   // ---- TEMP DATERANGE STATE FOR CALENDAR SELECTION ----
+  // Used for "Apply Filter" workflow from calendar selection
   const [tempRange, setTempRange] = useState<DateRange | undefined>(undefined);
   const [showApply, setShowApply] = useState(false);
 
@@ -69,7 +47,7 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsSmall(window.innerWidth < 640);
+      setIsSmall(window.innerWidth < 640); // sm breakpoint ~640px
     };
     handleResize();
     window.addEventListener("resize", handleResize);
@@ -93,13 +71,9 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
 
   // Clear tempRange if value changes from outside (preset/prop changes/etc)
   useEffect(() => {
-    // defer reset to avoid cascading render warning
-    const id = setTimeout(() => {
-      setTempRange(undefined);
-      setShowApply(false);
-    }, 0);
-
-    return () => clearTimeout(id);
+    if (tempRange !== undefined) setTempRange(undefined);
+    if (showApply !== false) setShowApply(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   const onCalendarSelect = (range: DateRange | undefined) => {
@@ -111,14 +85,12 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
     if (range.from > today) return;
     if (range.to && range.to > today) return;
 
-    // Normalize to PH midnight
-    const normalizedRange = {
-      from: phMidnight(range.from),
-      to: range.to ? phMidnight(range.to) : phMidnight(range.from),
-    };
-
-    setTempRange(normalizedRange);
-    setShowApply(true); // always show apply for calendar
+    setTempRange(range);
+    setShowApply(
+      !!(range.from && range.to && !isSameDay(range.from, range.to)),
+    );
+    // Always show Apply; allow single day select + apply for simpler logic
+    setShowApply(true);
   };
 
   const handleApply = () => {
@@ -129,11 +101,7 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
   };
 
   const handlePreset = (range: DateRange) => {
-    const normalizedRange = {
-      from: phMidnight(range.from),
-      to: phMidnight(range.to ?? range.from),
-    };
-    onChange?.(normalizedRange);
+    onChange?.(range);
     setTempRange(undefined);
     setShowApply(false);
   };
@@ -171,12 +139,9 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
           <CardFooter className="flex flex-wrap gap-2 border-t px-4 w-full pt-4!">
             <Preset
               label="Today"
-              range={{ from: phMidnight(today), to: phMidnight(today) }}
+              range={{ from: today, to: today }}
               onSelect={handlePreset}
-              active={isActive({
-                from: phMidnight(today),
-                to: phMidnight(today),
-              })}
+              active={isActive({ from: today, to: today })}
             />
             <Preset
               label="Yesterday"
@@ -202,6 +167,7 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
               onSelect={handlePreset}
               active={isActive(monthToDate)}
             />
+            {/* Show "Apply Filter" only when user is selecting via calendar */}
             {showApply && (
               <div className="flex w-full pb-0">
                 <Button
