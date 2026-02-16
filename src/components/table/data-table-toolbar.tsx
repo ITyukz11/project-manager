@@ -84,7 +84,7 @@ export function DataTableToolbar<TData extends Record<string, unknown>>({
 
         {allowExportData && (
           <Button onClick={() => handleExportData()} variant="outline">
-            Download Data <Download className="w-5 h-5 shrink-0" />
+            Export <Download className="w-5 h-5 shrink-0" />
           </Button>
         )}
 
