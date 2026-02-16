@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, isSameDay, startOfMonth, subDays } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { CalendarIcon } from "lucide-react";
@@ -17,36 +17,39 @@ interface DateRangePopoverProps {
   onChange?: (range: DateRange | undefined) => void;
 }
 
-// Normalize a Date to PH midnight
-const normalizeToMidnight = (date?: Date) => {
+// Create a Date at PH midnight (UTC+8)
+const phMidnight = (date?: Date) => {
   if (!date) return undefined;
   const d = new Date(date);
-  d.setHours(0, 0, 0, 0); // PH local midnight
-  return d;
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const day = d.getDate();
+
+  // PH midnight in UTC
+  return new Date(Date.UTC(year, month, day, 0 - 8, 0, 0, 0));
 };
 
 export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
   const [isSmall, setIsSmall] = useState(false);
 
   const today = new Date();
-  const normalize = normalizeToMidnight;
 
   // ---- PRESETS ----
   const yesterday = {
-    from: normalize(subDays(today, 1)),
-    to: normalize(subDays(today, 1)),
+    from: phMidnight(subDays(today, 1)),
+    to: phMidnight(subDays(today, 1)),
   };
   const last7Days = {
-    from: normalize(subDays(today, 6)),
-    to: normalize(today),
+    from: phMidnight(subDays(today, 6)),
+    to: phMidnight(today),
   };
   const last30Days = {
-    from: normalize(subDays(today, 29)),
-    to: normalize(today),
+    from: phMidnight(subDays(today, 29)),
+    to: phMidnight(today),
   };
   const monthToDate = {
-    from: normalize(startOfMonth(today)),
-    to: normalize(today),
+    from: phMidnight(startOfMonth(today)),
+    to: phMidnight(today),
   };
 
   const [month, setMonth] = useState<Date>(today);
@@ -110,8 +113,8 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
 
     // Normalize to PH midnight
     const normalizedRange = {
-      from: normalize(range.from),
-      to: range.to ? normalize(range.to) : normalize(range.from),
+      from: phMidnight(range.from),
+      to: range.to ? phMidnight(range.to) : phMidnight(range.from),
     };
 
     setTempRange(normalizedRange);
@@ -127,8 +130,8 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
 
   const handlePreset = (range: DateRange) => {
     const normalizedRange = {
-      from: normalize(range.from),
-      to: normalize(range.to ?? range.from),
+      from: phMidnight(range.from),
+      to: phMidnight(range.to ?? range.from),
     };
     onChange?.(normalizedRange);
     setTempRange(undefined);
@@ -168,11 +171,11 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
           <CardFooter className="flex flex-wrap gap-2 border-t px-4 w-full pt-4!">
             <Preset
               label="Today"
-              range={{ from: normalize(today), to: normalize(today) }}
+              range={{ from: phMidnight(today), to: phMidnight(today) }}
               onSelect={handlePreset}
               active={isActive({
-                from: normalize(today),
-                to: normalize(today),
+                from: phMidnight(today),
+                to: phMidnight(today),
               })}
             />
             <Preset
