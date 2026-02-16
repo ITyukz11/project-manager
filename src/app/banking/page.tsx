@@ -29,7 +29,7 @@ export type PaymentMethod =
   | null;
 
 export const QR_CODE_MAP: Record<string, string> = {
-  QRPH: "/Sec-QRPH-qr.png",
+  // QRPH: "/Sec-QRPH-qr.png",
   "QRPH-RAN": "/payment-gateway/QR-Ran-Online.png",
   GoTyme: "/gotyme-qr1.png",
 };
