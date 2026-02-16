@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { pusherChannel } from "@/lib/pusher";
 import { usePusher } from "../../use-pusher";
 import { DateRange } from "react-day-picker";
-import { format } from "date-fns";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -21,9 +20,8 @@ export const useTransactionRequest = (
   const swrKey = useMemo(() => {
     const params = new URLSearchParams();
     if (casinoGroup) params.set("casinoGroup", casinoGroup);
-    if (dateRange?.from)
-      params.set("from", format(dateRange.from, "yyyy-MM-dd")); // local date only
-    if (dateRange?.to) params.set("to", format(dateRange.to, "yyyy-MM-dd")); // local date only
+    if (dateRange?.from) params.set("from", dateRange.from.toISOString());
+    if (dateRange?.to) params.set("to", dateRange.to.toISOString());
     return `/api/transaction-request?${params.toString()}`;
   }, [casinoGroup, dateRange]);
 
