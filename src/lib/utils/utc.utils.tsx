@@ -7,7 +7,7 @@ export function toUtcStartOfDay(dateStr: string, tzOffsetHours = 8): Date {
       localDate.getFullYear(),
       localDate.getMonth(),
       localDate.getDate(),
-      0, //- tzOffsetHours, // shift local midnight to UTC
+      0 - tzOffsetHours, // shift local midnight to UTC
       0,
       0,
       0,
