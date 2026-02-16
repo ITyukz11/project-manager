@@ -46,7 +46,7 @@ export function toUtcEndOfDay(dateStr: string, tzOffsetHours = 8): Date {
         localDate.getFullYear(),
         localDate.getMonth(),
         localDate.getDate(),
-        23 - tzOffsetHours,
+        23, //- tzOffsetHours,
         59,
         59,
         999,
