@@ -18,6 +18,9 @@ import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 import { QBETACCOUNTS } from "./data";
 import { useSession } from "next-auth/react";
 import { ADMINROLES } from "@/lib/types/role";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatPhpAmount } from "@/components/formatAmount";
+import { MetricsCards } from "@/components/MetricCards";
 
 const Page = () => {
   const params = useParams();
@@ -89,12 +92,68 @@ const Page = () => {
     }
   };
 
-  const totalAmountCashin = useMemo(() => {
+  const totalAmountCompleted = useMemo(() => {
     if (!filteredTransactionLogs) return 0;
     return filteredTransactionLogs
       .filter((tx) => tx.status === "COMPLETED")
       .reduce((sum, tx) => sum + tx.amount, 0);
   }, [filteredTransactionLogs]);
+
+  const totalAmountPending = useMemo(() => {
+    if (!filteredTransactionLogs) return 0;
+    return filteredTransactionLogs
+      .filter((tx) => tx.status === "PENDING")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [filteredTransactionLogs]);
+
+  const totalAmountRejected = useMemo(() => {
+    if (!filteredTransactionLogs) return 0;
+    return filteredTransactionLogs
+      .filter((tx) => tx.status === "REJECTED")
+      .reduce((sum, tx) => sum + tx.amount, 0);
+  }, [filteredTransactionLogs]);
+
+  const metrics = useMemo(
+    () => [
+      {
+        title: "Total Transactions",
+        amount: filteredTransactionLogs.length,
+        count: 0, // transactions don't need count
+        icon: <ArrowLeftRight className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: "bg-purple-500 dark:bg-purple-600",
+      },
+      {
+        title: "Total Completed Amount",
+        amount: totalAmountCompleted,
+        count: filteredTransactionLogs.filter((t) => t.status === "COMPLETED")
+          .length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("COMPLETED")}`,
+      },
+      {
+        title: "Total Pending Amount",
+        amount: totalAmountPending,
+        count: filteredTransactionLogs.filter((t) => t.status === "PENDING")
+          .length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("PENDING")}`,
+      },
+      {
+        title: "Total Rejected Amount",
+        amount: totalAmountRejected,
+        count: filteredTransactionLogs.filter((t) => t.status === "REJECTED")
+          .length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("REJECTED")}`,
+      },
+    ],
+    [
+      filteredTransactionLogs,
+      totalAmountCompleted,
+      totalAmountPending,
+      totalAmountRejected,
+    ],
+  );
 
   return (
     <div className="space-y-2">
@@ -134,47 +193,26 @@ const Page = () => {
               {status}: {statusCounts[status] || 0}
             </Badge>
           ))}
+          {session?.user?.role === ADMINROLES.SUPERADMIN ||
+            (session?.user?.role === ADMINROLES.ADMIN && (
+              <div className="flex gap-2 mx-1">
+                <Badge
+                  onClick={() => setFilterEjticon((v) => !v)}
+                  className={`cursor-pointer text-xs ${
+                    filterEjticon
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 dark:bg-gray-700"
+                  }`}
+                >
+                  {filterEjticon ? "Showing ejticon11" : "Filter ejticon11"}
+                </Badge>
+              </div>
+            ))}
         </div>
-        <div className="flex flex-wrap gap-2 mx-1">
-          <Badge
-            className={`text-xs bg-purple-200 dark:bg-purple-800 text-white border border-purple-300 dark:border-purple-700`}
-          >
-            <ArrowLeftRight /> Transactions: {filteredTransactionLogs.length}
-          </Badge>
-          <Badge
-            className={`text-xs bg-yellow-200 dark:bg-yellow-800 text-white border border-yellow-300 dark:border-yellow-700`}
-          >
-            <Users />
-            Users:{" "}
-            {
-              new Set(filteredTransactionLogs.map((tx) => tx.referenceUserId))
-                .size
-            }
-          </Badge>
-
-          <Badge
-            className={`text-xs bg-green-200 dark:bg-green-800 text-white border border-green-300 dark:border-green-700`}
-          >
-            <Banknote /> Total Completed Amount:{" "}
-            {totalAmountCashin.toLocaleString()}
-          </Badge>
+        <div className="flex flex-wrap gap-2">
+          <MetricsCards metrics={metrics} isLoading={isLoading} />
         </div>
       </div>
-      {session?.user?.role === ADMINROLES.SUPERADMIN ||
-        (session?.user?.role === ADMINROLES.ADMIN && (
-          <div className="flex gap-2 mx-1">
-            <Badge
-              onClick={() => setFilterEjticon((v) => !v)}
-              className={`cursor-pointer text-xs ${
-                filterEjticon
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-700"
-              }`}
-            >
-              {filterEjticon ? "Showing ejticon11" : "Filter ejticon11"}
-            </Badge>
-          </div>
-        ))}
 
       {/* Table */}
       {isLoading ? (

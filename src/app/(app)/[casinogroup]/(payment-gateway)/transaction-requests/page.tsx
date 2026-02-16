@@ -19,7 +19,7 @@ import { Title } from "@/components/Title";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { useBalance } from "@/lib/hooks/swr/qbet88/useBalance";
-import { formatAmount, formatPhpAmount } from "@/components/formatAmount";
+import { formatPhpAmount } from "@/components/formatAmount";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Tooltip,
@@ -27,6 +27,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DateRange } from "react-day-picker";
+import { MetricsCards } from "@/components/MetricCards";
 
 export default function Page() {
   const params = useParams();
@@ -153,25 +154,42 @@ export default function Page() {
   const metrics = useMemo(
     () => [
       {
-        title: "Total Completed Amount",
+        title: "Total Transactions",
+        amount: transactionRequests.length,
+        count: 0, // transactions don't need count
+        icon: <ArrowLeftRight className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: "bg-purple-500 dark:bg-purple-600",
+      },
+      {
+        title: "Total Approved Amount",
         amount: totalAmountApproved,
+        count: transactionRequests.filter((t) => t.status === "APPROVED")
+          .length,
         icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
-        bgColor: "bg-green-500",
+        bgColor: `${getStatusColorClass("APPROVED")}`,
       },
       {
         title: "Total Pending Amount",
         amount: totalAmountPending,
+        count: transactionRequests.filter((t) => t.status === "PENDING").length,
         icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
-        bgColor: "bg-yellow-500",
+        bgColor: `${getStatusColorClass("PENDING")}`,
       },
       {
         title: "Total Rejected Amount",
         amount: totalAmountRejected,
+        count: transactionRequests.filter((t) => t.status === "REJECTED")
+          .length,
         icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
-        bgColor: "bg-red-500",
+        bgColor: `${getStatusColorClass("REJECTED")}`,
       },
     ],
-    [totalAmountApproved, totalAmountPending, totalAmountRejected],
+    [
+      transactionRequests,
+      totalAmountApproved,
+      totalAmountPending,
+      totalAmountRejected,
+    ],
   );
 
   return (
@@ -261,29 +279,6 @@ export default function Page() {
           {/* Status Metrics */}
           <div className="flex flex-col flex-wrap gap-2 mx-1 mt-1">
             <div className="flex flex-wrap gap-2 mx-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {metrics.map((m) => (
-                  <Card key={m.title} className="overflow-hidden ">
-                    <CardContent className="flex items-center gap-4">
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-lg ${m.bgColor}`}
-                      >
-                        {m.icon}
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          {m.title}
-                        </p>
-                        <p className="text-lg font-semibold font-mono">
-                          {formatAmount(m.amount)}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 mx-1">
               {["CASHIN", "CASHOUT"].map((type) => (
                 <Badge
                   key={type}
@@ -301,6 +296,7 @@ export default function Page() {
                 </Badge>
               ))}
             </div>
+            <MetricsCards metrics={metrics} isLoading={isLoading} />
           </div>
           {/* Table */}
           {isLoading ? (

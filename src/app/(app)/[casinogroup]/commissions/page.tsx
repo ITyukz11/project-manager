@@ -11,11 +11,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TriangleAlert } from "lucide-react";
+import { ArrowLeftRight, Banknote, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { DateRange } from "react-day-picker";
 import { CommissionDetailsDialog } from "./(components)/CommissionDetailsDialog";
+import { MetricsCards } from "@/components/MetricCards";
 
 const Page = () => {
   const params = useParams();
@@ -90,6 +91,84 @@ const Page = () => {
 
   const STATUS_ORDER = ["PENDING", "PARTIAL", "COMPLETED", "REJECTED"];
 
+  const totalAmountApproved = useMemo(
+    () =>
+      commissions
+        .filter((t) => t.status === "APPROVED")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [commissions],
+  );
+
+  const totalAmountClaimed = useMemo(
+    () =>
+      commissions
+        .filter((t) => t.status === "CLAIMED")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [commissions],
+  );
+
+  const totalAmountPending = useMemo(
+    () =>
+      commissions
+        .filter((t) => t.status === "PENDING")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [commissions],
+  );
+
+  const totalAmountRejected = useMemo(
+    () =>
+      commissions
+        .filter((t) => t.status === "REJECTED")
+        .reduce((sum, t) => sum + t.amount, 0),
+    [commissions],
+  );
+  const metrics = useMemo(
+    () => [
+      {
+        title: "Total Transactions",
+        amount: commissions.length,
+        count: 0, // transactions don't need count
+        icon: <ArrowLeftRight className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: "bg-sky-500 dark:bg-sky-600",
+      },
+      {
+        title: "Total Approved Amount",
+        amount: totalAmountApproved,
+        count: commissions.filter((t) => t.status === "APPROVED").length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("APPROVED")}`,
+      },
+      {
+        title: "Total Claimed Amount",
+        amount: totalAmountClaimed,
+        count: commissions.filter((t) => t.status === "CLAIMED").length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("CLAIMED")}`,
+      },
+      {
+        title: "Total Pending Amount",
+        amount: totalAmountPending,
+        count: commissions.filter((t) => t.status === "PENDING").length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("PENDING")}`,
+      },
+      {
+        title: "Total Rejected Amount",
+        amount: totalAmountRejected,
+        count: commissions.filter((t) => t.status === "REJECTED").length,
+        icon: <Banknote className="shrink-0 h-6 w-6 text-white" />,
+        bgColor: `${getStatusColorClass("REJECTED")}`,
+      },
+    ],
+    [
+      commissions,
+      totalAmountApproved,
+      totalAmountClaimed,
+      totalAmountPending,
+      totalAmountRejected,
+    ],
+  );
+
   return (
     <div className="space-y-2">
       {/* Error Tooltip */}
@@ -110,15 +189,18 @@ const Page = () => {
       </div>
 
       {/* Status Metrics */}
-      <div className="flex flex-wrap gap-2 mx-1">
-        {STATUS_ORDER.map((status) => (
-          <Badge
-            key={status}
-            className={`text-xs ${getStatusColorClass(status)}`}
-          >
-            {status}: {statusCounts[status] || 0}
-          </Badge>
-        ))}
+      <div className="flex flex-col flex-wrap gap-2 mx-1 mt-1">
+        <div className="flex flex-wrap gap-2 mx-1">
+          {STATUS_ORDER.map((status) => (
+            <Badge
+              key={status}
+              className={`text-xs ${getStatusColorClass(status)}`}
+            >
+              {status}: {statusCounts[status] || 0}
+            </Badge>
+          ))}
+        </div>
+        <MetricsCards metrics={metrics} isLoading={isLoading} />
       </div>
 
       {/* Table */}

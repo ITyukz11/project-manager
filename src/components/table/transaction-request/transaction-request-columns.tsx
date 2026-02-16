@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { CasinoGroup, TransactionRequest, User } from "@prisma/client";
 import { TransactionRequestActionMenu } from "./TransactionRequestAction";
 import { formatAmountWithDecimals } from "@/components/formatAmount";
+import { formatDate } from "date-fns";
 
 import {
   getStatusColorClass,
@@ -144,19 +145,13 @@ export const transactionRequestColumns: ColumnDef<
     ),
     cell: ({ row }) => {
       const createdAt = new Date(row.getValue("createdAt"));
-      const formattedDate = createdAt.toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-      });
-      const formattedTime = createdAt.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+
       return (
         <div className="flex flex-col">
-          <span className="text-sm">{formattedTime}</span>
-          <span className="text-xs text-muted-foreground">{formattedDate}</span>
+          <span className="text-sm">{formatDate(createdAt, "hh:mm a")}</span>
+          <span className="text-xs text-muted-foreground">
+            {formatDate(createdAt, "MM/dd/yyyy")}
+          </span>
         </div>
       );
     },
