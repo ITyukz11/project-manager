@@ -27,6 +27,7 @@ import {
   ImageIcon,
   Trash2,
   Coins,
+  ArrowRight,
 } from "lucide-react";
 import { formatDate } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -41,6 +42,7 @@ import { useParams } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
+import { VTOSummaryDialog } from "./VTOSummaryDialog";
 
 interface CommissionDetailsDialogProps {
   open: boolean;
@@ -167,6 +169,7 @@ export function CommissionDetailsDialog({
 }: CommissionDetailsDialogProps) {
   const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [openVTOSummary, setOpenVTOSummary] = useState(false);
   const [actionType, setActionType] = useState<"CLAIMED" | "REJECTED" | null>(
     null,
   );
@@ -485,7 +488,20 @@ export function CommissionDetailsDialog({
                     </div>
                   </div>
                 </div>
-
+                <Button
+                  size="sm"
+                  className="w-full"
+                  variant={"secondary"}
+                  onClick={() => setOpenVTOSummary(true)}
+                >
+                  View VTO Summary <ArrowRight className="shrink-0" />
+                </Button>
+                <VTOSummaryDialog
+                  open={openVTOSummary}
+                  onClose={() => setOpenVTOSummary(false)}
+                  userName={commission?.userName}
+                  userRole={commission?.role}
+                />
                 {/* Details */}
                 {commission?.details && (
                   <>

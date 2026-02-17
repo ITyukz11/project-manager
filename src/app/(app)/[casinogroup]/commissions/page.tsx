@@ -221,6 +221,7 @@ const Page = () => {
             setOpen(true);
           }}
           allowDateRange
+          allowExportData
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
         />
