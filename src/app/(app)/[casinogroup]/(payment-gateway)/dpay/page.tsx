@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import {
   Tooltip,
@@ -19,7 +19,6 @@ import { useSession } from "next-auth/react";
 import { ADMINROLES } from "@/lib/types/role";
 import { MetricsCards } from "@/components/MetricCards";
 import { DateRange } from "react-day-picker";
-import { useRouter } from "next/router";
 import { endOfDay, parseISO, startOfDay } from "date-fns";
 
 const Page = () => {
