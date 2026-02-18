@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,13 +28,11 @@ import {
 } from "@/components/ui/tooltip";
 import { DateRange } from "react-day-picker";
 import { MetricsCards } from "@/components/MetricCards";
-import { useRouter } from "next/router";
 import { endOfDay, parseISO, startOfDay } from "date-fns";
 
 export default function Page() {
   const params = useParams();
   const casinoGroup = params.casinogroup;
-  const STORAGE_KEY = `gateway-date-range:${casinoGroup}`;
 
   const [viewRow, setViewRow] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
