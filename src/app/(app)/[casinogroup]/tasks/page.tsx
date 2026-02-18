@@ -1,7 +1,7 @@
 "use client";
 
 import { DataTable } from "@/components/table/data-table";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Tooltip,
   TooltipContent,
@@ -14,7 +14,8 @@ import { taskColumn } from "@/components/table/task/taskColumns";
 import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { useMemo } from "react";
-import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
+import { DateRange } from "react-day-picker";
+import { endOfDay, parseISO, startOfDay } from "date-fns";
 
 // Adjust the order and labels as needed
 const STATUS_ORDER = ["PENDING", "COMPLETED"];
@@ -22,14 +23,38 @@ const STATUS_ORDER = ["PENDING", "COMPLETED"];
 const Page = () => {
   const params = useParams();
   const casinoGroup = params.casinogroup as string;
+
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  /**
-   * 🔑 Per-casinoGroup storage key
-   */
-  const STORAGE_KEY = `tasks-date-range:${casinoGroup}`;
+  // ✅ Parse dateRange from URL params
+  const dateRange: DateRange = useMemo(() => {
+    const today = new Date();
+    const fromParam = searchParams.get(`from-${casinoGroup}`);
+    const toParam = searchParams.get(`to-${casinoGroup}`);
 
-  const { dateRange, setDateRange } = useStoredDateRange(STORAGE_KEY);
+    let from: Date;
+    let to: Date;
+
+    try {
+      from = fromParam ? startOfDay(parseISO(fromParam)) : startOfDay(today);
+      to = toParam ? endOfDay(parseISO(toParam)) : endOfDay(today);
+    } catch {
+      from = startOfDay(today);
+      to = endOfDay(today);
+    }
+
+    return { from, to };
+  }, [searchParams, casinoGroup]);
+
+  // ✅ Update URL when dateRange changes
+  const setDateRange = (range: DateRange | undefined) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (range?.from)
+      params.set(`from-${casinoGroup}`, range.from.toISOString());
+    if (range?.to) params.set(`to-${casinoGroup}`, range.to.toISOString());
+    router.replace(`?${params.toString()}`);
+  };
   /**
    * ✅ Fetch tasks using dateRange
    */

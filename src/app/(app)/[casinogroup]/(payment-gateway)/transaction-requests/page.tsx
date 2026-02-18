@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,55 +27,47 @@ import {
 } from "@/components/ui/tooltip";
 import { DateRange } from "react-day-picker";
 import { MetricsCards } from "@/components/MetricCards";
+import { endOfDay, parseISO, startOfDay } from "date-fns";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 export default function Page() {
   const params = useParams();
   const casinoGroup = params.casinogroup;
-  const STORAGE_KEY = `gateway-date-range:${casinoGroup}`;
 
   const [viewRow, setViewRow] = useState(false);
   const [transactionId, setTransactionId] = useState<string | null>(null);
 
-  /**
-   * ✅ Lazy initialize dateRange from localStorage
-   */
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ✅ Parse dateRange from URL params
+  const dateRange: DateRange = useMemo(() => {
     const today = new Date();
+    const fromParam = searchParams.get(`from-${casinoGroup}`);
+    const toParam = searchParams.get(`to-${casinoGroup}`);
 
-    if (typeof window === "undefined") {
-      return { from: today, to: today };
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return { from: today, to: today };
-    }
+    let from: Date;
+    let to: Date;
 
     try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
+      from = fromParam ? startOfDay(parseISO(fromParam)) : startOfDay(today);
+      to = toParam ? endOfDay(parseISO(toParam)) : endOfDay(today);
     } catch {
-      return { from: today, to: today };
+      from = startOfDay(today);
+      to = endOfDay(today);
     }
-  });
 
-  /**
-   * ✅ Persist dateRange to localStorage
-   */
-  useEffect(() => {
-    if (!dateRange) return;
+    return { from, to };
+  }, [searchParams, casinoGroup]);
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        from: dateRange.from?.toISOString(),
-        to: dateRange.to?.toISOString(),
-      }),
-    );
-  }, [dateRange, STORAGE_KEY]);
+  // ✅ Update URL when dateRange changes
+  const setDateRange = (range: DateRange | undefined) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (range?.from)
+      params.set(`from-${casinoGroup}`, range.from.toISOString());
+    if (range?.to) params.set(`to-${casinoGroup}`, range.to.toISOString());
+    router.replace(`?${params.toString()}`);
+  };
 
   const { transactionRequests, isLoading, error, lastUpdate, refetch } =
     useTransactionRequest(casinoGroup?.toLocaleString() || "", dateRange);

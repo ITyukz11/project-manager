@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, isSameDay } from "date-fns";
+import { endOfDay, format, isSameDay, startOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { startOfMonth, subDays } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -21,15 +21,34 @@ interface DateRangePopoverProps {
 export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
   const [isSmall, setIsSmall] = useState(false);
 
-  const today = new Date();
+  const todayRaw = new Date();
 
-  // ---- PRESETS ----
-  const yesterday = { from: subDays(today, 1), to: subDays(today, 1) };
-  const last7Days = { from: subDays(today, 6), to: today };
-  const last30Days = { from: subDays(today, 29), to: today };
-  const monthToDate = { from: startOfMonth(today), to: today };
+  const todayRange = {
+    from: startOfDay(todayRaw),
+    to: endOfDay(todayRaw),
+  };
 
-  const [month, setMonth] = useState<Date>(today);
+  const yesterday = {
+    from: startOfDay(subDays(todayRaw, 1)),
+    to: endOfDay(subDays(todayRaw, 1)),
+  };
+
+  const last7Days = {
+    from: startOfDay(subDays(todayRaw, 6)),
+    to: endOfDay(todayRaw),
+  };
+
+  const last30Days = {
+    from: startOfDay(subDays(todayRaw, 29)),
+    to: endOfDay(todayRaw),
+  };
+
+  const monthToDate = {
+    from: startOfDay(startOfMonth(todayRaw)),
+    to: endOfDay(todayRaw),
+  };
+
+  const [month, setMonth] = useState<Date>(todayRaw);
 
   // ---- TEMP DATERANGE STATE FOR CALENDAR SELECTION ----
   // Used for "Apply Filter" workflow from calendar selection
@@ -82,8 +101,8 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
       setShowApply(false);
       return;
     }
-    if (range.from > today) return;
-    if (range.to && range.to > today) return;
+    if (range.from > todayRaw) return;
+    if (range.to && range.to > todayRaw) return;
 
     setTempRange(range);
     setShowApply(
@@ -95,13 +114,20 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
 
   const handleApply = () => {
     if (tempRange && tempRange.from) {
-      onChange?.(tempRange);
+      onChange?.({
+        from: startOfDay(tempRange.from),
+        to: endOfDay(tempRange.to ?? tempRange.from),
+      });
       setShowApply(false);
     }
   };
 
   const handlePreset = (range: DateRange) => {
-    onChange?.(range);
+    onChange?.({
+      from: startOfDay(range.from!),
+      to: endOfDay(range.to ?? range.from!),
+    });
+
     setTempRange(undefined);
     setShowApply(false);
   };
@@ -130,7 +156,7 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
               selected={tempRange ?? value}
               month={month}
               onMonthChange={setMonth}
-              disabled={{ after: today }}
+              disabled={{ after: todayRaw }}
               onSelect={onCalendarSelect}
               className="w-full bg-transparent p-0"
             />
@@ -139,9 +165,9 @@ export function DateRangePopover({ value, onChange }: DateRangePopoverProps) {
           <CardFooter className="flex flex-wrap gap-2 border-t px-4 w-full pt-4!">
             <Preset
               label="Today"
-              range={{ from: today, to: today }}
+              range={todayRange}
               onSelect={handlePreset}
-              active={isActive({ from: today, to: today })}
+              active={isActive(todayRange)}
             />
             <Preset
               label="Yesterday"

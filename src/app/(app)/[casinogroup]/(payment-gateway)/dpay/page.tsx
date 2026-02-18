@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useState, useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import {
   Tooltip,
@@ -14,12 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { getStatusColorClass } from "@/components/getStatusColorClass";
 import { useDPayTransactionLogs } from "@/lib/hooks/swr/dpay/useDPayTransactionLogs";
 import { getDpayTransactionColumns } from "./dPayTransactionColumns";
-import { useStoredDateRange } from "@/lib/hooks/useStoredDateRange";
 import { QBETACCOUNTS } from "./data";
 import { useSession } from "next-auth/react";
 import { ADMINROLES } from "@/lib/types/role";
 import { MetricsCards } from "@/components/MetricCards";
 import { DateRange } from "react-day-picker";
+import { endOfDay, parseISO, startOfDay } from "date-fns";
 
 const Page = () => {
   const params = useParams();
@@ -28,48 +28,37 @@ const Page = () => {
 
   const [filterEjticon, setFilterEjticon] = useState(false);
   const { data: session } = useSession();
-  /**
-   * 🔑 Per-casinoGroup storage key
-   */
-  const STORAGE_KEY = `dpay-date-range:${casinoGroup}`;
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+  // ✅ Parse dateRange from URL params
+  const dateRange: DateRange = useMemo(() => {
     const today = new Date();
+    const fromParam = searchParams.get(`from-${casinoGroup}`);
+    const toParam = searchParams.get(`to-${casinoGroup}`);
 
-    if (typeof window === "undefined") {
-      return { from: today, to: today };
-    }
-
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      return { from: today, to: today };
-    }
+    let from: Date;
+    let to: Date;
 
     try {
-      const parsed = JSON.parse(stored);
-      return {
-        from: parsed.from ? new Date(parsed.from) : today,
-        to: parsed.to ? new Date(parsed.to) : today,
-      };
+      from = fromParam ? startOfDay(parseISO(fromParam)) : startOfDay(today);
+      to = toParam ? endOfDay(parseISO(toParam)) : endOfDay(today);
     } catch {
-      return { from: today, to: today };
+      from = startOfDay(today);
+      to = endOfDay(today);
     }
-  });
 
-  /**
-   * ✅ Persist dateRange to localStorage
-   */
-  useEffect(() => {
-    if (!dateRange) return;
+    return { from, to };
+  }, [searchParams, casinoGroup]);
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        from: dateRange.from?.toISOString(),
-        to: dateRange.to?.toISOString(),
-      }),
-    );
-  }, [dateRange, STORAGE_KEY]);
+  // ✅ Update URL when dateRange changes
+  const setDateRange = (range: DateRange | undefined) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (range?.from)
+      params.set(`from-${casinoGroup}`, range.from.toISOString());
+    if (range?.to) params.set(`to-${casinoGroup}`, range.to.toISOString());
+    router.replace(`?${params.toString()}`);
+  };
 
   /**
    * ✅ Fetch cashins using dateRange
