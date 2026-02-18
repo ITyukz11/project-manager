@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/table/data-table";
 import {
   Tooltip,
@@ -18,6 +18,8 @@ import { ADMINROLES } from "@/lib/types/role";
 import { QBETACCOUNTS } from "../dpay/data";
 import { useOpayTransactionLogs } from "@/lib/hooks/swr/optimum-pay/useOPayTransactionLogs";
 import { getOPayTransactionColumns } from "./oPayTransactionColumns";
+import { endOfDay, parseISO, startOfDay } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 const Page = () => {
   const params = useParams();
@@ -26,12 +28,38 @@ const Page = () => {
 
   const [filterEjticon, setFilterEjticon] = useState(false);
   const { data: session } = useSession();
-  /**
-   * 🔑 Per-casinoGroup storage key
-   */
-  const STORAGE_KEY = `opay-date-range:${casinoGroup}`;
 
-  const { dateRange, setDateRange } = useStoredDateRange(STORAGE_KEY);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // ✅ Parse dateRange from URL params
+  const dateRange: DateRange = useMemo(() => {
+    const today = new Date();
+    const fromParam = searchParams.get(`from-${casinoGroup}`);
+    const toParam = searchParams.get(`to-${casinoGroup}`);
+
+    let from: Date;
+    let to: Date;
+
+    try {
+      from = fromParam ? startOfDay(parseISO(fromParam)) : startOfDay(today);
+      to = toParam ? endOfDay(parseISO(toParam)) : endOfDay(today);
+    } catch {
+      from = startOfDay(today);
+      to = endOfDay(today);
+    }
+
+    return { from, to };
+  }, [searchParams, casinoGroup]);
+
+  // ✅ Update URL when dateRange changes
+  const setDateRange = (range: DateRange | undefined) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (range?.from)
+      params.set(`from-${casinoGroup}`, range.from.toISOString());
+    if (range?.to) params.set(`to-${casinoGroup}`, range.to.toISOString());
+    router.replace(`?${params.toString()}`);
+  };
 
   /**
    * ✅ Fetch cashins using dateRange

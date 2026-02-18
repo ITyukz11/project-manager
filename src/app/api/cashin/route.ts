@@ -29,18 +29,18 @@ export async function GET(req: Request) {
     const fromParam = url.searchParams.get("from");
     const toParam = url.searchParams.get("to");
 
-    // Convert fromParam and toParam to start/end of day if only date is given
-    let fromDate: Date | undefined;
-    let toDate: Date | undefined;
+    // // Convert fromParam and toParam to start/end of day if only date is given
+    // let fromDate: Date | undefined;
+    // let toDate: Date | undefined;
 
-    if (fromParam) {
-      // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
-      fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
-    }
+    // if (fromParam) {
+    //   // old: fromDate = new Date(f.getFullYear(), f.getMonth(), f.getDate(), 0,0,0,0)
+    //   fromDate = toUtcStartOfDay(fromParam, 8); // 8 = UTC+8
+    // }
 
-    if (toParam) {
-      toDate = toUtcEndOfDay(toParam, 8);
-    }
+    // if (toParam) {
+    //   toDate = toUtcEndOfDay(toParam, 8);
+    // }
 
     if (!fromParam || !toParam) {
       return NextResponse.json(
@@ -64,11 +64,11 @@ export async function GET(req: Request) {
         {
           // for other statuses, filter by date range if set
           NOT: { status: { in: ["PENDING", "PARTIAL", "ACCOMMODATING"] } },
-          ...(fromDate || toDate
+          ...(fromParam || toParam
             ? {
                 createdAt: {
-                  ...(fromDate && { gte: fromDate }),
-                  ...(toDate && { lte: toDate }),
+                  ...(fromParam && { gte: fromParam }),
+                  ...(toParam && { lte: toParam }),
                 },
               }
             : {}),
