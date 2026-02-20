@@ -93,13 +93,13 @@ export function CashInContent({
                     />
 
                     {/* Disabled Overlay */}
-                    {isRan && (
+                    {/* {isRan && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
                         <span className="text-xs sm:text-sm text-white font-semibold">
                           Maintenance
                         </span>
                       </div>
-                    )}
+                    )} */}
 
                     {method.id === "Chat-Based" && (
                       <span className="absolute top-2 right-15 flex h-2 w-2">
@@ -127,7 +127,7 @@ export function CashInContent({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="text-base sm:text-lg h-12"
-                disabled={isRan}
+                disabled={!selectedPayment}
               />
 
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -137,7 +137,7 @@ export function CashInContent({
                     variant="outline"
                     onClick={() => setAmount(amt.toString())}
                     className="h-10 sm:h-12 text-sm sm:text-base"
-                    disabled={isRan}
+                    disabled={!selectedPayment}
                   >
                     ₱{amt}
                   </Button>
@@ -157,7 +157,7 @@ export function CashInContent({
                 value={referrer}
                 onChange={(e) => setReferrer?.(e.target.value)}
                 className="text-base sm:text-lg h-12"
-                disabled={isRan}
+                disabled={!selectedPayment}
               />
             </div>
           </div>
@@ -166,10 +166,7 @@ export function CashInContent({
           <Button
             onClick={handleProceedToQR}
             disabled={
-              isRan ||
-              !selectedPayment ||
-              amount.trim() === "" ||
-              chatBasedLoading
+              !selectedPayment || amount.trim() === "" || chatBasedLoading
             }
             className="w-full h-12 sm:h-14 text-base sm:text-lg bg-primary hover:bg-primary/90"
           >
