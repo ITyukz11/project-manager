@@ -87,19 +87,6 @@ export function getVtoColumns(): ColumnDef<Vto>[] {
     },
 
     {
-      accessorKey: "type",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Event Type" />
-      ),
-    },
-    {
-      accessorKey: "commissionType",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Commission" />
-      ),
-    },
-
-    {
       accessorKey: "points",
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="VTO" />
@@ -112,13 +99,7 @@ export function getVtoColumns(): ColumnDef<Vto>[] {
         </span>
       ),
     },
-    {
-      accessorKey: "totalBet",
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Total Bet" />
-      ),
-      cell: ({ getValue }) => getValue() ?? "-",
-    },
+
     {
       accessorKey: "totalWin",
       header: ({ column }) => (
