@@ -42,13 +42,15 @@ export function TransactionHistoryContent({
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Transaction History</h3>
           <div className="flex flex-row gap-2 flex-wrap">
-            <Link href={`https://www.${casinoLink}`}>
-              <Button variant={"outline"}>
-                <MoveUpLeft className="h-4 w-4" />
-                Go back{" "}
-                <span className="sm:block hidden -ml-1">to {casinoName}</span>
-              </Button>
-            </Link>
+            {casinoLink !== "ran" && (
+              <Link href={`https://www.${casinoLink}`}>
+                <Button variant={"outline"}>
+                  <MoveUpLeft className="h-4 w-4" />
+                  Go back{" "}
+                  <span className="sm:block hidden -ml-1">to {casinoName}</span>
+                </Button>
+              </Link>
+            )}
 
             <Button
               onClick={fetchTransactionHistory}
@@ -186,7 +188,7 @@ export function TransactionHistoryContent({
                       <span className="text-xs">
                         {formatDate(
                           new Date(transaction.createdAt),
-                          "MMM dd, yyyy HH:mm"
+                          "MMM dd, yyyy HH:mm",
                         )}
                       </span>
                     </div>
