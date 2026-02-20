@@ -176,5 +176,29 @@ export function getVtoColumns(): ColumnDef<Vto>[] {
           </span>
         ),
     },
+    {
+      id: "Date/Time",
+      accessorKey: "updatedAt",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Date/Time" />
+      ),
+      cell: ({ row }) =>
+        !row.original.updatedAt ? (
+          "-"
+        ) : (
+          <div className="flex flex-col">
+            <span className="font-mono">
+              {row.original.claimed
+                ? format(new Date(row.original.updatedAt), "hh:mm a")
+                : null}
+            </span>
+            <span className="text-muted-foreground">
+              {row.original.claimed
+                ? format(new Date(row.original.updatedAt), "MMM. dd, yyyy")
+                : "Unclaimed"}
+            </span>
+          </div>
+        ),
+    },
   ];
 }

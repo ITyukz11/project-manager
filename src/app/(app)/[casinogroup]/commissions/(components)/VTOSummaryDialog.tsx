@@ -10,21 +10,25 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
 import { Loader2, MoveRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { roleStyles, roleStylesText } from "./getBadgeColor";
 import { DataTable } from "@/components/table/data-table";
 import { getVtoColumns } from "./vto-columns";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useVtoListById } from "./useVtoListById";
+import { useCommissionByUserName } from "./useVTOWithdrawHistoryByUsername";
+import { withdrawHistoryColumns } from "./commission-columns";
+// 🔜 create this hook later
+// import { useWithdrawalListById } from "./useWithdrawalListById";
 
 type VTOSummaryDialogProps = {
   userName: string | null;
   userRole: string | null;
   open: boolean;
   onClose: () => void;
-  admin?: boolean;
 };
 
 export function VTOSummaryDialog({
@@ -33,16 +37,13 @@ export function VTOSummaryDialog({
   userName,
   userRole,
 }: VTOSummaryDialogProps) {
-  // Use the SWR hook
-
-  const { vtos, isLoading } = useVtoListById(
+  const { vtos, isLoading: isVtoLoading } = useVtoListById(
     userName,
-    open, // enable only when userName exists
-    false, // false = show ALL (claimed + unclaimed)
+    open,
+    false,
   );
-
-  console.log("VTOSummaryDialog vtos:", vtos);
-  console.log("VTOSummaryDialog userName:", userName);
+  const { commissions, isLoading: isCommissionLoading } =
+    useCommissionByUserName(userName, open);
 
   const parentChain = React.useMemo(
     () => [...(vtos[0]?.parentChain ?? [])].reverse(),
@@ -54,103 +55,97 @@ export function VTOSummaryDialog({
       <DialogContent
         className="
           w-full
-          max-w-5xl
-          sm:max-w-2xl
           px-0
           sm:px-6
           sm:rounded-lg
-          md:max-w-4xl
-          lg:max-w-5xl
+          sm:max-w-[95vw]
         "
       >
         <DialogHeader>
           <DialogTitle>VTO Summary</DialogTitle>
-          <div className="flex flex-row gap-2">
-            <div className="flex flex-row justify-start gap-2 flex-wrap">
-              {parentChain.map((parent) => (
-                <div
-                  key={parent.id}
-                  className="flex flex-row justify-start items-start"
-                >
-                  <div
-                    key={parent.id}
-                    className="flex flex-col justify-start items-start"
-                  >
-                    {parent.userName && (
-                      <span className={roleStylesText[parent.role]}>
-                        {parent.userName}
-                      </span>
-                    )}
 
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "whitespace-nowrap font-semibold text-xs px-2.5 py-1",
-                        roleStyles[parent.role],
-                      )}
-                    >
-                      {parent.role}
-                    </Badge>
-                  </div>
-
-                  <MoveRightIcon />
-                </div>
-              ))}
-              <div className="flex flex-col justify-start items-start">
-                {userName ? (
-                  <span className={roleStylesText[userRole || ""]}>
-                    {userName}
+          {/* 🔗 PARENT CHAIN */}
+          <div className="flex flex-row gap-2 flex-wrap">
+            {parentChain.map((parent) => (
+              <div key={parent.id} className="flex flex-row items-start">
+                <div className="flex flex-col">
+                  <span className={roleStylesText[parent.role]}>
+                    {parent.userName}
                   </span>
-                ) : (
-                  "Unknown User"
-                )}
-                {userRole ? (
+
                   <Badge
                     variant="outline"
                     className={cn(
-                      "whitespace-nowrap font-semibold text-xs px-2.5 py-1",
-                      roleStyles[userRole], // No backticks needed here
+                      "text-xs font-semibold px-2.5 py-1",
+                      roleStyles[parent.role],
                     )}
                   >
-                    {userRole}
+                    {parent.role}
                   </Badge>
-                ) : (
-                  "Unknown Role"
-                )}
+                </div>
+                <MoveRightIcon />
               </div>
+            ))}
+
+            <div className="flex flex-col">
+              <span className={roleStylesText[userRole || ""]}>
+                {userName || "Unknown User"}
+              </span>
+
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-xs font-semibold px-2.5 py-1",
+                  roleStyles[userRole || ""],
+                )}
+              >
+                {userRole || "Unknown Role"}
+              </Badge>
             </div>
           </div>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="animate-spin h-6 w-6 text-muted-foreground" />
+
+        {/* ============================= */}
+        {/* 🔥 TABS HERE (after header) */}
+        {/* ============================= */}
+        <Tabs defaultValue="claim">
+          <TabsList>
+            <TabsTrigger value="claim">Claim History</TabsTrigger>
+            <TabsTrigger value="withdrawal">Withdrawal History</TabsTrigger>
+          </TabsList>
+
+          {/* ============================= */}
+          {/* 🧾 CLAIM HISTORY */}
+          {/* ============================= */}
+          <TabsContent value="claim">
+            <div className="max-h-[65vh] overflow-y-auto no-scrollbar">
+              <DataTable
+                columns={getVtoColumns()}
+                data={vtos}
+                isLoading={isVtoLoading}
+                hiddenColumns={[]}
+              />
             </div>
-          ) : vtos.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No VTO Summary.
+          </TabsContent>
+
+          {/* ============================= */}
+          {/* 💸 WITHDRAWAL HISTORY */}
+          {/* ============================= */}
+          <TabsContent value="withdrawal">
+            <div className="max-h-[65vh] overflow-y-auto no-scrollbar">
+              <DataTable
+                columns={withdrawHistoryColumns({ onViewThread: () => {} })}
+                data={commissions}
+                isLoading={isCommissionLoading}
+                hiddenColumns={[]}
+              />
             </div>
-          ) : (
-            <DataTable
-              columns={getVtoColumns()}
-              data={vtos}
-              hiddenColumns={[
-                "totalBet",
-                "totalWin",
-                "totalWinLoss",
-                "betCount",
-                "type",
-                "commissionType",
-                "winLoss",
-              ]}
-            />
-          )}
-        </div>
-        <DialogFooter>
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="px-6 pb-4">
           <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Close
-            </Button>
+            <Button variant="outline">Close</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
