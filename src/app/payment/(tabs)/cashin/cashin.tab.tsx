@@ -197,16 +197,10 @@ export function CashInContent({
     <Card>
       {!enableChatBased ? (
         <CardContent className="space-y-4 sm:space-y-6">
-          {/* Step 1: Select Payment Gateway*/}
+          {/* Step 1: Payment Method Selection */}
           <div>
             <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-              Step 1: Select Payment Gateway
-            </Label>
-          </div>
-          {/* Step 2: Payment Method Selection */}
-          <div>
-            <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-              Step 2. Select Payment Method
+              Step 1. Select Payment Method
             </Label>
             <div
               className={`grid ${cashinDisabled ? "grid-cols-3" : "grid-cols-2"}  gap-2 sm:gap-4`}
@@ -283,10 +277,10 @@ export function CashInContent({
             </div>
           </div>
 
-          {/* Step 3: Amount Input */}
+          {/* Step 2: Amount Input */}
           <div>
             <Label className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 block">
-              Step 3. Enter Amount
+              Step 2. Enter Amount
             </Label>
             <div className="space-y-3 sm:space-y-4">
               <Input
