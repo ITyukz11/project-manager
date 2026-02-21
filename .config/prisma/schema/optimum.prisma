@@ -11,9 +11,9 @@ model OptimumPayTransaction {
   remarks           String?             // Any remarks you want to store
 
   qbetStatus        String?             // Your internal status tracking
-
+  note             String?             // Any note you want to store
   amount            Float               // Transaction amount
-  trans_id String?             // Set after gateway responds
+  trans_id String?  @unique            // Set after gateway responds
   trans_time String?           // Set after gateway responds
   transaction_url   String?             // If gateway returns a payment URL (for CASHIN)
   qr_image_url      String?             // If gateway returns a QR image URL (for CASHIN)
@@ -31,6 +31,10 @@ qbetDepositedAt   DateTime? // When deposit to QBet confirmed
   rawWebhook        Json?               // Full webhook JSON from NotificationUrl callback
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+deposit_time   DateTime? // When you marked the transaction as deposited (for CASHIN)
+process_time   DateTime?  // When you marked the transaction as processed (for CASHOUT)
+gatewayStatus  Int?      // raw 1/0 for debugging
 
   @@index([userId, status])
 @@index([userId, qbetStatus])
