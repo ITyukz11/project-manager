@@ -1,6 +1,6 @@
 // app/api/deposit/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // adjust path if needed
+import { prisma } from "@/lib/prisma";
 
 const PROXY_BASE_URL = process.env.PROXY_OPTIMUMPAY_BASE_URL;
 
@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    console.log("📥 Received deposit request:", body);
     if (!body.casino || !body.hashed_mem_id || !body.amount) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -16,26 +15,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const casinoGroupId = await prisma.casinoGroup.findUnique({
-      where: { name: body.casino },
+    const casinoGroup = await prisma.casinoGroup.findFirst({
+      where: { name: { equals: body.casino, mode: "insensitive" } },
       select: { id: true },
     });
 
-    if (!casinoGroupId) {
+    if (!casinoGroup) {
       return NextResponse.json({ error: "Invalid casino" }, { status: 400 });
     }
 
-    const amount = parseFloat(body.amount);
+    const amount = Number(body.amount);
     if (isNaN(amount)) {
       return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
 
+    // 1️⃣ Create transaction
     const newTransaction = await prisma.optimumPayTransaction.create({
       data: {
-        casinoGroupId: casinoGroupId.id,
+        casinoGroupId: casinoGroup.id,
         userId: body.hashed_mem_id,
-        userName: body.merchant_user || "Unknown", // ensure non-empty string
-        referenceUserId: "", // will update after gateway
+        userName: body.merchant_user || "Unknown",
+        referenceUserId: "",
         type: body.type || "CASHIN",
         amount,
         status: "PENDING",
@@ -46,35 +46,42 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // --- 2️⃣ Use the inserted record ID as merchant_order_no ---
     const merchantOrderNo = newTransaction.id;
 
+    // 2️⃣ Send to proxy
     const proxyBody = {
       ...body,
-      merchant_order_no: merchantOrderNo, // overwrite with our transaction ID
+      merchant_order_no: merchantOrderNo,
     };
 
-    console.log("💾 Created OptimumPayTransaction:", newTransaction);
-    console.log("📤 Sending to proxy with merchant_order_no:", merchantOrderNo);
-
-    // --- 3️⃣ Forward request to Express proxy ---
     const response = await fetch(`${PROXY_BASE_URL}/api/deposit-optimum-pay`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(proxyBody),
     });
 
-    const text = await response.text();
+    const data = await response.json(); // ✅ parse JSON
 
-    // --- 4️⃣ Update transaction with gateway response ---
+    console.log("📥 Gateway response:", data);
+
+    // 3️⃣ Update transaction
     await prisma.optimumPayTransaction.update({
       where: { id: newTransaction.id },
       data: {
-        rawGatewayResponse: text, // store the raw response
+        rawGatewayResponse: data,
+
+        // gateway status (1 = request accepted, not completed yet)
+        status: data.status === 1 ? "PROCESSING" : "FAILED",
+
+        sign: data.sign,
+        note: data.note,
+        transaction_url: data.transaction_url,
+        trans_id: String(data.trans_id),
+        trans_time: data.trans_time,
       },
     });
 
-    return new NextResponse(text, { status: response.status });
+    return NextResponse.json(data, { status: response.status });
   } catch (err: any) {
     console.error("❌ Error calling deposit proxy:", err);
     return NextResponse.json(
